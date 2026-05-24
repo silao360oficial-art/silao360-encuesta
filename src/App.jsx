@@ -418,36 +418,38 @@ function LoginModal({onLogin,onClose}){
 
 // ── HEADER ──
 // ── FLOATING VOTE BUBBLE ──
-function FloatingBubble({myVote,candidates}){
+function FloatingBubble({myVote}){
   const party=myVote?PARTIES.find(p=>p.id===myVote):null;
-  const[pos,setPos]=useState({x:window.innerWidth-80,y:window.innerHeight/2});
-  const[vel,setVel]=useState({x:-1.5,y:-1.2});
+  const[pos,setPos]=useState({x:window.innerWidth-80,y:200});
+  const velRef=useRef({x:-1.2,y:-0.9});
   const[exploded,setExploded]=useState(false);
   const[pieces,setPieces]=useState([]);
+  const posRef=useRef({x:window.innerWidth-80,y:200});
   const rafRef=useRef();
 
   useEffect(()=>{
-    if(!party||exploded)return;
+    if(!party){cancelAnimationFrame(rafRef.current);return;}
     const animate=()=>{
-      setPos(p=>{
-        let nx=p.x+vel.x,ny=p.y+vel.y;
-        if(nx<20||nx>window.innerWidth-60){vel.x*=-1;nx=p.x+vel.x;}
-        if(ny<60||ny>window.innerHeight-100){vel.y*=-1;ny=p.y+vel.y;}
-        return{x:nx,y:ny};
-      });
+      posRef.current={
+        x:posRef.current.x+velRef.current.x,
+        y:posRef.current.y+velRef.current.y
+      };
+      if(posRef.current.x<20||posRef.current.x>window.innerWidth-70)velRef.current.x*=-1;
+      if(posRef.current.y<70||posRef.current.y>window.innerHeight-110)velRef.current.y*=-1;
+      setPos({...posRef.current});
       rafRef.current=requestAnimationFrame(animate);
     };
     rafRef.current=requestAnimationFrame(animate);
     return()=>cancelAnimationFrame(rafRef.current);
-  },[party,exploded,vel]);
+  },[party?.id]);
 
   const handleTap=()=>{
     if(exploded)return;
     setExploded(true);
     const ps=Array.from({length:8},(_,i)=>({id:i,angle:(i/8)*Math.PI*2,dist:60+Math.random()*40}));
     setPieces(ps);
-    setTimeout(()=>{setExploded(false);setPieces([]);},3000);
     playSound("success");
+    setTimeout(()=>{setExploded(false);setPieces([]);},3000);
   };
 
   if(!party)return null;
@@ -455,26 +457,22 @@ function FloatingBubble({myVote,candidates}){
 
   return(
     <div style={{position:"fixed",zIndex:500,pointerEvents:"none"}}>
-      {/* Main bubble */}
       {!exploded&&(
-        <motion.div animate={{x:pos.x,y:pos.y}} transition={{type:"tween",duration:0}}
-          style={{position:"fixed",left:0,top:0,pointerEvents:"auto",cursor:"pointer"}}
-          onClick={handleTap}>
+        <div style={{position:"fixed",left:pos.x,top:pos.y,pointerEvents:"auto",cursor:"pointer",zIndex:500}} onClick={handleTap}>
           <div style={{position:"relative",width:52,height:52}}>
             <div style={{position:"absolute",inset:-3,borderRadius:"50%",background:`conic-gradient(from 0deg,${party.color},#fff,${party.color})`,animation:"ledSpin 1.5s linear infinite"}}/>
             <div style={{position:"absolute",inset:2,borderRadius:"50%",background:"#fff",overflow:"hidden",border:`2px solid ${party.color}`,boxShadow:`0 0 16px ${party.color}80`}}>
               {logo?<img src={logo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:22,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{party.emoji}</span>}
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
-      {/* Explosion pieces */}
       {exploded&&pieces.map(p=>(
         <motion.div key={p.id}
           initial={{x:pos.x+20,y:pos.y+20,scale:1,opacity:1}}
           animate={{x:pos.x+20+Math.cos(p.angle)*p.dist,y:pos.y+20+Math.sin(p.angle)*p.dist,scale:0,opacity:0}}
-          transition={{duration:0.8,ease:"easeOut"}}
-          style={{position:"fixed",left:0,top:0,width:28,height:28,borderRadius:"50%",overflow:"hidden",border:`2px solid ${party.color}`,background:"#fff"}}>
+          transition={{duration:0.9,ease:"easeOut"}}
+          style={{position:"fixed",left:0,top:0,width:28,height:28,borderRadius:"50%",overflow:"hidden",border:`2px solid ${party.color}`,background:"#fff",zIndex:500}}>
           {logo?<img src={logo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{party.emoji}</span>}
         </motion.div>
       ))}
@@ -622,13 +620,16 @@ function ShareModal({votes,total,sorted,pct}){
   const buildMsg=()=>{
     const fecha=new Date().toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
     const hora=new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
-    const top=sorted.slice(0,5).map((p,i)=>{
-      const pc=pct(p.id).toFixed(1);
+    const allParties=[...PARTIES].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0));
+    const tot=allParties.reduce((a,p)=>a+(votes[p.id]||0),0);
+    const lines=allParties.map((p,i)=>{
+      const v=votes[p.id]||0;
+      const pc=tot>0?(v/tot*100):0;
       const bar="█".repeat(Math.round(pc/10))+"░".repeat(10-Math.round(pc/10));
-      return `${i===0?"🏆":i===1?"🥈":i===2?"🥉":"  "} ${p.short.padEnd(12)} ${bar} ${pc}%`;
+      const medal=i===0&&v>0?"🏆":i===1&&v>0?"🥈":i===2&&v>0?"🥉":"  ";
+      return `${medal} ${p.short.slice(0,12).padEnd(12)} ${bar} ${pc.toFixed(1)}% (${v})`;
     }).join("\n");
-    const tot=Object.values(votes).reduce((a,b)=>a+b,0);
-    return `🗳️ SILAO 360 — ENCUESTA CIUDADANA\n📅 ${fecha} · 🕐 ${hora}\n━━━━━━━━━━━━━━━━━━━\n${top}\n━━━━━━━━━━━━━━━━━━━\n📊 Total de votos: ${tot}\n\n📱 ¡Vota aquí!\n👉 silao360.com.mx\n\n🌐 Más info:\nsilao360.com\n\n#Silao #Guanajuato #Encuesta #Silao360`;
+    return `🗳️ SILAO 360 — ENCUESTA CIUDADANA\n📅 ${fecha} · 🕐 ${hora}\n📍 Silao, Guanajuato\n${"━".repeat(32)}\n${lines}\n${"━".repeat(32)}\n📊 Total participantes: ${tot}\n\n📱 ¡Participa en la encuesta!\n👉 silao360.com.mx\n\n🌐 Más información:\nsilao360.com\n\n#Silao #Guanajuato #Encuesta #Silao360 #EncuestaCiudadana`;
   };
 
   const shareWA=()=>{window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(buildMsg()),"_blank");};
@@ -766,8 +767,8 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
                 borderRadius:14,padding:"12px 14px",position:"relative",overflow:"hidden",
                 boxShadow:isTop?"0 4px 20px rgba(245,158,11,0.15)":isMe?`0 2px 12px ${p.color}20`:"0 1px 4px rgba(0,0,0,0.04)"}}>
 
-              {/* fondo fill animado */}
-              <div style={{position:"absolute",left:0,top:0,bottom:0,width:bars?`${pc}%`:"0%",background:`${p.color}08`,transition:"width 1.6s cubic-bezier(.16,1,.3,1)",pointerEvents:"none",borderRadius:"12px 0 0 12px"}}/>
+              {/* Kitt sweep */}
+              <div style={{position:"absolute",top:0,bottom:0,width:"30%",background:`linear-gradient(90deg,transparent,${p.color}40,transparent)`,animation:`kitt ${3+rank*0.7}s ease-in-out infinite`,pointerEvents:"none",zIndex:1}}/>
 
               {/* fila superior: rank + logo + nombre + badges + % grande */}
               <div style={{display:"flex",alignItems:"center",gap:10,position:"relative",marginBottom:8}}>
@@ -1105,7 +1106,7 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals
 
 // ── ARTICLES SCREEN ──
 // ── PREGÚNTALE A TU CANDIDATO ──
-function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo}){
+function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo,candidates}){
   const cats=Object.keys(PREGUNTAS);
   const[cat,setCat]=useState(cats[0]);
   const[idx,setIdx]=useState(0);
@@ -1114,22 +1115,25 @@ function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo
   const party=PARTIES[Math.floor(Math.random()*PARTIES.length)];
 
   const retarle=(partido)=>{
-    const msg=`❓ Le pregunto a ${partido.name}:\n\n"${q}"\n\n📱 Silao 360 — Encuesta Ciudadana\n👉 silao360.com.mx\n\n#Silao #PreguntaleAlCandidato`;
+    const cand=partido?.candidato;
+    const wa=cand?.whatsapp?`\n📱 Escríbele: wa.me/52${cand.whatsapp}`:"";
+    const web=cand?.web?`\n🌐 Más info: ${cand.web}`:"";
+    const msg=`❓ Le pregunto a ${partido.name}:\n\n"${q}"\n${wa}${web}\n\n📊 Vía Silao 360 — Encuesta Ciudadana\n👉 silao360.com.mx\n\n#Silao #PreguntaleAlCandidato #Silao360`;
     window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(msg),"_blank");
   };
   const retarleFB=(partido)=>{
-    const msg=`❓ "${q}" — Le pregunto a ${partido.name}. Silao 360`;
+    const msg=`❓ "${q}" — Le pregunto a ${partido.name}.\n\nVía Silao 360 — Encuesta Ciudadana | silao360.com.mx`;
     window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent("https://silao360.com.mx")+"&quote="+encodeURIComponent(msg),"_blank");
   };
 
   return(
-    <div style={{minHeight:"100vh",background:"#f8faff",paddingBottom:100}}>
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)",paddingBottom:100}}>
       <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"14px 12px"}}>
         {/* Título */}
         <div style={{textAlign:"center",marginBottom:14}}>
-          <div style={{fontSize:28,fontWeight:900,color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>❓ PREGÚNTALE</div>
-          <div style={{fontSize:13,color:"#6b7280",marginTop:2}}>A TU CANDIDATO</div>
+          <div style={{fontSize:28,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>❓ PREGÚNTALE</div>
+          <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginTop:2}}>A TU CANDIDATO — VÍA SILAO 360</div>
         </div>
 
         {/* Categorías */}
@@ -1155,24 +1159,26 @@ function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo
         </motion.div>
 
         {/* Retarle */}
-        <div style={{fontSize:11,fontWeight:900,color:"#374151",letterSpacing:2,marginBottom:10,fontFamily:"Barlow Condensed,sans-serif"}}>🎯 RETARLE — ELIGE UN PARTIDO</div>
+        <div style={{fontSize:11,fontWeight:900,color:"rgba(255,255,255,0.7)",letterSpacing:2,marginBottom:10,fontFamily:"Barlow Condensed,sans-serif"}}>🎯 RETARLE — ELIGE UN PARTIDO</div>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-          {PARTIES.slice(0,5).map(p=>{
+          {PARTIES.filter(p=>p.id!=="nulo").map(p=>{
             const logo=PARTY_LOGOS[p.id];
+            const cand=candidates?.[p.id];
             return(
-              <div key={p.id} style={{background:"#fff",border:`2px solid ${p.color}30`,borderRadius:14,padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
+              <div key={p.id} style={{background:"rgba(255,255,255,0.06)",border:`2px solid ${p.color}40`,borderRadius:14,padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
                 <div style={{width:38,height:38,borderRadius:8,overflow:"hidden",border:`2px solid ${p.color}`,flexShrink:0}}>
                   {logo?<img src={logo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
                 </div>
                 <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif"}}>{p.short}</div>
+                  {cand?.whatsapp&&<div style={{fontSize:8,color:"rgba(255,255,255,0.3)",fontFamily:"Barlow Condensed,sans-serif"}}>📱 {cand.whatsapp}</div>}
                 </div>
                 <div style={{display:"flex",gap:6}}>
-                  <motion.button whileTap={{scale:0.95}} onClick={()=>retarle(p)}
+                  <motion.button whileTap={{scale:0.95}} onClick={()=>retarle({...p,candidato:cand})}
                     style={{background:"linear-gradient(135deg,#25d366,#128c4e)",border:"none",borderRadius:8,padding:"7px 10px",color:"#fff",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>
                     📱 WA
                   </motion.button>
-                  <motion.button whileTap={{scale:0.95}} onClick={()=>retarleFB(p)}
+                  <motion.button whileTap={{scale:0.95}} onClick={()=>retarleFB({...p,candidato:cand})}
                     style={{background:"linear-gradient(135deg,#1877f2,#0d5cc7)",border:"none",borderRadius:8,padding:"7px 10px",color:"#fff",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>
                     f FB
                   </motion.button>
@@ -1544,7 +1550,7 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,onClose,votes
         {tab==="candidatos"&&(<div>
           {editId&&(<motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} style={{background:"rgba(255,255,255,0.08)",borderRadius:12,padding:"14px",marginBottom:12,border:"1px solid rgba(255,255,255,0.15)"}}>
             <div style={{fontSize:12,fontWeight:900,color:"#fff",marginBottom:10,fontFamily:"Barlow Condensed,sans-serif"}}>✏️ {PARTIES.find(p=>p.id===editId)?.short}</div>
-            {[{k:"nombre",label:"Nombre del candidato"},{k:"cargo",label:"Cargo"},{k:"bio",label:"Bio / descripción"}].map(({k,label})=>(<div key={k} style={{marginBottom:10}}><div style={{fontSize:9,color:"#9ca3af",letterSpacing:1,marginBottom:3,fontFamily:"Barlow Condensed,sans-serif"}}>{label.toUpperCase()}</div><input value={editData[k]||""} onChange={e=>setEditData(d=>({...d,[k]:e.target.value}))} style={{width:"100%",background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:7,padding:"10px 12px",color:"#fff",fontSize:12,outline:"none",fontFamily:"Barlow Condensed,sans-serif"}}/></div>))}
+            {[{k:"nombre",label:"Nombre del candidato"},{k:"cargo",label:"Cargo"},{k:"whatsapp",label:"📱 WhatsApp (solo número, ej: 4721234567)"},{k:"web",label:"🌐 Página web (ej: candidato.mx)"},{k:"bio",label:"Bio / descripción"}].map(({k,label})=>(<div key={k} style={{marginBottom:10}}><div style={{fontSize:9,color:"#9ca3af",letterSpacing:1,marginBottom:3,fontFamily:"Barlow Condensed,sans-serif"}}>{label.toUpperCase()}</div><input value={editData[k]||""} onChange={e=>setEditData(d=>({...d,[k]:e.target.value}))} style={{width:"100%",background:"rgba(255,255,255,0.07)",border:`1px solid ${k==="whatsapp"?"rgba(34,197,94,0.4)":k==="web"?"rgba(59,130,246,0.4)":"rgba(255,255,255,0.2)"}`,borderRadius:7,padding:"10px 12px",color:"#fff",fontSize:12,outline:"none",fontFamily:"Barlow Condensed,sans-serif"}}/></div>))}
             <div style={{display:"flex",gap:8,marginTop:10}}>
               <button onClick={()=>setEditId(null)} style={{flex:1,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:8,padding:"10px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:700}}>CANCELAR</button>
               <motion.button whileTap={{scale:0.96}} onClick={saveCand} style={{flex:2,background:"#16a34a",border:"none",borderRadius:8,padding:"10px",color:"#fff",fontSize:12,cursor:"pointer",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>✅ GUARDAR CANDIDATO</motion.button>
@@ -1817,6 +1823,7 @@ export default function App(){
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;700;800;900&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
+        @keyframes kitt{0%{left:-30%;opacity:0.8}50%{opacity:1}100%{left:130%;opacity:0}}
         @keyframes pd{0%,100%{opacity:1}50%{opacity:.3}}
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes logoPulse{0%,100%{box-shadow:0 3px 14px rgba(224,16,16,0.45)}50%{box-shadow:0 3px 26px rgba(224,16,16,0.8),0 0 40px rgba(224,16,16,0.3)}}
@@ -1840,11 +1847,11 @@ export default function App(){
           {screen==="vote"&&<VoteScreen {...sp} myVote={myVote} onVote={handleVote} candidates={candidates} setScreen={setScreen}/>}
           {screen==="proposals"&&<ProposalsScreen {...sp} proposals={proposals} setProposals={setProposals} isAdmin={isAdmin}/>}
           {screen==="articles"&&<ArticlesScreen {...sp} candidates={candidates}/>}
-          {screen==="preguntale"&&<PreguntaleScreen {...sp}/>}
+          {screen==="preguntale"&&<PreguntaleScreen {...sp} candidates={candidates}/>}
           {screen==="comments"&&<CommentsScreen {...sp} isAdmin={isAdmin} comments={comments} setComments={setComments} blockedNicks={blockedNicks} pinnedMsg={pinnedMsg}/>}
         </div>
         <InstallBanner/>
-        <FloatingBubble myVote={myVote} candidates={candidates}/>
+        <FloatingBubble myVote={myVote}/>
         <NavBar screen={screen} setScreen={setScreen}/>
       </>)}
     </div>
