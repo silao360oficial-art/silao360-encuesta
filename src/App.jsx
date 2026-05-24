@@ -201,7 +201,67 @@ function MoneyModal({onClose}){
 
 // ── ONBOARDING ──
 function OnboardingModal({onComplete,onSkip}){
-  const[step,setStep]=useState(1);const[name,setName]=useState("");const[nickname,setNickname]=useState("");const[loading,setLoading]=useState(false);
+  const[step,setStep]=useState(1);const[name,setName]=useState("");const[nickname,setNickname]=useState("");const[loading,setLoading]=useState(false);const[authErr,setAuthErr]=useState("");
+
+  // ── Cargar FB SDK ──
+  useEffect(()=>{
+    if(window.FB)return;
+    window.fbAsyncInit=()=>{window.FB.init({appId:"922258007510427",cookie:true,xfbml:false,version:"v19.0"});};
+    const s=document.createElement("script");s.id="facebook-jssdk";s.src="https://connect.facebook.net/es_LA/sdk.js";s.async=true;s.defer=true;
+    document.head.appendChild(s);
+  },[]);
+
+  // ── Cargar Google GSI ──
+  useEffect(()=>{
+    if(document.getElementById("gsi-script"))return;
+    const s=document.createElement("script");s.id="gsi-script";s.src="https://accounts.google.com/gsi/client";s.async=true;s.defer=true;
+    document.head.appendChild(s);
+  },[]);
+
+  const loginFB=()=>{
+    setLoading(true);setAuthErr("");
+    if(!window.FB){setAuthErr("SDK de Facebook no cargó. Intenta de nuevo.");setLoading(false);return;}
+    window.FB.login(res=>{
+      if(res.authResponse){
+        window.FB.api("/me",{fields:"name"},me=>{
+          const nm=me.name||"Usuario Facebook";
+          setName(nm);const nick=genNickname(nm+Date.now());setNickname(nick);setLoading(false);setStep(3);
+        });
+      }else{setAuthErr("Cancelaste el inicio de sesión con Facebook.");setLoading(false);}
+    },{scope:"public_profile"});
+  };
+
+  const loginGoogle=()=>{
+    setLoading(true);setAuthErr("");
+    const tryLogin=()=>{
+      if(!window.google?.accounts?.id){setAuthErr("Google no cargó. Intenta de nuevo.");setLoading(false);return;}
+      window.google.accounts.id.initialize({
+        client_id:"667429705913-hfa6fedb68l5g14g8ri03vigkf4ccvtg.apps.googleusercontent.com",
+        callback:(resp)=>{
+          try{
+            const payload=JSON.parse(atob(resp.credential.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
+            const nm=payload.name||payload.email?.split("@")[0]||"Usuario Google";
+            setName(nm);const nick=genNickname(nm+Date.now());setNickname(nick);setLoading(false);setStep(3);
+          }catch(e){setAuthErr("Error al leer respuesta de Google.");setLoading(false);}
+        },
+        ux_mode:"popup",
+        cancel_on_tap_outside:true,
+      });
+      window.google.accounts.id.prompt(notification=>{
+        if(notification.isNotDisplayed()||notification.isSkippedMoment()){
+          // fallback: render button en div oculto
+          const div=document.createElement("div");div.id="g_id_btn";div.style.cssText="position:fixed;bottom:-200px;left:0;opacity:0;pointer-events:none;";
+          document.body.appendChild(div);
+          window.google.accounts.id.renderButton(div,{type:"standard",theme:"outline",size:"large"});
+          setTimeout(()=>div.querySelector("div[role=button]")?.click(),200);
+        }
+      });
+    };
+    // wait for GSI if not ready
+    if(window.google?.accounts?.id)tryLogin();
+    else{let t=0;const iv=setInterval(()=>{t++;if(window.google?.accounts?.id){clearInterval(iv);tryLogin();}else if(t>30){clearInterval(iv);setAuthErr("Google tardó en cargar. Refresca la página.");setLoading(false);}},200);}
+  };
+
   const go=()=>{if(!name.trim())return;setLoading(true);setTimeout(()=>{setNickname(genNickname(name.trim()+Date.now()));setLoading(false);setStep(3);},900);};
   return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{position:"fixed",inset:0,zIndex:500,background:"linear-gradient(160deg,#0f172a,#1e1b4b,#0f172a)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
@@ -224,34 +284,25 @@ function OnboardingModal({onComplete,onSkip}){
               <div style={{fontSize:22,fontWeight:900,color:"#fff",lineHeight:1.2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>BIENVENIDO A<br/>SILAO 360</div>
               <div style={{fontSize:11,color:"rgba(255,255,255,0.55)",lineHeight:1.7,marginBottom:16}}>La encuesta ciudadana más transparente de Silao.<br/>Tu nombre real <strong style={{color:"#fff"}}>NUNCA</strong> se publica.</div>
             </div>
-            <motion.button whileTap={{scale:0.96}} onClick={()=>{playSound("click");setStep(2);}} style={{width:"100%",background:"#1877f2",border:"none",borderRadius:12,padding:"13px",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-              <span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:18}}>f</span> ENTRAR CON FACEBOOK
-            </motion.button>
-            <motion.button whileTap={{scale:0.96}} onClick={()=>{playSound("click");setStep("google");}} style={{width:"100%",background:"#fff",border:"2px solid #e5e7eb",borderRadius:12,padding:"13px",color:"#374151",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-              <span style={{fontSize:18}}>🔵</span> ENTRAR CON GOOGLE
-            </motion.button>
-            <motion.button whileTap={{scale:0.95}} onClick={onSkip}
-              style={{width:"100%",position:"relative",overflow:"hidden",background:"transparent",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"10px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-              <div style={{position:"absolute",inset:0,background:"conic-gradient(from 0deg,rgba(100,200,255,0.15),rgba(200,100,255,0.15),rgba(100,200,255,0.15))",animation:"ledSpin 3s linear infinite",borderRadius:10}}/>
-              <span style={{fontSize:14,position:"relative",zIndex:1}}>👁️</span>
-              <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700,letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",position:"relative",zIndex:1}}>SOLO QUIERO VER — sin votar</span>
-            </motion.button>
-          </motion.div>}
-          {step==="google"&&<motion.div key="sg" initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-20}}>
-            <div style={{textAlign:"center",marginBottom:14}}><div style={{fontSize:44,marginBottom:6}}>🔵</div><div style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif"}}>Entra con Google</div><div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:4}}>¿Cómo te llamas?</div></div>
-            {loading?<div style={{textAlign:"center",padding:"18px 0"}}><div style={{width:30,height:30,border:"3px solid rgba(255,255,255,0.1)",borderTopColor:"#4285f4",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 8px"}}/></div>:<>
-              <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&name.trim()&&go()} placeholder="Tu nombre completo" style={{width:"100%",background:"rgba(255,255,255,0.09)",border:"1.5px solid rgba(255,255,255,0.18)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"Barlow Condensed,sans-serif",marginBottom:10}}/>
-              <motion.button whileTap={{scale:0.96}} onClick={go} disabled={!name.trim()} style={{width:"100%",background:name.trim()?"#4285f4":"rgba(255,255,255,0.08)",border:"none",borderRadius:12,padding:"12px",color:name.trim()?"#fff":"rgba(255,255,255,0.3)",fontSize:13,fontWeight:800,cursor:name.trim()?"pointer":"default",marginBottom:8}}>GENERAR MI APODO →</motion.button>
+            {loading&&<div style={{textAlign:"center",padding:"14px 0"}}><div style={{width:30,height:30,border:"3px solid rgba(255,255,255,0.1)",borderTopColor:"#1877f2",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 8px"}}/><div style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>Conectando...</div></div>}
+            {!loading&&<>
+              <motion.button whileTap={{scale:0.96}} onClick={()=>{playSound("click");loginFB();}} style={{width:"100%",background:"#1877f2",border:"none",borderRadius:12,padding:"13px",color:"#fff",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                <span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:18}}>f</span> ENTRAR CON FACEBOOK
+              </motion.button>
+              <motion.button whileTap={{scale:0.96}} onClick={()=>{playSound("click");loginGoogle();}} style={{width:"100%",background:"#fff",border:"2px solid #e5e7eb",borderRadius:12,padding:"13px",color:"#374151",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                <span style={{fontSize:18}}>🔵</span> ENTRAR CON GOOGLE
+              </motion.button>
+              {authErr&&<div style={{fontSize:10,color:"#fca5a5",textAlign:"center",marginBottom:8,padding:"6px 10px",background:"rgba(220,38,38,0.15)",borderRadius:8}}>{authErr}</div>}
+              <motion.button whileTap={{scale:0.95}} onClick={onSkip}
+                style={{width:"100%",position:"relative",overflow:"hidden",background:"transparent",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"10px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                <div style={{position:"absolute",inset:0,background:"conic-gradient(from 0deg,rgba(100,200,255,0.15),rgba(200,100,255,0.15),rgba(100,200,255,0.15))",animation:"ledSpin 3s linear infinite",borderRadius:10}}/>
+                <span style={{fontSize:14,position:"relative",zIndex:1}}>👁️</span>
+                <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700,letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",position:"relative",zIndex:1}}>SOLO QUIERO VER — sin votar</span>
+              </motion.button>
             </>}
-            <button onClick={()=>setStep(1)} style={{width:"100%",background:"transparent",border:"none",marginTop:4,color:"rgba(255,255,255,0.25)",fontSize:10,cursor:"pointer"}}>← VOLVER</button>
           </motion.div>}
           {step===2&&<motion.div key="s2" initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-20}}>
-            <div style={{textAlign:"center",marginBottom:14}}><div style={{fontSize:44,marginBottom:6}}>👤</div><div style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif"}}>¿Cómo te llamas?</div></div>
-            {loading?<div style={{textAlign:"center",padding:"18px 0"}}><div style={{width:30,height:30,border:"3px solid rgba(255,255,255,0.1)",borderTopColor:"#1877f2",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 8px"}}/></div>:<>
-              <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&name.trim()&&go()} placeholder="Tu nombre completo" style={{width:"100%",background:"rgba(255,255,255,0.09)",border:"1.5px solid rgba(255,255,255,0.18)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:14,outline:"none",fontFamily:"Barlow Condensed,sans-serif",marginBottom:10}}/>
-              <motion.button whileTap={{scale:0.96}} onClick={go} disabled={!name.trim()} style={{width:"100%",background:name.trim()?"#1877f2":"rgba(255,255,255,0.08)",border:"none",borderRadius:12,padding:"12px",color:name.trim()?"#fff":"rgba(255,255,255,0.3)",fontSize:13,fontWeight:800,cursor:name.trim()?"pointer":"default"}}>GENERAR MI APODO →</motion.button>
-            </>}
-            <button onClick={()=>setStep(1)} style={{width:"100%",background:"transparent",border:"none",marginTop:8,color:"rgba(255,255,255,0.25)",fontSize:10,cursor:"pointer"}}>← VOLVER</button>
+            <div style={{textAlign:"center",padding:"24px 0"}}><div style={{width:32,height:32,border:"3px solid rgba(255,255,255,0.1)",borderTopColor:"#1877f2",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 12px"}}/><div style={{fontSize:11,color:"rgba(255,255,255,0.5)"}}>Conectando con Facebook...</div></div>
           </motion.div>}
           {step===3&&<motion.div key="s3" initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} exit={{opacity:0}}>
             <div style={{textAlign:"center",marginBottom:14}}>
@@ -295,35 +346,92 @@ function LoginModal({onLogin,onClose}){
 }
 
 // ── HEADER ──
-function Header({total,user,onLoginClick,onLogoClick,siteLogo}){
+function LiveClock(){
+  const[now,setNow]=useState(new Date());
+  useEffect(()=>{const iv=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(iv);},[]);
   return(
-    <div style={{position:"sticky",top:0,zIndex:20,background:"rgba(255,255,255,0.97)",backdropFilter:"blur(14px)",borderBottom:"2px solid #e01010",padding:"8px 14px"}}>
-      <div style={{maxWidth:580,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
+    <div style={{textAlign:"center",lineHeight:1.1}}>
+      <div style={{fontSize:13,fontWeight:900,color:"#1d4ed8",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{now.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</div>
+      <div style={{fontSize:8,color:"#6b7280",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>{now.toLocaleDateString("es-MX",{day:"numeric",month:"short"}).toUpperCase()}</div>
+    </div>
+  );
+}
+
+function AnonFlipBtn(){
+  const[flipped,setFlipped]=useState(false);
+  const flip=()=>{setFlipped(true);playSound("click");setTimeout(()=>setFlipped(false),5000);};
+  return(
+    <motion.button onClick={flip} whileTap={{scale:0.95}}
+      animate={{rotateY:flipped?180:0}} transition={{duration:0.5}}
+      style={{background:flipped?"#fff":"linear-gradient(135deg,#1d4ed8,#7c3aed)",border:flipped?"2px solid #1d4ed8":"none",borderRadius:10,padding:"5px 10px",cursor:"pointer",minWidth:80,boxShadow:"0 2px 10px rgba(29,78,216,0.3)"}}>
+      {flipped
+        ?<span style={{fontSize:9,color:"#111",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>🎭 VOTO<br/>ANÓNIMO</span>
+        :<span style={{fontSize:9,color:"#fff",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>👁️ ANÓNIMO</span>}
+    </motion.button>
+  );
+}
+
+function Header({total,user,onLoginClick,onLogoClick,onLogout,siteLogo}){
+  return(
+    <>
+    <style>{`::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:#f1f1f1}::-webkit-scrollbar-thumb{background:#e01010;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:#b91c1c}`}</style>
+    <div style={{position:"sticky",top:0,zIndex:20,background:"rgba(255,255,255,0.97)",backdropFilter:"blur(14px)",borderBottom:"3px solid #e01010",padding:"6px 10px"}}>
+      <div style={{maxWidth:580,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",gap:6}}>
+
+        {/* LEFT: logo + title */}
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
           <motion.button whileTap={{scale:0.9}} onClick={onLogoClick} style={{background:"none",border:"none",cursor:"pointer",padding:0}}>
-            <div style={{display:"flex",alignItems:"center",gap:7}}>
-              <div style={{width:40,height:40,borderRadius:10,overflow:"hidden",border:"2px solid rgba(224,16,16,0.4)",boxShadow:"0 0 14px rgba(224,16,16,0.4)",animation:"logoPulse 2s ease-in-out infinite"}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <div style={{width:38,height:38,borderRadius:10,overflow:"hidden",border:"2px solid rgba(224,16,16,0.4)",boxShadow:"0 0 14px rgba(224,16,16,0.4)",animation:"logoPulse 2s ease-in-out infinite"}}>
                 <img src={siteLogo||LOGO_SILAO360} alt="Silao360" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
               </div>
               <div style={{lineHeight:1}}>
-                <div style={{fontSize:18,fontWeight:900,color:"#e01010",letterSpacing:3,lineHeight:1,fontFamily:"Barlow Condensed,sans-serif"}}>SILAO</div>
-                <div style={{fontSize:10,fontWeight:900,color:"#ff4444",letterSpacing:5,lineHeight:1,marginTop:1,fontFamily:"Barlow Condensed,sans-serif",animation:"glow360 2s ease-in-out infinite"}}>360</div>
+                <div style={{fontSize:17,fontWeight:900,color:"#e01010",letterSpacing:3,lineHeight:1,fontFamily:"Barlow Condensed,sans-serif"}}>SILAO</div>
+                <div style={{fontSize:9,fontWeight:900,color:"#ff4444",letterSpacing:5,lineHeight:1,marginTop:1,fontFamily:"Barlow Condensed,sans-serif",animation:"glow360 2s ease-in-out infinite"}}>360</div>
               </div>
             </div>
           </motion.button>
+
+          {/* Facebook circle */}
           <a href="https://www.facebook.com/share/1CCfvKYYK1/?mibextid=wwXIfr" target="_blank" rel="noreferrer"
-            style={{width:30,height:30,background:"#1877f2",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none",boxShadow:"0 2px 8px rgba(24,119,242,0.4)",flexShrink:0}}>
-            <span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:15,color:"#fff",lineHeight:1}}>f</span>
+            style={{width:28,height:28,background:"#1877f2",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",textDecoration:"none",boxShadow:"0 2px 8px rgba(24,119,242,0.4)",flexShrink:0}}>
+            <span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:14,color:"#fff",lineHeight:1}}>f</span>
           </a>
+
+          {/* Clock between F and apodo */}
+          <LiveClock/>
         </div>
-        {user?(<div style={{display:"flex",alignItems:"center",gap:5,background:"#eff6ff",border:"1.5px solid #3b82f6",borderRadius:30,padding:"4px 10px 4px 5px",flexShrink:0,maxWidth:140}}><div style={{width:22,height:22,borderRadius:"50%",background:"#1877f2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,flexShrink:0}}>🎭</div><span style={{fontSize:9,fontWeight:700,color:"#1d4ed8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.nickname}</span></div>):(<motion.button whileTap={{scale:0.94}} onClick={()=>{playSound("click");onLoginClick();}} style={{background:"#1877f2",border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:9,fontWeight:700,cursor:"pointer",letterSpacing:1,flexShrink:0}}>f ENTRAR</motion.button>)}
-        <div style={{background:"#fff0f0",border:"2px solid #e01010",borderRadius:10,padding:"4px 9px",textAlign:"center",flexShrink:0}}>
+
+        {/* CENTER: apodo with LED ring OR login */}
+        {user?(
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flex:1}}>
+            <div style={{position:"relative",display:"inline-flex",alignItems:"center",justifyContent:"center"}}>
+              <div style={{position:"absolute",inset:-3,borderRadius:30,background:"conic-gradient(from 0deg,#e01010,#ff6b6b,#1877f2,#4ade80,#fbbf24,#e01010)",animation:"ledSpin 2s linear infinite",filter:"blur(1px)"}}/>
+              <div style={{position:"relative",background:"#eff6ff",border:"2px solid transparent",borderRadius:30,padding:"4px 12px 4px 6px",display:"flex",alignItems:"center",gap:5}}>
+                <div style={{width:22,height:22,borderRadius:"50%",background:"#1877f2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,flexShrink:0}}>🎭</div>
+                <span style={{fontSize:13,fontWeight:900,color:"#1d4ed8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:90,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>{user.nickname}</span>
+              </div>
+            </div>
+            <button onClick={onLogout} style={{background:"none",border:"none",fontSize:8,color:"#9ca3af",cursor:"pointer",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>← SALIR</button>
+          </div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flex:1}}>
+            <AnonFlipBtn/>
+            <motion.button whileTap={{scale:0.94}} onClick={()=>{playSound("click");onLoginClick();}}
+              style={{background:"#1877f2",border:"none",borderRadius:8,padding:"5px 10px",color:"#fff",fontSize:9,fontWeight:700,cursor:"pointer",letterSpacing:1}}>f ENTRAR</motion.button>
+          </div>
+        )}
+
+        {/* RIGHT: EN VIVO */}
+        <div style={{background:"#fff0f0",border:"2px solid #e01010",borderRadius:10,padding:"4px 8px",textAlign:"center",flexShrink:0}}>
           <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:1}}><div style={{width:4,height:4,borderRadius:"50%",background:"#e01010",animation:"pd 1.8s infinite"}}/><span style={{fontSize:7,color:"#e01010",letterSpacing:1.5,fontWeight:700}}>EN VIVO</span></div>
           <div style={{fontSize:19,fontWeight:900,color:"#e01010",lineHeight:1,letterSpacing:-1,fontFamily:"Barlow Condensed,sans-serif"}}><LiveCount value={total}/></div>
           <div style={{fontSize:7,color:"#6b7280",letterSpacing:1.5,fontFamily:"Barlow Condensed,sans-serif"}}>VOTOS</div>
         </div>
+
       </div>
     </div>
+    </>
   );
 }
 
@@ -370,7 +478,75 @@ function NavBar({screen,setScreen}){
 }
 
 // ── RESULTS SCREEN ──
-function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoClick,siteLogo}){
+// ── SHARE MODAL ──
+function ShareModal({votes,total,sorted,pct}){
+  const[open,setOpen]=useState(false);
+
+  const buildMsg=()=>{
+    const top=sorted.slice(0,5).map((p,i)=>`${i+1}. ${p.short}: ${pct(p.id).toFixed(1)}% (${votes[p.id]||0} votos)`).join("\n");
+    return `🗳️ SILAO 360 — RESULTADOS EN VIVO\n📊 Silao, Gto. · ${new Date().toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"})}\n\n${top}\n\n📱 ¡Participa aquí!\n👉 silao360.com.mx\n\n🌐 Más información:\nsilao360.com\n\n#Silao #Guanajuato #Encuesta2025`;
+  };
+
+  const shareWA=()=>{window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(buildMsg()),"_blank");};
+  const shareFB=()=>{window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent("https://silao360.com.mx")+"&quote="+encodeURIComponent(buildMsg()),"_blank");};
+
+  return(
+    <>
+      <motion.button whileTap={{scale:0.96}} onClick={()=>{playSound("click");setOpen(true);}}
+        style={{flex:1,background:"linear-gradient(135deg,#0f172a,#1e3a8a)",border:"2px solid rgba(59,130,246,0.5)",borderRadius:12,padding:"12px",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 20px rgba(59,130,246,0.3)"}}>
+        <span style={{fontSize:18}}>📤</span> COMPARTIR DATOS
+      </motion.button>
+
+      <AnimatePresence>
+        {open&&(
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+            style={{position:"fixed",inset:0,zIndex:800,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"flex-end",justifyContent:"center",padding:"0 0 20px"}}
+            onClick={e=>{if(e.target===e.currentTarget)setOpen(false);}}>
+            <motion.div initial={{y:100,opacity:0}} animate={{y:0,opacity:1}} exit={{y:100,opacity:0}} transition={{type:"spring",stiffness:300,damping:30}}
+              style={{background:"#fff",borderRadius:"20px 20px 16px 16px",padding:"20px 18px 24px",width:"100%",maxWidth:480}}>
+
+              {/* Handle */}
+              <div style={{width:36,height:4,background:"#e5e7eb",borderRadius:2,margin:"0 auto 16px"}}/>
+
+              <div style={{fontSize:11,fontWeight:900,color:"#111",letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:4}}>📤 COMPARTIR RESULTADOS</div>
+              <div style={{fontSize:10,color:"#6b7280",marginBottom:14}}>Se compartirán los datos actuales de la encuesta</div>
+
+              {/* Preview del mensaje */}
+              <div style={{background:"#f8fafc",border:"1.5px solid #e2e8f0",borderRadius:12,padding:"12px 14px",marginBottom:14,fontSize:11,color:"#374151",lineHeight:1.7,fontFamily:"monospace",whiteSpace:"pre-wrap"}}>
+                {buildMsg()}
+              </div>
+
+              {/* Botones */}
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                <motion.button whileTap={{scale:0.97}} onClick={shareWA}
+                  style={{width:"100%",background:"linear-gradient(135deg,#25d366,#128c4e)",border:"none",borderRadius:12,padding:"14px",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+                  <span style={{fontSize:20}}>📱</span> COMPARTIR POR WHATSAPP
+                </motion.button>
+                <motion.button whileTap={{scale:0.97}} onClick={shareFB}
+                  style={{width:"100%",background:"linear-gradient(135deg,#1877f2,#0d5cc7)",border:"none",borderRadius:12,padding:"14px",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+                  <span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:18}}>f</span> COMPARTIR EN FACEBOOK
+                </motion.button>
+                <div style={{display:"flex",gap:8}}>
+                  <motion.button whileTap={{scale:0.97}} onClick={()=>window.open("https://silao360.com.mx","_blank")}
+                    style={{flex:1,background:"#f1f5f9",border:"1.5px solid #e2e8f0",borderRadius:10,padding:"10px",color:"#1d4ed8",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>
+                    📱 silao360.com.mx
+                  </motion.button>
+                  <motion.button whileTap={{scale:0.97}} onClick={()=>window.open("https://silao360.com","_blank")}
+                    style={{flex:1,background:"#f1f5f9",border:"1.5px solid #e2e8f0",borderRadius:10,padding:"10px",color:"#e01010",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>
+                    🌐 silao360.com
+                  </motion.button>
+                </div>
+                <button onClick={()=>setOpen(false)} style={{background:"none",border:"none",color:"#9ca3af",fontSize:11,cursor:"pointer",padding:"4px"}}>Cancelar</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoClick,onLogout,siteLogo}){
   const[bars,setBars]=useState(false);const[showMoney,setShowMoney]=useState(false);
   useEffect(()=>{setTimeout(()=>setBars(true),300);},[]);
   const sorted=[...PARTIES].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0));
@@ -380,7 +556,7 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
   return(
     <div style={{paddingBottom:88,background:"#f8faff",minHeight:"100vh"}}>
       <AnimatePresence>{showMoney&&<MoneyModal onClose={()=>setShowMoney(false)}/>}</AnimatePresence>
-      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
+      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
         <div style={{padding:"10px 0",display:"flex",gap:8}}>
           <motion.button whileTap={{scale:0.96}} onClick={()=>{playSound("click");setScreen("vote");}}
@@ -393,9 +569,7 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
           </motion.button>
         </div>
         <div style={{display:"flex",gap:6,marginBottom:12}}>
-          <button onClick={()=>window.open("https://api.whatsapp.com/send?text="+encodeURIComponent("🗳️ ENCUESTA SILAO 360\n\nParticipa en silao360.com\n#Silao #Guanajuato"),"_blank")} style={{flex:1,background:"linear-gradient(135deg,#25d366,#128c4e)",border:"none",borderRadius:10,padding:"10px",color:"#fff",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>📱 WA</button>
-          <button onClick={()=>window.open("https://www.facebook.com/share/1CCfvKYYK1/?mibextid=wwXIfr","_blank")} style={{flex:1,background:"linear-gradient(135deg,#1877f2,#0d5cc7)",border:"none",borderRadius:10,padding:"10px",color:"#fff",fontSize:10,fontWeight:800,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,fontFamily:"Barlow Condensed,sans-serif"}}><span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:12}}>f</span> FB</button>
-          <button onClick={()=>window.open("https://silao360.com","_blank")} style={{flex:1,background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:10,padding:"10px",color:"#fff",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>🌐 WEB</button>
+          <ShareModal votes={votes} total={total} sorted={sorted} pct={pct}/>
         </div>
         {total>0?(<>
           <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:14,padding:"14px 12px",marginBottom:12}}>
@@ -408,29 +582,76 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
         </>):(<motion.div initial={{opacity:0}} animate={{opacity:1}} style={{background:"#fff",border:"2px dashed #e5e7eb",borderRadius:14,padding:"28px 20px",textAlign:"center",marginBottom:14}}>
           <div style={{fontSize:44,marginBottom:8}}>🗳️</div><div style={{fontSize:13,fontWeight:900,color:"#d1d5db",letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:4}}>SIN VOTOS AÚN</div><div style={{fontSize:10,color:"#9ca3af"}}>Sé el primero en participar</div>
         </motion.div>)}
-        <div style={{fontSize:9,color:"#6b7280",letterSpacing:3,textAlign:"center",marginBottom:8,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>▼ POSICIONES EN TIEMPO REAL</div>
-        <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:16}}>
-          {sorted.map((p,rank)=>{const count=votes[p.id]||0,pc=pct(p.id),isMe=myVote===p.id,isTop=rank===0&&count>0;return(
-            <motion.div key={p.id} initial={{opacity:0,x:-20}} animate={{opacity:1,x:0}} transition={{delay:rank*0.04}}
-              style={{background:isMe?`${p.color}0a`:"#fff",border:`1.5px solid ${isMe?p.color+"50":"#e5e7eb"}`,borderRadius:10,padding:"8px 12px",position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",left:0,top:0,bottom:0,width:bars?`${pc}%`:"0%",background:`${p.color}07`,transition:"width 1.4s cubic-bezier(.16,1,.3,1)",pointerEvents:"none"}}/>
-              <div style={{display:"flex",alignItems:"center",gap:7,position:"relative"}}>
-                <div style={{width:18,height:18,borderRadius:"50%",background:isTop?"#fef3c7":`${p.color}18`,border:`1.5px solid ${isTop?"#f59e0b":`${p.color}40`}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:isTop?"#d97706":p.color,flexShrink:0}}>{rank+1}</div>
-                <div style={{width:22,height:22,borderRadius:4,overflow:"hidden",flexShrink:0,background:`${p.color}12`,border:`1px solid ${p.color}30`}}>
-                  {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
+        <div style={{fontSize:9,color:"#6b7280",letterSpacing:3,textAlign:"center",marginBottom:10,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>▼ RESULTADOS POR PARTIDO</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+          {sorted.map((p,rank)=>{
+            const count=votes[p.id]||0,pc=pct(p.id),isMe=myVote===p.id,isTop=rank===0&&count>0;
+            const ahead=rank>0?(pc-(pct(sorted[rank-1].id)||0)).toFixed(1):null;
+            const gap=rank<sorted.length-1?(pc-(pct(sorted[rank+1].id)||0)).toFixed(1):null;
+            return(
+            <motion.div key={p.id} initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:rank*0.05}}
+              style={{background:isTop?"linear-gradient(135deg,#fffbeb,#fff)":isMe?`${p.color}06`:"#fff",
+                border:`2px solid ${isTop?"#f59e0b50":isMe?p.color+"40":"#e5e7eb"}`,
+                borderRadius:14,padding:"12px 14px",position:"relative",overflow:"hidden",
+                boxShadow:isTop?"0 4px 20px rgba(245,158,11,0.15)":isMe?`0 2px 12px ${p.color}20`:"0 1px 4px rgba(0,0,0,0.04)"}}>
+
+              {/* fondo fill animado */}
+              <div style={{position:"absolute",left:0,top:0,bottom:0,width:bars?`${pc}%`:"0%",background:`${p.color}08`,transition:"width 1.6s cubic-bezier(.16,1,.3,1)",pointerEvents:"none",borderRadius:"12px 0 0 12px"}}/>
+
+              {/* fila superior: rank + logo + nombre + badges + % grande */}
+              <div style={{display:"flex",alignItems:"center",gap:10,position:"relative",marginBottom:8}}>
+                <div style={{width:24,height:24,borderRadius:"50%",background:isTop?"#fef3c7":`${p.color}15`,
+                  border:`2px solid ${isTop?"#f59e0b":p.color+"40"}`,display:"flex",alignItems:"center",
+                  justifyContent:"center",fontSize:10,fontWeight:900,color:isTop?"#d97706":p.color,flexShrink:0}}>
+                  {isTop&&count>0?"🏆":rank+1}
+                </div>
+                <div style={{width:44,height:44,borderRadius:10,overflow:"hidden",flexShrink:0,
+                  background:`${p.color}12`,border:`2px solid ${p.color}40`,
+                  boxShadow:`0 2px 8px ${p.color}30`}}>
+                  {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                    :<span style={{fontSize:22,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:11,fontWeight:700,color:"#1a1a1a",display:"flex",alignItems:"center",gap:4,flexWrap:"wrap",fontFamily:"Barlow Condensed,sans-serif"}}>
-                    {p.short}{isMe&&<span style={{fontSize:7,color:"#1877f2",background:"#eff6ff",padding:"1px 5px",borderRadius:3,fontWeight:800}}>TU VOTO</span>}
-                    {isTop&&count>0&&<span style={{fontSize:7,color:"#d97706",background:"#fef3c7",padding:"1px 5px",borderRadius:3,fontWeight:800}}>🏆</span>}
+                  <div style={{fontSize:14,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
+                    {p.short}
+                    {isMe&&<span style={{fontSize:8,color:"#1877f2",background:"#dbeafe",padding:"2px 6px",borderRadius:4,fontWeight:800,letterSpacing:1}}>✓ TU VOTO</span>}
                   </div>
-                  <div style={{height:3,background:"#f3f4f6",borderRadius:4,marginTop:3}}><div style={{height:"100%",borderRadius:4,width:bars?`${pc}%`:"0%",background:isTop?`linear-gradient(90deg,${p.color},#f59e0b)`:p.color,transition:"width 1.5s cubic-bezier(.16,1,.3,1)"}}/></div>
+                  <div style={{fontSize:10,color:"#6b7280",fontFamily:"Barlow Condensed,sans-serif"}}>{p.spectrumLabel}</div>
                 </div>
                 <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontSize:15,fontWeight:900,color:isTop&&count>0?"#d97706":p.color,lineHeight:1,fontFamily:"Barlow Condensed,sans-serif"}}>{pc.toFixed(1)}%</div>
-                  <div style={{fontSize:11,fontWeight:800,color:p.color,fontFamily:"Barlow Condensed,sans-serif"}}><LiveCount value={count}/></div>
+                  <div style={{fontSize:26,fontWeight:900,color:isTop&&count>0?"#d97706":p.color,lineHeight:1,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:-1}}>{pc.toFixed(1)}<span style={{fontSize:14}}>%</span></div>
+                  <div style={{fontSize:12,fontWeight:800,color:"#374151",fontFamily:"Barlow Condensed,sans-serif"}}><LiveCount value={count}/> votos</div>
                 </div>
               </div>
+
+              {/* barra de progreso gruesa */}
+              <div style={{height:8,background:"#f3f4f6",borderRadius:6,marginBottom:8,overflow:"hidden"}}>
+                <motion.div initial={{width:0}} animate={{width:bars?`${pc}%`:"0%"}} transition={{duration:1.4,ease:[.16,1,.3,1]}}
+                  style={{height:"100%",borderRadius:6,background:isTop?`linear-gradient(90deg,${p.color},#f59e0b)`:p.color,boxShadow:`0 0 8px ${p.color}60`}}/>
+              </div>
+
+              {/* fila de stats mini */}
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <div style={{background:`${p.color}10`,border:`1px solid ${p.color}25`,borderRadius:7,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center",flex:1,minWidth:60}}>
+                  <span style={{fontSize:8,color:"#9ca3af",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>POSICIÓN</span>
+                  <span style={{fontSize:14,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif"}}>#{rank+1}</span>
+                </div>
+                <div style={{background:`${p.color}10`,border:`1px solid ${p.color}25`,borderRadius:7,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center",flex:1,minWidth:60}}>
+                  <span style={{fontSize:8,color:"#9ca3af",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>VOTOS</span>
+                  <span style={{fontSize:14,fontWeight:900,color:"#374151",fontFamily:"Barlow Condensed,sans-serif"}}>{count}</span>
+                </div>
+                <div style={{background:`${p.color}10`,border:`1px solid ${p.color}25`,borderRadius:7,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center",flex:1,minWidth:60}}>
+                  <span style={{fontSize:8,color:"#9ca3af",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>VS SIGUIENTE</span>
+                  <span style={{fontSize:14,fontWeight:900,color:gap&&parseFloat(gap)>0?"#16a34a":gap&&parseFloat(gap)<0?"#dc2626":"#9ca3af",fontFamily:"Barlow Condensed,sans-serif"}}>
+                    {total>0&&gap?`${parseFloat(gap)>0?"+":""}${gap}%`:"—"}
+                  </span>
+                </div>
+                <div style={{background:isTop?"#fef3c7":`${p.color}10`,border:`1px solid ${isTop?"#f59e0b40":p.color+"25"}`,borderRadius:7,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center",flex:1,minWidth:60}}>
+                  <span style={{fontSize:8,color:"#9ca3af",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>ESPECTRO</span>
+                  <span style={{fontSize:9,fontWeight:800,color:isTop?"#d97706":p.color,fontFamily:"Barlow Condensed,sans-serif",textAlign:"center",lineHeight:1.2}}>{p.spectrumLabel.replace("Centro-","C-")}</span>
+                </div>
+              </div>
+
             </motion.div>
           );})}
         </div>
@@ -484,7 +705,7 @@ function InstallBanner(){
     </motion.div>
   );
 }
-function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,siteLogo,candidates,setScreen}){
+function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,onLogout,siteLogo,candidates,setScreen}){
   const[justVoted,setJustVoted]=useState(null);
   const[showMoney,setShowMoney]=useState(false);
   const[showBallots,setShowBallots]=useState(false);
@@ -556,7 +777,7 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,sit
         </motion.div>
       )}</AnimatePresence>
 
-      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
+      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
 
       {/* LED border top si ya votó */}
       {ledParty&&p&&<div style={{height:4,background:`conic-gradient(${p.color},#fff,${p.color}88,#fff,${p.color})`,animation:"ledSpin 2s linear infinite",backgroundSize:"200% 100%"}}/>}
@@ -641,7 +862,7 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,sit
 }
 
 // ── PROPOSALS SCREEN ──
-function ProposalsScreen({user,onLoginClick,onLogoClick,total,proposals,setProposals,siteLogo,isAdmin}){
+function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals,setProposals,siteLogo,isAdmin}){
   const[confirmVote,setConfirmVote]=useState(null);const[newProp,setNewProp]=useState("");const[showForm,setShowForm]=useState(false);
   const doVote=(pid,tipo)=>{if(!user){playSound("click");onLoginClick();return;}const p=proposals.find(x=>x.id===pid);if(p?.miVoto===tipo)return;if(p?.miVoto){setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,[x.miVoto]:x[x.miVoto]-1,miVoto:tipo};}));}else{playSound("vote");setConfirmVote({pid,tipo});}};
   const confirmAndVote=()=>{if(!confirmVote)return;const{pid,tipo}=confirmVote;setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,miVoto:tipo};}));playSound("success");setConfirmVote(null);};
@@ -651,7 +872,7 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,total,proposals,setPropo
   const THEMES=[{bg:"linear-gradient(135deg,#0d0221,#2d1b69)",border:"#7c3aed",glow:"rgba(124,58,237,0.5)"},{bg:"linear-gradient(135deg,#012312,#064e3b)",border:"#10b981",glow:"rgba(16,185,129,0.5)"},{bg:"linear-gradient(135deg,#1a0600,#7c2d12)",border:"#f97316",glow:"rgba(249,115,22,0.5)"},{bg:"linear-gradient(135deg,#020617,#1e3a8a)",border:"#3b82f6",glow:"rgba(59,130,246,0.5)"},{bg:"linear-gradient(135deg,#1a0020,#701a75)",border:"#e879f9",glow:"rgba(232,121,249,0.5)"}];
   return(
     <div style={{paddingBottom:96,background:"linear-gradient(160deg,#050010,#0a0a1a)",minHeight:"100vh"}}>
-      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
+      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <AnimatePresence>{confirmVote&&pending&&(
         <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:"fixed",inset:0,zIndex:800,background:"rgba(0,0,0,0.9)",backdropFilter:"blur(12px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <motion.div initial={{scale:0.8,y:30}} animate={{scale:1,y:0}} style={{background:confirmVote.tipo==="si"?"linear-gradient(135deg,#022c22,#14532d)":"linear-gradient(135deg,#3b0a0a,#7f1d1d)",border:`2px solid ${confirmVote.tipo==="si"?"#4ade80":"#f87171"}`,borderRadius:22,padding:"26px 22px",maxWidth:340,width:"100%",textAlign:"center"}}>
@@ -709,12 +930,12 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,total,proposals,setPropo
 }
 
 // ── ARTICLES SCREEN ──
-function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,candidates,siteLogo}){
+function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,onLogout,candidates,siteLogo}){
   const[open,setOpen]=useState(null);const[ideologyOpen,setIdeologyOpen]=useState(null);
   const art=open!==null?PARTIES[open]:null;const ideo=ideologyOpen!==null?IDEOLOGIES[ideologyOpen]:null;
   if(ideo){return(
     <div style={{paddingBottom:88,background:"#f8faff",minHeight:"100vh"}}>
-      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
+      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
         <motion.button whileTap={{scale:0.96}} onClick={()=>setIdeologyOpen(null)} style={{background:"#e01010",border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",fontSize:11,cursor:"pointer",margin:"12px 0",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>← VOLVER</motion.button>
         <div style={{background:ideo.bg,border:`2px solid ${ideo.color}`,borderRadius:16,padding:"18px",marginBottom:12}}><div style={{fontSize:18,fontWeight:900,color:ideo.color,marginBottom:8,fontFamily:"Barlow Condensed,sans-serif"}}>{ideo.label}</div><div style={{fontSize:13,color:"#374151",lineHeight:1.75}}>{ideo.desc}</div></div>
@@ -724,7 +945,7 @@ function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,candidates,si
   );}
   if(art){const artCand=candidates[art.id];return(
     <div style={{paddingBottom:88,background:"#f8faff",minHeight:"100vh"}}>
-      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
+      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
         <motion.button whileTap={{scale:0.96}} onClick={()=>setOpen(null)} style={{background:"#e01010",border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",fontSize:11,cursor:"pointer",margin:"12px 0",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>← VOLVER</motion.button>
         <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} style={{background:"#fff",border:`2px solid ${art.color}`,borderRadius:16,overflow:"hidden",marginBottom:14}}>
@@ -759,7 +980,7 @@ function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,candidates,si
   );}
   return(
     <div style={{paddingBottom:88,background:"#f8faff",minHeight:"100vh"}}>
-      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
+      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
         <div style={{padding:"12px 2px 10px"}}><div style={{fontSize:8,color:"#9ca3af",letterSpacing:3,marginBottom:2,fontFamily:"Barlow Condensed,sans-serif"}}>SILAO 360</div><div style={{fontSize:17,fontWeight:900,color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif"}}>Partidos e Ideologías</div></div>
         <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:14,padding:"12px",marginBottom:12}}>
@@ -813,7 +1034,7 @@ function ReactionBtn({emoji,count,onReact,reacted}){
   return(<motion.button whileTap={{scale:1.3}} onClick={()=>{playSound("click");onReact();setPop(true);setTimeout(()=>setPop(false),300);}} style={{background:reacted?"#eff6ff":"#f3f4f6",border:`1.5px solid ${reacted?"#3b82f6":"#e5e7eb"}`,borderRadius:20,padding:"3px 8px",cursor:"pointer",display:"flex",alignItems:"center",gap:3}}><span style={{fontSize:13}}>{emoji}</span>{count>0&&<span style={{fontSize:9,fontWeight:700,color:reacted?"#1877f2":"#6b7280"}}>{count}</span>}</motion.button>);
 }
 
-function CommentsScreen({user,onLoginClick,total,onLogoClick,isAdmin,comments,setComments,blockedNicks,pinnedMsg,siteLogo}){
+function CommentsScreen({user,onLoginClick,total,onLogoClick,onLogout,isAdmin,comments,setComments,blockedNicks,pinnedMsg,siteLogo}){
   const[text,setText]=useState("");const[replyOpen,setReplyOpen]=useState({});const[replyText,setReplyText]=useState({});
   const post=()=>{if(!text.trim())return;playSound("success");setComments(prev=>[{id:Date.now(),nick:user?user.nickname:"Visitante",txt:text.trim(),ts:Date.now(),reactions:{like:0,heart:0,fire:0,wow:0,haha:0},myReacted:{},replies:[]},...prev]);setText("");};
   const react=(cid,key)=>setComments(prev=>prev.map(c=>{if(c.id!==cid)return c;const already=c.myReacted[key];return{...c,reactions:{...c.reactions,[key]:Math.max(0,(c.reactions[key]||0)+(already?-1:1))},myReacted:{...c.myReacted,[key]:!already}};}));
@@ -822,7 +1043,7 @@ function CommentsScreen({user,onLoginClick,total,onLogoClick,isAdmin,comments,se
   const visible=(comments||[]).filter(c=>!(blockedNicks||[]).includes(c.nick));
   return(
     <div style={{paddingBottom:100,background:"linear-gradient(180deg,#0d0d1a,#1a0a2e,#0a0d1a)",minHeight:"100vh"}}>
-      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
+      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
         <div style={{padding:"12px 2px 10px",borderBottom:"2px solid #7c3aed",marginBottom:12}}><div style={{fontSize:17,fontWeight:900,color:"#c4b5fd",fontFamily:"Barlow Condensed,sans-serif"}}>💬 Foro Ciudadano</div></div>
         {user?(<div style={{background:"linear-gradient(135deg,#1a0a2e,#2d1b69)",border:"2px solid #7c3aed",borderRadius:14,padding:"12px",marginBottom:12}}>
@@ -903,7 +1124,7 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,onClose,votes
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 0 100px"}}>
         {/* Header */}
         <div style={{background:"linear-gradient(135deg,#1a0a2e,#2d1b69)",padding:"14px 16px",borderBottom:"2px solid #7c3aed",position:"sticky",top:0,zIndex:10}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
             <div>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:20}}>⚙️</span>
@@ -916,6 +1137,21 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,onClose,votes
               <div style={{fontSize:9,color:"rgba(196,181,253,0.5)",marginTop:2,fontFamily:"Barlow Condensed,sans-serif"}}>{new Date().toLocaleDateString("es-MX",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
             </div>
             <motion.button whileTap={{scale:0.95}} onClick={onClose} style={{background:"#dc2626",border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ SALIR</motion.button>
+          </div>
+          {/* Apodo grande en admin */}
+          <div style={{background:"rgba(124,58,237,0.2)",border:"1px solid rgba(124,58,237,0.4)",borderRadius:12,padding:"8px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
+            <div style={{position:"relative",width:36,height:36,flexShrink:0}}>
+              <div style={{position:"absolute",inset:-2,borderRadius:"50%",background:"conic-gradient(from 0deg,#7c3aed,#a78bfa,#e01010,#7c3aed)",animation:"ledSpin 2s linear infinite"}}/>
+              <div style={{position:"absolute",inset:2,borderRadius:"50%",background:"#1a0a2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🎭</div>
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:8,color:"rgba(196,181,253,0.5)",letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:2}}>APODO ADMIN</div>
+              <div style={{fontSize:20,fontWeight:900,color:"#a78bfa",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>Administrador</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontSize:8,color:"rgba(196,181,253,0.4)",fontFamily:"Barlow Condensed,sans-serif"}}>{new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}</div>
+              <div style={{fontSize:8,color:"rgba(196,181,253,0.4)",fontFamily:"Barlow Condensed,sans-serif"}}>{new Date().toLocaleDateString("es-MX",{day:"numeric",month:"short"}).toUpperCase()}</div>
+            </div>
           </div>
           {/* Tabs */}
           <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2}}>
@@ -1292,7 +1528,7 @@ export default function App(){
     adminTimer.current=setTimeout(()=>{adminTaps.current=0;},2500);
     if(adminTaps.current>=5){adminTaps.current=0;if(isAdmin){setIsAdmin(false);setShowAdminPanel(false);}else{setShowAdminLogin(true);}}
   };
-  const sp={votes,total,user,onLoginClick:()=>setShowLogin(true),onLogoClick:handleLogoClick,siteLogo};
+  const sp={votes,total,user,onLoginClick:()=>setShowLogin(true),onLogoClick:handleLogoClick,onLogout:()=>{setUser(null);setMyVote(null);},siteLogo};
   return(
     <div style={{background:"#f8faff",minHeight:"100vh",color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif"}}>
       <style>{`
