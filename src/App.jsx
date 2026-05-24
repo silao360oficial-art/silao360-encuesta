@@ -1110,8 +1110,10 @@ function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo
   const cats=Object.keys(PREGUNTAS);
   const[cat,setCat]=useState(cats[0]);
   const[idx,setIdx]=useState(0);
-  const questions=PREGUNTAS[cat];
-  const q=questions[idx%questions.length];
+  const questions=PREGUNTAS[cat]||[];
+  const q=questions.length>0?questions[idx%questions.length]:"";
+
+  const nextQ=()=>setIdx(i=>{const qs=PREGUNTAS[cat]||[];return(i+1)%qs.length;});
   const party=PARTIES[Math.floor(Math.random()*PARTIES.length)];
 
   const retarle=(partido)=>{
@@ -1150,9 +1152,9 @@ function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo
         <motion.div key={cat+idx} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
           style={{background:"linear-gradient(135deg,#0f172a,#1e3a8a)",borderRadius:20,padding:"24px 20px",marginBottom:14,boxShadow:"0 8px 32px rgba(14,30,115,0.3)",position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",inset:0,opacity:0.05,backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)",backgroundSize:"20px 20px"}}/>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",letterSpacing:3,marginBottom:10,fontFamily:"Barlow Condensed,sans-serif"}}>{cat} — {idx+1}/{questions.length}</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",letterSpacing:3,marginBottom:10,fontFamily:"Barlow Condensed,sans-serif"}}>{cat} — {(idx%questions.length)+1}/{questions.length}</div>
           <div style={{fontSize:20,fontWeight:900,color:"#fff",lineHeight:1.4,fontFamily:"Barlow Condensed,sans-serif",marginBottom:16,position:"relative"}}>"{q}"</div>
-          <motion.button whileTap={{scale:0.96}} onClick={()=>setIdx(i=>(i+1)%questions.length)}
+          <motion.button whileTap={{scale:0.96}} onClick={nextQ}
             style={{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:10,padding:"8px 16px",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>
             SIGUIENTE PREGUNTA →
           </motion.button>
