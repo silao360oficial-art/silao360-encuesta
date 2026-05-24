@@ -1,0 +1,14 @@
+{
+  "name": "Silao 360 — La Voz Ciudadana",
+  "short_name": "Silao 360",
+  "description": "Encuesta ciudadana de Silao, Guanajuato",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#e01010",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
