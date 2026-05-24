@@ -1,8 +1,79 @@
-a { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from "recharts";
 
-// ── SONIDOS (sin use-sound para el artifact, usamos Audio nativo) ──
+// ── SUPABASE ──
+const SUPABASE_URL = "https://irekcyeoumxnwbtonfup.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlyZWtjeWVvdW14bndidG9uZnVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMTczMzAsImV4cCI6MjA5NDc5MzMzMH0.gzmCwhJBeaabl83Q4W6cMhpk0Ofwg0OrHaYou9_ksL0";
+const sb = {
+  from: (table) => ({
+    select: (cols="*") => fetch(`${SUPABASE_URL}/rest/v1/${table}?select=${cols}`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}}).then(r=>r.json()),
+    insert: (data) => fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json","Prefer":"return=representation"},body:JSON.stringify(data)}).then(r=>r.json()),
+    upsert: (data, opts={}) => fetch(`${SUPABASE_URL}/rest/v1/${table}`,{method:"POST",headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json","Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(data)}).then(r=>r.json()),
+    update: (data) => ({eq: (col,val) => fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${val}`,{method:"PATCH",headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`,"Content-Type":"application/json"},body:JSON.stringify(data)}).then(r=>r.json())}),
+    delete: () => ({eq: (col,val) => fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${val}`,{method:"DELETE",headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}}).then(r=>r.json())}),
+    order: (col,opts={}) => ({limit: (n) => fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&order=${col}.${opts.ascending?"asc":"desc"}&limit=${n}`,{headers:{"apikey":SUPABASE_KEY,"Authorization":`Bearer ${SUPABASE_KEY}`}}).then(r=>r.json())}),
+  }),
+};
+
+// ── PREGUNTAS POR CATEGORÍA ──
+const PREGUNTAS = {
+  "🔒 Seguridad": [
+    "¿Cuál es tu plan real para mejorar la seguridad en Silao?",
+    "¿Cómo vas a mejorar la seguridad sin solo prometer más patrullas?",
+    "¿Qué harás para que la policía realmente responda rápido?",
+    "¿Cómo mejorarás la atención de policías y tránsito?",
+    "¿Qué harás para proteger a mujeres y niños?",
+  ],
+  "🏗️ Infraestructura": [
+    "¿Cómo vas a reparar el problema de baches y calles dañadas?",
+    "¿Qué harás para evitar más socavones y problemas de drenaje?",
+    "¿Cuándo dejarán de arreglar las mismas calles una y otra vez?",
+    "¿Qué harás para que no vuelva a pasar lo del socavón de la federal 45?",
+    "¿Cuál es tu propuesta para mejorar la iluminación en calles?",
+    "¿Por qué tantas calles siguen oscuras por las noches?",
+    "¿Cómo vas a mejorar el transporte y las vialidades?",
+    "¿Cómo planeas mejorar el transporte público?",
+    "¿Qué harás para el servicio de agua?",
+    "¿Qué harás para limpiar Silao y reducir la basura en calles y lotes?",
+    "¿Qué harás para reducir la contaminación?",
+  ],
+  "💰 Economía y Empleos": [
+    "¿Cómo generarás más empleos bien pagados en Silao?",
+    "¿Qué harás para atraer inversión sin afectar a las colonias?",
+    "¿Qué harás para apoyar a la gente que trabaja y gana poco?",
+    "¿Cómo apoyarás a comerciantes y pequeños negocios?",
+  ],
+  "🏥 Servicios Sociales": [
+    "¿Qué apoyo darás a jóvenes y estudiantes?",
+    "¿Cómo ayudarás a los jóvenes que no encuentran oportunidades?",
+    "¿Qué harás para mejorar hospitales y centros de salud?",
+    "¿Cómo piensas recuperar espacios públicos y parques?",
+    "¿Qué harás para que los parques y espacios públicos vuelvan a servir?",
+    "¿Cómo apoyarás a las comunidades rurales de Silao?",
+    "¿Qué harás para que las comunidades rurales no sigan abandonadas?",
+  ],
+  "🧾 Transparencia": [
+    "¿Cómo combatirás la corrupción en el municipio?",
+    "¿Publicarás en qué se gasta cada peso del presupuesto?",
+    "¿Cómo vas a evitar que el presupuesto termine en obras mal hechas?",
+    "¿Por qué en Silao las obras tardan tanto y afectan a todos?",
+    "¿Por qué hay colonias olvidadas mientras otras siempre reciben apoyo?",
+  ],
+  "🔥 Virales": [
+    "¿Qué es lo primero que arreglarías en Silao si mañana fueras alcalde?",
+    "¿Qué colonia necesita atención urgente y por qué?",
+    "¿Qué obra consideras un desperdicio de dinero?",
+    "¿Qué le responderías a la gente que ya no cree en los políticos?",
+    "¿Qué problema de Silao te da vergüenza que siga igual?",
+    "¿Qué cambiará realmente contigo y no solo en campaña?",
+    "¿Cuál es el problema más grave de Silao y cómo lo resolverías?",
+    "¿Si ganas, qué resultado concreto verá la gente en tu primer año?",
+    "¿Por qué la ciudadanía debería confiar en ti?",
+  ],
+};
+
+
 const playSound = (type) => {
   const map = {
     click: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA",
@@ -40,14 +111,14 @@ const PARTY_LOGOS = {
 
 // ── DATOS ──
 const PARTIES = [
-  { id:"pan", short:"PAN", name:"Partido Acción Nacional", color:"#1a6fd4", emoji:"🔵", spectrumPos:72, spectrumLabel:"Centro-Derecha", ideologyTags:["derecha","conservador"], fundado:"16 sep 1939", fundador:"Manuel Gómez Morín", dirigente:"Jorge Romero Herrera", militantes:"300,000", gobiernos:"Guanajuato desde 1991", descripcion:"Partido fundado en 1939 con doctrina de humanismo cristiano, libre mercado y valores familiares. Ha gobernado el estado de Guanajuato de manera continua desde 1991.", curioso:"💡 El PAN fue el primer partido en ganar la presidencia al PRI en el año 2000, después de 71 años de alternancia pendiente.", opinion:"El PAN tiene presencia histórica en Guanajuato. Para Silao 2025, los ciudadanos podrán evaluar su propuesta y trayectoria municipal." },
-  { id:"morena", short:"MORENA", name:"Mov. Regeneración Nacional", color:"#b91c1c", emoji:"🔴", spectrumPos:26, spectrumLabel:"Centro-Izquierda", ideologyTags:["izquierda","populismo","nacionalismo"], fundado:"2 oct 2011", fundador:"Andrés Manuel López Obrador", dirigente:"Ariadna Montiel Reyes", militantes:"2.3 millones", gobiernos:"Gobierno federal 2018-2030, 21 gobernadores", descripcion:"Partido fundado en 2011 con enfoque en transformación social, reducción de desigualdades y fortalecimiento de programas sociales. Gobierna a nivel federal desde 2018.", curioso:"💡 Morena es uno de los partidos de crecimiento más rápido en la historia de México, pasando de su fundación a ganar la presidencia en 7 años.", opinion:"Morena cuenta con presencia nacional y programas sociales activos. Para Silao 2025, los ciudadanos podrán evaluar su propuesta municipal concreta." },
-  { id:"pri", short:"PRI", name:"Partido Revolucionario Institucional", color:"#c2410c", emoji:"🟤", spectrumPos:50, spectrumLabel:"Centro", ideologyTags:["centro","nacionalismo"], fundado:"4 mar 1929", fundador:"Plutarco Elías Calles", dirigente:"Alejandro Moreno Cárdenas", militantes:"Aprox. 4 millones", gobiernos:"Durango y Coahuila a nivel estatal", descripcion:"Partido con más de 90 años de historia en México. Gobernó el país de forma ininterrumpida de 1929 a 2000. Cuenta con estructura organizativa en todo el territorio nacional.", curioso:"💡 El PRI gobernó México durante 71 años consecutivos, siendo uno de los partidos con mayor continuidad en el poder en la historia política mundial.", opinion:"El PRI cuenta con larga trayectoria e infraestructura organizativa. Para Silao 2025, los ciudadanos podrán evaluar su propuesta y candidato." },
-  { id:"mc", short:"MOV. CIUDADANO", name:"Movimiento Ciudadano", color:"#ea580c", emoji:"🟠", spectrumPos:38, spectrumLabel:"Centro-Izquierda", ideologyTags:["centro","socialdemocrata","progresismo"], fundado:"1999", fundador:"Dante Delgado Rannauro", dirigente:"Jorge Álvarez Máynez", militantes:"800,000", gobiernos:"Jalisco, Nuevo León", descripcion:"Partido con presencia en todo el país y experiencia de gobierno en estados como Jalisco y Nuevo León. Su plataforma combina desarrollo económico con justicia social.", curioso:"💡 Movimiento Ciudadano postuló candidato presidencial propio en 2024 sin alianzas con otros partidos, algo poco común en la política mexicana.", opinion:"MC tiene experiencia de gobierno estatal reciente. Para Silao 2025, los ciudadanos podrán evaluar su propuesta y candidato local." },
-  { id:"pvem", short:"PVEM", name:"Partido Verde Ecologista", color:"#16a34a", emoji:"🌿", spectrumPos:48, spectrumLabel:"Centro", ideologyTags:["centro","populismo"], fundado:"1986", fundador:"Jorge González Torres", dirigente:"Karen Castrejón Trujillo", militantes:"500,000", gobiernos:"Participa en coaliciones a nivel federal y estatal", descripcion:"Partido fundado con enfoque en temas ambientales y ecológicos. Ha participado en diversas coaliciones electorales a lo largo de su historia.", curioso:"💡 El PVEM es uno de los partidos ecologistas más antiguos de México, fundado en 1986 con el objetivo de promover políticas de protección ambiental.", opinion:"El PVEM tiene presencia en varias regiones del país. Para Silao 2025, los ciudadanos podrán evaluar su propuesta local." },
-  { id:"pt", short:"PT", name:"Partido del Trabajo", color:"#dc2626", emoji:"✊", spectrumPos:18, spectrumLabel:"Izquierda", ideologyTags:["izquierda","socialdemocrata"], fundado:"13 ene 1992", fundador:"Alberto Anaya Gutiérrez", dirigente:"Alberto Anaya Gutiérrez", militantes:"457,000", gobiernos:"Participa en coaliciones a nivel federal y local", descripcion:"Partido de izquierda fundado en 1992. Su plataforma se centra en derechos laborales, justicia social y fortalecimiento de los trabajadores.", curioso:"💡 El PT ha participado en elecciones presidenciales desde 1994, representando consistentemente a sectores de izquierda en la política mexicana.", opinion:"El PT tiene presencia a nivel nacional. Para Silao 2025, los ciudadanos podrán evaluar su propuesta y candidato en el municipio." },
-  { id:"somosmx", short:"SOMOS MX", name:"Somos MX — La Fuerza que nos Une", color:"#db2777", emoji:"🩷", spectrumPos:35, spectrumLabel:"Centro-Izquierda", ideologyTags:["progresismo","centro"], fundado:"2020", fundador:"Por confirmar", dirigente:"Por confirmar", militantes:"Por confirmar", gobiernos:"Movimiento en desarrollo", descripcion:"Movimiento político enfocado en la participación ciudadana, la unidad comunitaria y la representación de sectores no atendidos por partidos tradicionales.", curioso:"💡 Somos MX representa una nueva generación de movimientos políticos que buscan mayor participación directa de la comunidad en las decisiones públicas.", opinion:"Somos MX es una fuerza emergente. Para Silao 2025, los ciudadanos podrán evaluar su propuesta y nivel de organización local." },
-  { id:"sombrero", short:"MOV. SOMBRERO", name:"Movimiento Independiente del Sombrero", color:"#a16207", emoji:"🤠", spectrumPos:55, spectrumLabel:"Centro / Independiente", ideologyTags:["centro","nacionalismo"], fundado:"2024", fundador:"Por confirmar", dirigente:"Por confirmar", militantes:"Por confirmar", gobiernos:"Movimiento local independiente", descripcion:"Movimiento político local que recupera la identidad cultural del Bajío como eje de su propuesta. Busca representar a ciudadanos silaoenses desde una perspectiva independiente.", curioso:"💡 El sombrero charro es símbolo histórico del Bajío y de Silao. Este movimiento lo adopta como emblema de identidad regional y cultural.", opinion:"El Movimiento del Sombrero es una opción local independiente. Para Silao 2025, los ciudadanos podrán evaluar su propuesta y organización." },
+  { id:"pan", short:"PAN", name:"Partido Acción Nacional", color:"#1a6fd4", emoji:"🔵", spectrumPos:72, spectrumLabel:"Centro-Derecha", ideologyTags:["derecha","conservador"], fundado:"16 sep 1939", fundador:"Manuel Gómez Morín", dirigente:"Jorge Romero Herrera", militantes:"300,000", gobiernos:"Guanajuato desde 1991", descripcion:"Partido fundado en 1939 con doctrina de humanismo cristiano, libre mercado y valores familiares. Ha gobernado el estado de Guanajuato de manera continua desde 1991.", curioso:"💡 El PAN fue el primer partido en ganar la presidencia al PRI en el año 2000, después de 71 años de alternancia pendiente.", opinion:"El PAN tiene presencia histórica en Guanajuato. Para Silao 360, los ciudadanos podrán evaluar su propuesta y trayectoria municipal." },
+  { id:"morena", short:"MORENA", name:"Mov. Regeneración Nacional", color:"#b91c1c", emoji:"🔴", spectrumPos:26, spectrumLabel:"Centro-Izquierda", ideologyTags:["izquierda","populismo","nacionalismo"], fundado:"2 oct 2011", fundador:"Andrés Manuel López Obrador", dirigente:"Ariadna Montiel Reyes", militantes:"2.3 millones", gobiernos:"Gobierno federal 2018-2030, 21 gobernadores", descripcion:"Partido fundado en 2011 con enfoque en transformación social, reducción de desigualdades y fortalecimiento de programas sociales. Gobierna a nivel federal desde 2018.", curioso:"💡 Morena es uno de los partidos de crecimiento más rápido en la historia de México, pasando de su fundación a ganar la presidencia en 7 años.", opinion:"Morena cuenta con presencia nacional y programas sociales activos. Para Silao 360, los ciudadanos podrán evaluar su propuesta municipal concreta." },
+  { id:"pri", short:"PRI", name:"Partido Revolucionario Institucional", color:"#c2410c", emoji:"🟤", spectrumPos:50, spectrumLabel:"Centro", ideologyTags:["centro","nacionalismo"], fundado:"4 mar 1929", fundador:"Plutarco Elías Calles", dirigente:"Alejandro Moreno Cárdenas", militantes:"Aprox. 4 millones", gobiernos:"Durango y Coahuila a nivel estatal", descripcion:"Partido con más de 90 años de historia en México. Gobernó el país de forma ininterrumpida de 1929 a 2000. Cuenta con estructura organizativa en todo el territorio nacional.", curioso:"💡 El PRI gobernó México durante 71 años consecutivos, siendo uno de los partidos con mayor continuidad en el poder en la historia política mundial.", opinion:"El PRI cuenta con larga trayectoria e infraestructura organizativa. Para Silao 360, los ciudadanos podrán evaluar su propuesta y candidato." },
+  { id:"mc", short:"MOV. CIUDADANO", name:"Movimiento Ciudadano", color:"#ea580c", emoji:"🟠", spectrumPos:38, spectrumLabel:"Centro-Izquierda", ideologyTags:["centro","socialdemocrata","progresismo"], fundado:"1999", fundador:"Dante Delgado Rannauro", dirigente:"Jorge Álvarez Máynez", militantes:"800,000", gobiernos:"Jalisco, Nuevo León", descripcion:"Partido con presencia en todo el país y experiencia de gobierno en estados como Jalisco y Nuevo León. Su plataforma combina desarrollo económico con justicia social.", curioso:"💡 Movimiento Ciudadano postuló candidato presidencial propio en 2024 sin alianzas con otros partidos, algo poco común en la política mexicana.", opinion:"MC tiene experiencia de gobierno estatal reciente. Para Silao 360, los ciudadanos podrán evaluar su propuesta y candidato local." },
+  { id:"pvem", short:"PVEM", name:"Partido Verde Ecologista", color:"#16a34a", emoji:"🌿", spectrumPos:48, spectrumLabel:"Centro", ideologyTags:["centro","populismo"], fundado:"1986", fundador:"Jorge González Torres", dirigente:"Karen Castrejón Trujillo", militantes:"500,000", gobiernos:"Participa en coaliciones a nivel federal y estatal", descripcion:"Partido fundado con enfoque en temas ambientales y ecológicos. Ha participado en diversas coaliciones electorales a lo largo de su historia.", curioso:"💡 El PVEM es uno de los partidos ecologistas más antiguos de México, fundado en 1986 con el objetivo de promover políticas de protección ambiental.", opinion:"El PVEM tiene presencia en varias regiones del país. Para Silao 360, los ciudadanos podrán evaluar su propuesta local." },
+  { id:"pt", short:"PT", name:"Partido del Trabajo", color:"#dc2626", emoji:"✊", spectrumPos:18, spectrumLabel:"Izquierda", ideologyTags:["izquierda","socialdemocrata"], fundado:"13 ene 1992", fundador:"Alberto Anaya Gutiérrez", dirigente:"Alberto Anaya Gutiérrez", militantes:"457,000", gobiernos:"Participa en coaliciones a nivel federal y local", descripcion:"Partido de izquierda fundado en 1992. Su plataforma se centra en derechos laborales, justicia social y fortalecimiento de los trabajadores.", curioso:"💡 El PT ha participado en elecciones presidenciales desde 1994, representando consistentemente a sectores de izquierda en la política mexicana.", opinion:"El PT tiene presencia a nivel nacional. Para Silao 360, los ciudadanos podrán evaluar su propuesta y candidato en el municipio." },
+  { id:"somosmx", short:"SOMOS MX", name:"Somos MX — La Fuerza que nos Une", color:"#db2777", emoji:"🩷", spectrumPos:35, spectrumLabel:"Centro-Izquierda", ideologyTags:["progresismo","centro"], fundado:"2020", fundador:"Por confirmar", dirigente:"Por confirmar", militantes:"Por confirmar", gobiernos:"Movimiento en desarrollo", descripcion:"Movimiento político enfocado en la participación ciudadana, la unidad comunitaria y la representación de sectores no atendidos por partidos tradicionales.", curioso:"💡 Somos MX representa una nueva generación de movimientos políticos que buscan mayor participación directa de la comunidad en las decisiones públicas.", opinion:"Somos MX es una fuerza emergente. Para Silao 360, los ciudadanos podrán evaluar su propuesta y nivel de organización local." },
+  { id:"sombrero", short:"MOV. SOMBRERO", name:"Movimiento Independiente del Sombrero", color:"#a16207", emoji:"🤠", spectrumPos:55, spectrumLabel:"Centro / Independiente", ideologyTags:["centro","nacionalismo"], fundado:"2024", fundador:"Por confirmar", dirigente:"Por confirmar", militantes:"Por confirmar", gobiernos:"Movimiento local independiente", descripcion:"Movimiento político local que recupera la identidad cultural del Bajío como eje de su propuesta. Busca representar a ciudadanos silaoenses desde una perspectiva independiente.", curioso:"💡 El sombrero charro es símbolo histórico del Bajío y de Silao. Este movimiento lo adopta como emblema de identidad regional y cultural.", opinion:"El Movimiento del Sombrero es una opción local independiente. Para Silao 360, los ciudadanos podrán evaluar su propuesta y organización." },
   { id:"independiente", short:"INDEPENDIENTE", name:"Candidato sin Partido", color:"#7c3aed", emoji:"⚡", spectrumPos:50, spectrumLabel:"Depende del candidato", ideologyTags:["centro"], fundado:"No aplica", fundador:"No aplica", dirigente:"No aplica", militantes:"No aplica", gobiernos:"Varía según el candidato", descripcion:"Una candidatura independiente no está respaldada por ningún partido político. El candidato se postula con base en su trayectoria personal y propuesta ciudadana.", curioso:"💡 En México, las candidaturas independientes fueron reconocidas legalmente en 2012. El primer gobernador independiente fue Jaime Rodríguez en Nuevo León (2015).", opinion:"Una candidatura independiente permite evaluar directamente la trayectoria y propuesta del candidato sin vinculación partidista." },
   { id:"nulo", short:"TODAVÍA NO DECIDO", name:"Escucho propuestas primero", color:"#0891b2", emoji:"🤔", spectrumPos:50, spectrumLabel:"Ciudadano informado", ideologyTags:["centro"], fundado:"No aplica", fundador:"No aplica", dirigente:"No aplica", militantes:"No aplica", gobiernos:"No aplica", descripcion:"Informarse antes de decidir es un derecho ciudadano. Conocer las propuestas, trayectorias y plataformas de cada candidato es fundamental para una votación responsable.", curioso:"💡 El voto informado es una de las herramientas más poderosas de la democracia. Analizar opciones antes de decidir es un ejercicio cívico valioso.", opinion:"Esperar a conocer las propuestas completas antes de decidir es una postura válida y responsable para cualquier ciudadano." },
 ];
@@ -64,13 +135,13 @@ const IDEOLOGIES = [
 ];
 
 const INIT_CANDIDATES = {
-  pan:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"El PAN aún no ha anunciado candidato oficial para Silao 2025."},
-  morena:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"Morena aún no ha anunciado candidato oficial para Silao 2025."},
-  pri:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"El PRI aún no ha anunciado candidato oficial para Silao 2025."},
-  mc:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"MC aún no ha anunciado candidato oficial para Silao 2025."},
-  pvem:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"PVEM aún no ha anunciado candidato oficial para Silao 2025."},
-  pt:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"PT aún no ha anunciado candidato oficial para Silao 2025."},
-  somosmx:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"Somos MX aún no ha anunciado candidato oficial para Silao 2025."},
+  pan:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"El PAN aún no ha anunciado candidato oficial para Silao 360."},
+  morena:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"Morena aún no ha anunciado candidato oficial para Silao 360."},
+  pri:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"El PRI aún no ha anunciado candidato oficial para Silao 360."},
+  mc:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"MC aún no ha anunciado candidato oficial para Silao 360."},
+  pvem:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"PVEM aún no ha anunciado candidato oficial para Silao 360."},
+  pt:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"PT aún no ha anunciado candidato oficial para Silao 360."},
+  somosmx:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"Somos MX aún no ha anunciado candidato oficial para Silao 360."},
   sombrero:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"Movimiento Independiente del Sombrero aún no ha anunciado candidato."},
   independiente:{nombre:"Por definir",cargo:"Candidato Independiente",fotoUrl:null,bio:"Candidatura independiente — se publicará cuando esté registrada."},
   nulo:{nombre:"No aplica",cargo:"",fotoUrl:null,bio:"Esta opción representa a ciudadanos indecisos."},
@@ -346,6 +417,71 @@ function LoginModal({onLogin,onClose}){
 }
 
 // ── HEADER ──
+// ── FLOATING VOTE BUBBLE ──
+function FloatingBubble({myVote,candidates}){
+  const party=myVote?PARTIES.find(p=>p.id===myVote):null;
+  const[pos,setPos]=useState({x:window.innerWidth-80,y:window.innerHeight/2});
+  const[vel,setVel]=useState({x:-1.5,y:-1.2});
+  const[exploded,setExploded]=useState(false);
+  const[pieces,setPieces]=useState([]);
+  const rafRef=useRef();
+
+  useEffect(()=>{
+    if(!party||exploded)return;
+    const animate=()=>{
+      setPos(p=>{
+        let nx=p.x+vel.x,ny=p.y+vel.y;
+        if(nx<20||nx>window.innerWidth-60){vel.x*=-1;nx=p.x+vel.x;}
+        if(ny<60||ny>window.innerHeight-100){vel.y*=-1;ny=p.y+vel.y;}
+        return{x:nx,y:ny};
+      });
+      rafRef.current=requestAnimationFrame(animate);
+    };
+    rafRef.current=requestAnimationFrame(animate);
+    return()=>cancelAnimationFrame(rafRef.current);
+  },[party,exploded,vel]);
+
+  const handleTap=()=>{
+    if(exploded)return;
+    setExploded(true);
+    const ps=Array.from({length:8},(_,i)=>({id:i,angle:(i/8)*Math.PI*2,dist:60+Math.random()*40}));
+    setPieces(ps);
+    setTimeout(()=>{setExploded(false);setPieces([]);},3000);
+    playSound("success");
+  };
+
+  if(!party)return null;
+  const logo=PARTY_LOGOS[party.id];
+
+  return(
+    <div style={{position:"fixed",zIndex:500,pointerEvents:"none"}}>
+      {/* Main bubble */}
+      {!exploded&&(
+        <motion.div animate={{x:pos.x,y:pos.y}} transition={{type:"tween",duration:0}}
+          style={{position:"fixed",left:0,top:0,pointerEvents:"auto",cursor:"pointer"}}
+          onClick={handleTap}>
+          <div style={{position:"relative",width:52,height:52}}>
+            <div style={{position:"absolute",inset:-3,borderRadius:"50%",background:`conic-gradient(from 0deg,${party.color},#fff,${party.color})`,animation:"ledSpin 1.5s linear infinite"}}/>
+            <div style={{position:"absolute",inset:2,borderRadius:"50%",background:"#fff",overflow:"hidden",border:`2px solid ${party.color}`,boxShadow:`0 0 16px ${party.color}80`}}>
+              {logo?<img src={logo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:22,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{party.emoji}</span>}
+            </div>
+          </div>
+        </motion.div>
+      )}
+      {/* Explosion pieces */}
+      {exploded&&pieces.map(p=>(
+        <motion.div key={p.id}
+          initial={{x:pos.x+20,y:pos.y+20,scale:1,opacity:1}}
+          animate={{x:pos.x+20+Math.cos(p.angle)*p.dist,y:pos.y+20+Math.sin(p.angle)*p.dist,scale:0,opacity:0}}
+          transition={{duration:0.8,ease:"easeOut"}}
+          style={{position:"fixed",left:0,top:0,width:28,height:28,borderRadius:"50%",overflow:"hidden",border:`2px solid ${party.color}`,background:"#fff"}}>
+          {logo?<img src={logo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{party.emoji}</span>}
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 function LiveClock(){
   const[now,setNow]=useState(new Date());
   useEffect(()=>{const iv=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(iv);},[]);
@@ -442,6 +578,7 @@ function NavBar({screen,setScreen}){
     {id:"vote",icon:"🗳️",label:"VOTAR",color:"#16a34a",is3d:false},
     {id:"proposals",icon:"💡",label:"PROPUESTAS",color:"#ca8a04",is3d:false},
     {id:"articles",icon:"📰",label:"PARTIDOS",color:"#1d4ed8",is3d:true},
+    {id:"preguntale",icon:"❓",label:"RETARLE",color:"#e01010",is3d:false},
     {id:"comments",icon:"💬",label:"COMENTAR",color:"#7c3aed",is3d:false},
   ];
   return(
@@ -483,8 +620,15 @@ function ShareModal({votes,total,sorted,pct}){
   const[open,setOpen]=useState(false);
 
   const buildMsg=()=>{
-    const top=sorted.slice(0,5).map((p,i)=>`${i+1}. ${p.short}: ${pct(p.id).toFixed(1)}% (${votes[p.id]||0} votos)`).join("\n");
-    return `🗳️ SILAO 360 — RESULTADOS EN VIVO\n📊 Silao, Gto. · ${new Date().toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"})}\n\n${top}\n\n📱 ¡Participa aquí!\n👉 silao360.com.mx\n\n🌐 Más información:\nsilao360.com\n\n#Silao #Guanajuato #Encuesta2025`;
+    const fecha=new Date().toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
+    const hora=new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+    const top=sorted.slice(0,5).map((p,i)=>{
+      const pc=pct(p.id).toFixed(1);
+      const bar="█".repeat(Math.round(pc/10))+"░".repeat(10-Math.round(pc/10));
+      return `${i===0?"🏆":i===1?"🥈":i===2?"🥉":"  "} ${p.short.padEnd(12)} ${bar} ${pc}%`;
+    }).join("\n");
+    const tot=Object.values(votes).reduce((a,b)=>a+b,0);
+    return `🗳️ SILAO 360 — ENCUESTA CIUDADANA\n📅 ${fecha} · 🕐 ${hora}\n━━━━━━━━━━━━━━━━━━━\n${top}\n━━━━━━━━━━━━━━━━━━━\n📊 Total de votos: ${tot}\n\n📱 ¡Vota aquí!\n👉 silao360.com.mx\n\n🌐 Más info:\nsilao360.com\n\n#Silao #Guanajuato #Encuesta #Silao360`;
   };
 
   const shareWA=()=>{window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(buildMsg()),"_blank");};
@@ -568,8 +712,35 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
             <span style={{fontSize:20}}>💰</span><span style={{fontSize:7,fontWeight:800,whiteSpace:"nowrap",fontFamily:"Barlow Condensed,sans-serif"}}>NO TE VENDEN</span>
           </motion.button>
         </div>
-        <div style={{display:"flex",gap:6,marginBottom:12}}>
+        {/* ── 5 BOTONES GRANDES ── */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
           <ShareModal votes={votes} total={total} sorted={sorted} pct={pct}/>
+          <motion.button whileTap={{scale:0.96}} onClick={()=>{
+            if(navigator.share){navigator.share({title:"Silao 360",text:"¡Vota en la encuesta ciudadana!",url:"https://silao360.com.mx"});}
+            else{const t=document.createElement("input");t.value="https://silao360.com.mx";document.body.appendChild(t);t.select();document.execCommand("copy");document.body.removeChild(t);alert("Enlace copiado: silao360.com.mx");}
+          }} style={{background:"linear-gradient(135deg,#25d366,#128c4e)",border:"none",borderRadius:14,padding:"16px 10px",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,boxShadow:"0 4px 16px rgba(37,211,102,0.35)"}}>
+            <span style={{fontSize:26}}>📱</span>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center"}}>COMPARTIR<br/>WHATSAPP</span>
+          </motion.button>
+          <motion.button whileTap={{scale:0.96}} onClick={()=>window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent("https://silao360.com.mx"),"_blank")}
+            style={{background:"linear-gradient(135deg,#1877f2,#0d5cc7)",border:"none",borderRadius:14,padding:"16px 10px",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,boxShadow:"0 4px 16px rgba(24,119,242,0.35)"}}>
+            <span style={{fontSize:26,fontFamily:"Georgia,serif",fontWeight:900}}>f</span>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center"}}>COMPARTIR<br/>FACEBOOK</span>
+          </motion.button>
+          <motion.button whileTap={{scale:0.96}} onClick={()=>window.open("https://silao360.com","_blank")}
+            style={{background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:14,padding:"16px 10px",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,boxShadow:"0 4px 16px rgba(224,16,16,0.3)"}}>
+            <span style={{fontSize:26}}>🌐</span>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center"}}>PÁGINA WEB<br/>SILAO360.COM</span>
+          </motion.button>
+          <motion.button whileTap={{scale:0.96}} onClick={()=>{
+            if(/iphone|ipad|ipod/i.test(navigator.userAgent)){alert("iPhone: toca el botón Compartir ⬆️ → 'Agregar a pantalla de inicio'");}
+            else if(/android/i.test(navigator.userAgent)){alert("Android: toca el menú ⋮ → 'Agregar a pantalla de inicio'");}
+            else if(window.deferredInstallPrompt){window.deferredInstallPrompt.prompt();}
+            else{alert("Abre la app desde tu navegador móvil para instalarla");}
+          }} style={{background:"linear-gradient(135deg,#7c3aed,#5b21b6)",border:"none",borderRadius:14,padding:"16px 10px",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6,boxShadow:"0 4px 16px rgba(124,58,237,0.35)"}}>
+            <span style={{fontSize:26}}>📲</span>
+            <span style={{fontSize:11,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center"}}>INSTALAR<br/>APP</span>
+          </motion.button>
         </div>
         {total>0?(<>
           <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:14,padding:"14px 12px",marginBottom:12}}>
@@ -814,11 +985,14 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,onL
           <span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:14}}>f</span> ENTRA CON FACEBOOK PARA VOTAR
         </motion.button>}
 
-        <AnimatePresence>{justVoted&&(
-          <motion.div initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} exit={{opacity:0}}
-            style={{background:"#f0fdf4",border:"1.5px solid #86efac",borderRadius:10,padding:"9px 12px",marginBottom:10,display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:18}}>✅</span>
-            <div style={{fontSize:11,fontWeight:700,color:"#16a34a",fontFamily:"Barlow Condensed,sans-serif"}}>¡Voto registrado! Se guardó en tu dispositivo.</div>
+        <AnimatePresence>{justVoted&&myVote&&(
+          <motion.div initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} exit={{opacity:0}}
+            style={{background:"#f0fdf4",border:"2px solid #86efac",borderRadius:14,padding:"14px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12}}>
+            <span style={{fontSize:28}}>✅</span>
+            <div>
+              <div style={{fontSize:14,fontWeight:900,color:"#15803d",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>¡VOTASTE POR {PARTIES.find(p=>p.id===myVote)?.short||myVote.toUpperCase()}!</div>
+              <div style={{fontSize:10,color:"#16a34a",marginTop:2}}>Tu voto queda guardado. Puedes cambiarlo cuando quieras.</div>
+            </div>
           </motion.div>
         )}</AnimatePresence>
 
@@ -930,6 +1104,88 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals
 }
 
 // ── ARTICLES SCREEN ──
+// ── PREGÚNTALE A TU CANDIDATO ──
+function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo}){
+  const cats=Object.keys(PREGUNTAS);
+  const[cat,setCat]=useState(cats[0]);
+  const[idx,setIdx]=useState(0);
+  const questions=PREGUNTAS[cat];
+  const q=questions[idx%questions.length];
+  const party=PARTIES[Math.floor(Math.random()*PARTIES.length)];
+
+  const retarle=(partido)=>{
+    const msg=`❓ Le pregunto a ${partido.name}:\n\n"${q}"\n\n📱 Silao 360 — Encuesta Ciudadana\n👉 silao360.com.mx\n\n#Silao #PreguntaleAlCandidato`;
+    window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(msg),"_blank");
+  };
+  const retarleFB=(partido)=>{
+    const msg=`❓ "${q}" — Le pregunto a ${partido.name}. Silao 360`;
+    window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent("https://silao360.com.mx")+"&quote="+encodeURIComponent(msg),"_blank");
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:"#f8faff",paddingBottom:100}}>
+      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
+      <div style={{maxWidth:580,margin:"0 auto",padding:"14px 12px"}}>
+        {/* Título */}
+        <div style={{textAlign:"center",marginBottom:14}}>
+          <div style={{fontSize:28,fontWeight:900,color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>❓ PREGÚNTALE</div>
+          <div style={{fontSize:13,color:"#6b7280",marginTop:2}}>A TU CANDIDATO</div>
+        </div>
+
+        {/* Categorías */}
+        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:8,marginBottom:14}}>
+          {cats.map(c=>(
+            <motion.button key={c} whileTap={{scale:0.95}} onClick={()=>{setCat(c);setIdx(0);}}
+              style={{flexShrink:0,background:cat===c?"linear-gradient(135deg,#e01010,#7c3aed)":"#fff",border:`2px solid ${cat===c?"transparent":"#e5e7eb"}`,borderRadius:20,padding:"6px 12px",color:cat===c?"#fff":"#374151",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",whiteSpace:"nowrap",boxShadow:cat===c?"0 4px 12px rgba(224,16,16,0.3)":"none"}}>
+              {c}
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Pregunta del día */}
+        <motion.div key={cat+idx} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
+          style={{background:"linear-gradient(135deg,#0f172a,#1e3a8a)",borderRadius:20,padding:"24px 20px",marginBottom:14,boxShadow:"0 8px 32px rgba(14,30,115,0.3)",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,opacity:0.05,backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)",backgroundSize:"20px 20px"}}/>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",letterSpacing:3,marginBottom:10,fontFamily:"Barlow Condensed,sans-serif"}}>{cat} — {idx+1}/{questions.length}</div>
+          <div style={{fontSize:20,fontWeight:900,color:"#fff",lineHeight:1.4,fontFamily:"Barlow Condensed,sans-serif",marginBottom:16,position:"relative"}}>"{q}"</div>
+          <motion.button whileTap={{scale:0.96}} onClick={()=>setIdx(i=>(i+1)%questions.length)}
+            style={{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:10,padding:"8px 16px",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>
+            SIGUIENTE PREGUNTA →
+          </motion.button>
+        </motion.div>
+
+        {/* Retarle */}
+        <div style={{fontSize:11,fontWeight:900,color:"#374151",letterSpacing:2,marginBottom:10,fontFamily:"Barlow Condensed,sans-serif"}}>🎯 RETARLE — ELIGE UN PARTIDO</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+          {PARTIES.slice(0,5).map(p=>{
+            const logo=PARTY_LOGOS[p.id];
+            return(
+              <div key={p.id} style={{background:"#fff",border:`2px solid ${p.color}30`,borderRadius:14,padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:38,height:38,borderRadius:8,overflow:"hidden",border:`2px solid ${p.color}`,flexShrink:0}}>
+                  {logo?<img src={logo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
+                </div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif"}}>{p.short}</div>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  <motion.button whileTap={{scale:0.95}} onClick={()=>retarle(p)}
+                    style={{background:"linear-gradient(135deg,#25d366,#128c4e)",border:"none",borderRadius:8,padding:"7px 10px",color:"#fff",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>
+                    📱 WA
+                  </motion.button>
+                  <motion.button whileTap={{scale:0.95}} onClick={()=>retarleFB(p)}
+                    style={{background:"linear-gradient(135deg,#1877f2,#0d5cc7)",border:"none",borderRadius:8,padding:"7px 10px",color:"#fff",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>
+                    f FB
+                  </motion.button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,onLogout,candidates,siteLogo}){
   const[open,setOpen]=useState(null);const[ideologyOpen,setIdeologyOpen]=useState(null);
   const art=open!==null?PARTIES[open]:null;const ideo=ideologyOpen!==null?IDEOLOGIES[ideologyOpen]:null;
@@ -1502,10 +1758,11 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,onClose,votes
 export default function App(){
   const[screen,setScreen]=useState("results");
   const[votes,setVotes]=useState(()=>Object.fromEntries(PARTIES.map(p=>[p.id,0])));
-  const[myVote,setMyVote]=useState(null);
-  const[user,setUser]=useState(null);
+  const[myVote,setMyVote]=useState(()=>{try{return localStorage.getItem("silao360_mivoto")||null;}catch(e){return null;}});
+  const[user,setUser]=useState(()=>{try{const u=localStorage.getItem("silao360_user");return u?JSON.parse(u):null;}catch(e){return null;}});
+  const[confirmVoteParty,setConfirmVoteParty]=useState(null);
   const[showLogin,setShowLogin]=useState(false);
-  const[showOnboarding,setShowOnboarding]=useState(true);
+  const[showOnboarding,setShowOnboarding]=useState(()=>{try{return !localStorage.getItem("silao360_user");}catch(e){return true;}});
   const[isAdmin,setIsAdmin]=useState(false);
   const[showAdminLogin,setShowAdminLogin]=useState(false);
   const[showAdminPanel,setShowAdminPanel]=useState(false);
@@ -1520,7 +1777,33 @@ export default function App(){
   const[alertaMsg,setAlertaMsg]=useState("");
   const[alertaActiva,setAlertaActiva]=useState(false);
   const total=Object.values(votes).reduce((a,b)=>a+b,0);
-  const handleVote=(id)=>{setVotes(prev=>{const next={...prev};if(myVote&&next[myVote]>0)next[myVote]--;next[id]=(next[id]||0)+1;return next;});setMyVote(id);};
+  const handleVote=(id)=>{setVotes(prev=>{const next={...prev};if(myVote&&next[myVote]>0)next[myVote]--;next[id]=(next[id]||0)+1;return next;});setMyVote(id);try{localStorage.setItem("silao360_mivoto",id);}catch(e){};const uid=(user?.nickname||"anon_"+Math.random().toString(36).slice(2,8));sb.from("votos").insert({partido_id:id,user_id:uid}).catch(()=>{});};
+  const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
+  const doLogout=()=>{setUser(null);setMyVote(null);try{localStorage.removeItem("silao360_user");localStorage.removeItem("silao360_mivoto");}catch(e){}};
+
+  // ── Supabase: cargar votos ──
+  useEffect(()=>{
+    sb.from("votos").select("partido_id").then(rows=>{
+      if(!Array.isArray(rows))return;
+      const counts={};
+      rows.forEach(r=>{counts[r.partido_id]=(counts[r.partido_id]||0)+1;});
+      setVotes(prev=>({...prev,...counts}));
+    }).catch(()=>{});
+  },[]);
+
+  // ── Supabase: cargar comentarios ──
+  useEffect(()=>{
+    sb.from("comentarios").select("*").then(rows=>{
+      if(Array.isArray(rows)&&rows.length>0)setComments(rows.map(r=>({...r,ts:new Date(r.ts).getTime()})));
+    }).catch(()=>{});
+  },[]);
+
+  // ── Supabase: cargar propuestas ──
+  useEffect(()=>{
+    sb.from("propuestas").select("*").then(rows=>{
+      if(Array.isArray(rows)&&rows.length>0)setProposals(rows.map(r=>({...r,desc:r.descripcion})));
+    }).catch(()=>{});
+  },[]);
   const handleLogoClick=()=>{
     setScreen("results");
     adminTaps.current+=1;
@@ -1528,7 +1811,7 @@ export default function App(){
     adminTimer.current=setTimeout(()=>{adminTaps.current=0;},2500);
     if(adminTaps.current>=5){adminTaps.current=0;if(isAdmin){setIsAdmin(false);setShowAdminPanel(false);}else{setShowAdminLogin(true);}}
   };
-  const sp={votes,total,user,onLoginClick:()=>setShowLogin(true),onLogoClick:handleLogoClick,onLogout:()=>{setUser(null);setMyVote(null);},siteLogo};
+  const sp={votes,total,user,onLoginClick:()=>setShowLogin(true),onLogoClick:handleLogoClick,onLogout:doLogout,siteLogo};
   return(
     <div style={{background:"#f8faff",minHeight:"100vh",color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif"}}>
       <style>{`
@@ -1549,17 +1832,19 @@ export default function App(){
       {alertaActiva&&alertaMsg&&<div style={{position:"fixed",top:isAdmin?22:0,left:0,right:0,zIndex:998,background:"linear-gradient(90deg,#dc2626,#b91c1c)",padding:"6px 16px",textAlign:"center",fontSize:10,color:"#fff",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>📢 {alertaMsg}</div>}
       <AnimatePresence>{showAdminLogin&&<AdminLogin onSuccess={()=>{setIsAdmin(true);setShowAdminLogin(false);setShowAdminPanel(true);}} onCancel={()=>setShowAdminLogin(false)}/>}</AnimatePresence>
       {showAdminPanel&&isAdmin&&<AdminPanel candidates={candidates} setCandidates={setCandidates} siteLogo={siteLogo} setSiteLogo={setSiteLogo} onClose={()=>setShowAdminPanel(false)} votes={votes} setVotes={setVotes} proposals={proposals} setProposals={setProposals} comments={comments} encuestaActiva={encuestaActiva} setEncuestaActiva={setEncuestaActiva} alertaMsg={alertaMsg} setAlertaMsg={setAlertaMsg} alertaActiva={alertaActiva} setAlertaActiva={setAlertaActiva} blockedNicks={blockedNicks}/>}
-      <AnimatePresence>{showOnboarding&&<OnboardingModal onComplete={u=>{setUser(u);setShowOnboarding(false);}} onSkip={()=>setShowOnboarding(false)}/>}</AnimatePresence>
+      <AnimatePresence>{showOnboarding&&<OnboardingModal onComplete={u=>{saveUser(u);setShowOnboarding(false);}} onSkip={()=>setShowOnboarding(false)}/>}</AnimatePresence>
       {!showOnboarding&&(<>
-        <AnimatePresence>{showLogin&&<LoginModal onLogin={u=>{setUser(u);setShowLogin(false);}} onClose={()=>setShowLogin(false)}/>}</AnimatePresence>
+        <AnimatePresence>{showLogin&&<LoginModal onLogin={u=>{saveUser(u);setShowLogin(false);}} onClose={()=>setShowLogin(false)}/>}</AnimatePresence>
         <div style={{paddingTop:isAdmin&&alertaActiva?46:isAdmin||alertaActiva?22:0}}>
           {screen==="results"&&<ResultsScreen {...sp} myVote={myVote} setScreen={setScreen}/>}
           {screen==="vote"&&<VoteScreen {...sp} myVote={myVote} onVote={handleVote} candidates={candidates} setScreen={setScreen}/>}
           {screen==="proposals"&&<ProposalsScreen {...sp} proposals={proposals} setProposals={setProposals} isAdmin={isAdmin}/>}
           {screen==="articles"&&<ArticlesScreen {...sp} candidates={candidates}/>}
+          {screen==="preguntale"&&<PreguntaleScreen {...sp}/>}
           {screen==="comments"&&<CommentsScreen {...sp} isAdmin={isAdmin} comments={comments} setComments={setComments} blockedNicks={blockedNicks} pinnedMsg={pinnedMsg}/>}
         </div>
         <InstallBanner/>
+        <FloatingBubble myVote={myVote} candidates={candidates}/>
         <NavBar screen={screen} setScreen={setScreen}/>
       </>)}
     </div>
