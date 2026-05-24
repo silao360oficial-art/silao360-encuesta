@@ -1148,16 +1148,37 @@ function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo
           ))}
         </div>
 
-        {/* Pregunta del día */}
-        <motion.div key={cat+idx} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}}
-          style={{background:"linear-gradient(135deg,#0f172a,#1e3a8a)",borderRadius:20,padding:"24px 20px",marginBottom:14,boxShadow:"0 8px 32px rgba(14,30,115,0.3)",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",inset:0,opacity:0.05,backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)",backgroundSize:"20px 20px"}}/>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",letterSpacing:3,marginBottom:10,fontFamily:"Barlow Condensed,sans-serif"}}>{cat} — {(idx%questions.length)+1}/{questions.length}</div>
-          <div style={{fontSize:20,fontWeight:900,color:"#fff",lineHeight:1.4,fontFamily:"Barlow Condensed,sans-serif",marginBottom:16,position:"relative"}}>"{q}"</div>
-          <motion.button whileTap={{scale:0.96}} onClick={nextQ}
-            style={{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",borderRadius:10,padding:"8px 16px",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>
-            SIGUIENTE PREGUNTA →
-          </motion.button>
+        {/* Pregunta del día — cuadro mejorado con Kitt */}
+        <motion.div key={cat+idx} initial={{opacity:0,scale:0.97}} animate={{opacity:1,scale:1}} transition={{duration:0.3}}
+          style={{position:"relative",borderRadius:22,marginBottom:16,overflow:"hidden",
+            background:"linear-gradient(135deg,#0a0a1a,#1a0a3e,#0a1a2e)",
+            boxShadow:`0 0 40px rgba(124,58,237,0.5), 0 0 80px rgba(224,16,16,0.2), inset 0 1px 0 rgba(255,255,255,0.1)`}}>
+
+          {/* Borde LED animado exterior */}
+          <div style={{position:"absolute",inset:0,borderRadius:22,padding:2,background:"conic-gradient(from 0deg,#e01010,#ff6b6b,#7c3aed,#4ade80,#fbbf24,#1877f2,#e01010)",animation:"ledSpin 3s linear infinite",zIndex:0}}>
+            <div style={{position:"absolute",inset:2,borderRadius:20,background:"linear-gradient(135deg,#0a0a1a,#1a0a3e)"}}/>
+          </div>
+
+          {/* Kitt sweep de izquierda a derecha */}
+          <div style={{position:"absolute",top:0,bottom:0,width:"40%",background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent)",animation:"kitt 2.5s ease-in-out infinite",zIndex:1,pointerEvents:"none"}}/>
+
+          {/* Contenido */}
+          <div style={{position:"relative",zIndex:2,padding:"22px 20px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:3,fontFamily:"Barlow Condensed,sans-serif",fontWeight:800}}>{cat}</div>
+              <div style={{background:"rgba(255,255,255,0.1)",borderRadius:20,padding:"3px 10px",fontSize:9,color:"rgba(255,255,255,0.5)",fontFamily:"Barlow Condensed,sans-serif"}}>{(idx%questions.length)+1} / {questions.length}</div>
+            </div>
+
+            <div style={{fontSize:22,fontWeight:900,color:"#fff",lineHeight:1.5,fontFamily:"Barlow Condensed,sans-serif",marginBottom:18,textShadow:"0 0 20px rgba(124,58,237,0.8)"}}>
+              "{q}"
+            </div>
+
+            <motion.button whileTap={{scale:0.94}} onClick={nextQ}
+              style={{width:"100%",background:"linear-gradient(135deg,#7c3aed,#e01010)",border:"none",borderRadius:12,padding:"13px",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,boxShadow:"0 4px 20px rgba(124,58,237,0.5)",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:0,bottom:0,width:"30%",background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent)",animation:"kitt 1.8s ease-in-out infinite"}}/>
+              ⚡ SIGUIENTE PREGUNTA
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* Retarle */}
