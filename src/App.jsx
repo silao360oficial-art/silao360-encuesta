@@ -103,7 +103,29 @@ const REACTION_MAP=[{k:"like",e:"👍"},{k:"heart",e:"❤️"},{k:"fire",e:"🔥
 const NICK_ADJ=["Águila","Voz","Guardián","Centinela","Latido","Llama","Pulso","Chispa","Fuerza","Luz","Eco","Espíritu","Raíz","Flama"];
 const NICK_NOUN=["Silaoense","del Bajío","Guanajuatense","de Silao","del Centro","de Acero","Valiente","Libre","Rebelde","Citadino"];
 function genNickname(seed){let h=5381;for(let i=0;i<seed.length;i++)h=((h<<5)+h)^seed.charCodeAt(i);const n=Math.abs(h>>8)%90+10;return`${NICK_ADJ[Math.abs(h)%NICK_ADJ.length]} ${NICK_NOUN[Math.abs(h>>4)%NICK_NOUN.length]} #${n}`;}
-function timeAgo(ts){const d=(Date.now()-ts)/1000;if(d<60)return"ahora";if(d<3600)return`hace ${Math.floor(d/60)}m`;if(d<86400)return`hace ${Math.floor(d/3600)}h`;return`hace ${Math.floor(d/86400)}d`;}
+function timeAgo(ts){
+  const d=(Date.now()-ts)/1000;
+  if(d<60)return"ahora";
+  if(d<3600)return`hace ${Math.floor(d/60)} min`;
+  if(d<86400){
+    const date=new Date(ts);
+    const h=date.getHours();
+    const m=date.getMinutes().toString().padStart(2,"0");
+    const ampm=h>=12?"PM":"AM";
+    const h12=h%12||12;
+    return`${h12}:${m} ${ampm}`;
+  }
+  const date=new Date(ts);
+  return date.toLocaleDateString("es-MX",{weekday:"short",day:"numeric",month:"long"});
+}
+function fullDate(){
+  const d=new Date();
+  const h=d.getHours(),m=d.getMinutes().toString().padStart(2,"0"),ampm=h>=12?"PM":"AM",h12=h%12||12;
+  return{
+    fecha:d.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"}),
+    hora:`${h12}:${m} ${ampm}`
+  };
+}
 
 function LiveCount({value}){
   const[n,setN]=useState(value);const prev=useRef(value);const timer=useRef(null);
@@ -317,40 +339,57 @@ function Header({total,user,onLoginClick,onLogout,onLogoClick,siteLogo}){
 // ── NAVBAR ──
 function NavBar({screen,setScreen}){
   const tabs=[
-    {id:"results",icon:"📊",label:"INICIO",color:"#e01010"},
-    {id:"vote",icon:"🗳️",label:"VOTAR",color:"#e01010"},
-    {id:"proposals",icon:"💡",label:"IDEAS",color:"#e01010"},
-    {id:"articles",icon:"📰",label:"PARTIDOS",color:"#e01010"},
-    {id:"comments",icon:"💬",label:"COMENTAR",color:"#e01010"},
+    {id:"results", label:"INICIO",   top:"#e01010", side:"#8a0000", text:"#fff"},
+    {id:"vote",    label:"VOTAR",    top:"#b91c1c", side:"#7f1d1d", text:"#fff"},
+    {id:"proposals",label:"IDEAS",  top:"#7c3aed", side:"#4c1d95", text:"#fff"},
+    {id:"articles",label:"PARTIDOS",top:"#1d4ed8", side:"#1e3a8a", text:"#fff"},
+    {id:"comments",label:"FORO",    top:"#0891b2", side:"#164e63", text:"#fff"},
+    {id:"perfil",  label:"PERFIL",  top:"#ca8a04", side:"#78350f", text:"#fff"},
   ];
   return(
     <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:50}}>
-      <div style={{height:3,background:"linear-gradient(90deg,#e01010,#ff6b6b,#e01010,#ff6b6b,#e01010)",animation:"barraShine 3s linear infinite",backgroundSize:"200% 100%"}}/>
-      <div style={{background:"rgba(10,10,20,0.97)",backdropFilter:"blur(20px)",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
-        {tabs.map(t=>{const active=screen===t.id;return(
-          <motion.button key={t.id} whileTap={{scale:0.88,y:2}} onClick={()=>{playSound("click");setScreen(t.id);}}
-            style={{flex:1,background:"transparent",border:"none",padding:"6px 2px 10px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative",overflow:"hidden"}}>
-            {active&&<div style={{position:"absolute",inset:0,background:"radial-gradient(circle at 50% 100%,rgba(224,16,16,0.4),transparent 70%)",pointerEvents:"none"}}/>}
-            <div style={{
-              width:44,height:44,borderRadius:12,
-              background:active?"#e01010":"rgba(255,255,255,0.07)",
-              boxShadow:active?"0 4px 0 rgba(139,0,0,0.8), 0 6px 16px rgba(224,16,16,0.5), inset 0 1px 0 rgba(255,255,255,0.3)":"0 3px 0 rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)",
-              display:"flex",alignItems:"center",justifyContent:"center",
-              transform:active?"translateY(2px)":"translateY(0)",
-              transition:"all .15s",
-              border:active?"1px solid rgba(255,120,120,0.5)":"1px solid rgba(255,255,255,0.08)"
-            }}>
-              <span style={{fontSize:22,lineHeight:1}}>{t.icon}</span>
-            </div>
-            <span style={{fontSize:10,letterSpacing:1,color:active?"#fff":"rgba(255,255,255,0.4)",fontWeight:active?900:600,position:"relative",zIndex:1,fontFamily:"Barlow Condensed,sans-serif",whiteSpace:"nowrap"}}>{t.label}</span>
-            {active&&<div style={{width:22,height:2.5,borderRadius:2,background:"#e01010",position:"relative",zIndex:1,boxShadow:"0 0 8px #e01010"}}/>}
-          </motion.button>
-        );})}
+      <div style={{height:3,background:"linear-gradient(90deg,#e01010,#b91c1c,#7c3aed,#1d4ed8,#0891b2,#ca8a04)",backgroundSize:"200% 100%"}}/>
+      <div style={{background:"rgba(5,5,15,0.99)",backdropFilter:"blur(20px)",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,0px)",padding:"6px 4px calc(6px + env(safe-area-inset-bottom,0px)) 4px",gap:3}}>
+        {tabs.map(t=>{
+          const active=screen===t.id;
+          return(
+            <motion.button key={t.id} whileTap={{scale:0.88,y:3}} onClick={()=>{playSound("click");setScreen(t.id);}}
+              style={{flex:1,background:"transparent",border:"none",padding:0,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+              {/* 3D CUBE BUTTON */}
+              <div style={{
+                position:"relative",width:"100%",
+                borderRadius:10,
+                background:active?t.top:"rgba(255,255,255,0.06)",
+                boxShadow:active
+                  ?`0 5px 0 ${t.side}, 0 8px 18px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.3)`
+                  :`0 4px 0 rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.07)`,
+                transform:active?"translateY(2px)":"translateY(0)",
+                transition:"all .12s",
+                border:active?`1px solid rgba(255,255,255,0.25)`:"1px solid rgba(255,255,255,0.06)",
+                padding:"7px 2px 6px",
+              }}>
+                {active&&<div style={{position:"absolute",inset:0,borderRadius:10,background:"radial-gradient(ellipse at 50% 0%,rgba(255,255,255,0.25),transparent 70%)",pointerEvents:"none"}}/>}
+                <div style={{
+                  fontSize:10,
+                  fontWeight:900,
+                  color:active?"#fff":"rgba(255,255,255,0.35)",
+                  fontFamily:"Barlow Condensed,sans-serif",
+                  letterSpacing:1.2,
+                  textAlign:"center",
+                  lineHeight:1,
+                  position:"relative",
+                  textShadow:active?`0 0 10px rgba(255,255,255,0.6)`:"none",
+                }}>
+                  {t.label}
+                </div>
+              </div>
+            </motion.button>
+          );
+        })}
       </div>
     </div>
   );
 }
-
 // ── RESULTS SCREEN ──
 function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogout,onLogoClick,siteLogo}){
   const[bars,setBars]=useState(false);const[showMoney,setShowMoney]=useState(false);
@@ -663,34 +702,69 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,sit
           </motion.div>
         )}</AnimatePresence>
 
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {PARTIES.map((p,i)=>{
             const count=votes[p.id]||0,isMe=myVote===p.id;
             const cand=candidates?.[p.id];
             const canVote=!myVote||myVoteForced;
+            const totalV=Object.values(votes).reduce((a,b)=>a+b,0);
+            const pct=totalV>0?((count/totalV)*100).toFixed(1):"0.0";
             return(
               <motion.button key={p.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*0.04}}
                 whileTap={canVote?{scale:0.97}:{}}
                 onClick={()=>canVote&&doVote(p.id)}
-                style={{display:"flex",gap:10,alignItems:"center",background:isMe?`${p.color}0d`:"#fff",border:`2px solid ${isMe?p.color:"#e5e7eb"}`,borderRadius:14,padding:"13px",cursor:canVote?"pointer":"default",width:"100%",textAlign:"left",
-                  boxShadow:isMe?`0 0 0 1px ${p.color}, 0 4px 20px ${p.color}40`:"0 1px 4px rgba(0,0,0,0.04)",
-                  opacity:myVote&&!isMe&&!myVoteForced?0.5:1,
-                  position:"relative",overflow:"hidden"}}>
-                {isMe&&<div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent,${p.color}15,transparent)`,animation:"ledShimmer 1.5s ease-in-out infinite",pointerEvents:"none"}}/>}
-                <div style={{width:56,height:56,borderRadius:10,overflow:"hidden",flexShrink:0,border:`2.5px solid ${isMe?p.color:`${p.color}40`}`,boxShadow:isMe?`0 0 14px ${p.color}60`:"none",background:`${p.color}10`}}>
-                  {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:28,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:16,fontWeight:900,color:isMe?p.color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif",display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
-                    {p.short}
-                    {isMe&&<span style={{fontSize:10,color:"#fff",background:p.color,padding:"3px 8px",borderRadius:10,fontWeight:800}}>✓ TU VOTO</span>}
+                style={{display:"flex",flexDirection:"column",background:isMe?`${p.color}0d`:"#fff",border:`2.5px solid ${isMe?p.color:"#e5e7eb"}`,borderRadius:18,cursor:canVote?"pointer":"default",width:"100%",textAlign:"left",
+                  boxShadow:isMe?`0 0 0 1px ${p.color}, 0 6px 24px ${p.color}40`:"0 2px 8px rgba(0,0,0,0.06)",
+                  opacity:myVote&&!isMe&&!myVoteForced?0.55:1,
+                  overflow:"hidden"}}>
+                {/* BARRA SUPERIOR COLOR PARTIDO */}
+                <div style={{height:5,background:`linear-gradient(90deg,${p.color},${p.color}88)`,width:"100%"}}/>
+                <div style={{display:"flex",gap:0,padding:"14px 14px 10px",alignItems:"stretch"}}>
+                  {/* LOGO PARTIDO GRANDE */}
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,flexShrink:0}}>
+                    <div style={{width:80,height:80,borderRadius:14,overflow:"hidden",border:`3px solid ${isMe?p.color:`${p.color}50`}`,boxShadow:isMe?`0 0 18px ${p.color}70`:"none",background:`${p.color}10`}}>
+                      {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:46,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
+                    </div>
+                    <div style={{fontSize:13,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:.5,textAlign:"center",lineHeight:1.1}}>{p.short}</div>
+                    {isMe&&<div style={{background:p.color,borderRadius:8,padding:"3px 8px",fontSize:11,color:"#fff",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>✓ TU VOTO</div>}
                   </div>
-                  <div style={{fontSize:11,color:p.color,fontWeight:700,marginTop:2,fontFamily:"Barlow Condensed,sans-serif"}}>{p.spectrumLabel}</div>
-                  <div style={{fontSize:19,fontWeight:900,color:isMe?p.color:count>0?"#1a1a1a":"#d1d5db",fontFamily:"Barlow Condensed,sans-serif",marginTop:3,lineHeight:1}}>
-                    <LiveCount value={count}/> <span style={{fontSize:11,fontWeight:500,color:"#9ca3af"}}>votos</span>
+
+                  {/* LED KITT STRIP */}
+                  <div style={{width:18,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 2px"}}>
+                    <div style={{width:4,height:"80%",borderRadius:3,background:`linear-gradient(180deg,${p.color}00,${p.color},${p.color}cc,${p.color}44,${p.color}00)`,boxShadow:isMe?`0 0 10px ${p.color}`:"none",animation:isMe?"ledScan 1.5s ease-in-out infinite":"none"}}/>
+                  </div>
+
+                  {/* CANDIDATO GRANDE */}
+                  <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                    <div style={{position:"relative",width:80,height:80,flexShrink:0}}>
+                      <div style={{position:"absolute",inset:-3,borderRadius:17,background:`conic-gradient(from 0deg,${p.color},#fff,${p.color}88,#fff,${p.color})`,animation:"ledSpin 2.5s linear infinite"}}/>
+                      <div style={{position:"absolute",inset:0,borderRadius:14,overflow:"hidden",background:cand?.fotoUrl?"#000":`${p.color}08`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}}>
+                        {cand?.fotoUrl?<img src={cand.fotoUrl} alt="candidato" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<><span style={{fontSize:30}}>👤</span><span style={{fontSize:8,color:p.color,fontFamily:"Barlow Condensed,sans-serif",fontWeight:900}}>PRÓXIMO</span></>}
+                      </div>
+                    </div>
+                    <div style={{textAlign:"center"}}>
+                      <div style={{fontSize:12,fontWeight:900,color:cand?.nombre==="Por definir"?"#9ca3af":"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.2}}>{cand?.nombre||"Por definir"}</div>
+                      {cand?.cargo&&<div style={{fontSize:10,color:p.color,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>{cand.cargo}</div>}
+                    </div>
+                  </div>
+
+                  {/* VOTOS + PORCENTAJE */}
+                  <div style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"flex-end",justifyContent:"center",gap:4,paddingLeft:10}}>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:32,fontWeight:900,color:isMe?p.color:"#1a1a1a",lineHeight:1,fontFamily:"Barlow Condensed,sans-serif"}}><LiveCount value={count}/></div>
+                      <div style={{fontSize:11,color:"#9ca3af",fontFamily:"Barlow Condensed,sans-serif"}}>votos</div>
+                    </div>
+                    <div style={{background:isMe?p.color:"#f3f4f6",borderRadius:10,padding:"4px 10px",textAlign:"center"}}>
+                      <div style={{fontSize:20,fontWeight:900,color:isMe?"#fff":p.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{pct}%</div>
+                      <div style={{fontSize:9,color:isMe?"rgba(255,255,255,0.7)":"#9ca3af",fontFamily:"Barlow Condensed,sans-serif"}}>del total</div>
+                    </div>
                   </div>
                 </div>
-                <CandidateBox candidate={cand} color={p.color} size={54} radius={10}/>
+                {/* BARRA DE PROGRESO */}
+                <div style={{height:6,background:"#f3f4f6",margin:"0 14px 12px"}}>
+                  <motion.div initial={{width:0}} animate={{width:`${pct}%`}} transition={{duration:1,ease:"easeOut"}}
+                    style={{height:"100%",background:`linear-gradient(90deg,${p.color},${p.color}88)`,borderRadius:3}}/>
+                </div>
               </motion.button>
             );
           })}
@@ -701,50 +775,73 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,sit
 }
 
 // ── PROPOSALS SCREEN ──
-function ProposalsScreen({user,onLoginClick,onLogoClick,total,proposals,setProposals,siteLogo,isAdmin}){
+function ProposalsScreen({user,onLoginClick,onLogout,onLogoClick,total,proposals,setProposals,siteLogo,isAdmin}){
   const[confirmVote,setConfirmVote]=useState(null);const[newProp,setNewProp]=useState("");const[showForm,setShowForm]=useState(false);
+  const[selEmoji,setSelEmoji]=useState("💡");
+  const EMOJI_CATS=[
+    {e:"💡",label:"IDEA"},    {e:"🚔",label:"SEGURIDAD"},{e:"🛣️",label:"CALLES"},
+    {e:"💧",label:"AGUA"},    {e:"🌳",label:"PARQUES"},  {e:"💡",label:"LUZ"},
+    {e:"🏫",label:"EDUCACIÓN"},{e:"🏥",label:"SALUD"},   {e:"💰",label:"PRESUPUESTO"},
+    {e:"🚮",label:"BASURA"},  {e:"📢",label:"GOBIERNO"}, {e:"🏗️",label:"OBRA"},
+  ];
   const doVote=(pid,tipo)=>{if(!user){playSound("click");onLoginClick();return;}const p=proposals.find(x=>x.id===pid);if(p?.miVoto===tipo)return;if(p?.miVoto){setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,[x.miVoto]:x[x.miVoto]-1,miVoto:tipo};}));}else{playSound("vote");setConfirmVote({pid,tipo});}};
   const confirmAndVote=()=>{if(!confirmVote)return;const{pid,tipo}=confirmVote;setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,miVoto:tipo};}));playSound("success");setConfirmVote(null);};
-  const addProp=()=>{if(!newProp.trim())return;setProposals(prev=>[{id:"p"+Date.now(),emoji:"💬",titulo:newProp.trim(),desc:`Propuesta de ${user?.nickname||"ciudadano"}`,si:1,no:0,miVoto:"si",autor:user?.nickname||"Ciudadano"},...prev]);setNewProp("");setShowForm(false);playSound("success");};
+  const addProp=()=>{if(!newProp.trim())return;setProposals(prev=>[{id:"p"+Date.now(),emoji:selEmoji,titulo:newProp.trim(),desc:`Propuesta de ${user?.nickname||"ciudadano"}`,si:1,no:0,miVoto:"si",autor:user?.nickname||"Ciudadano"},...prev]);setNewProp("");setShowForm(false);setSelEmoji("💡");playSound("success");};
   const deleteProp=(pid)=>setProposals(prev=>prev.filter(x=>x.id!==pid));
   const pending=confirmVote?proposals.find(x=>x.id===confirmVote.pid):null;
   const THEMES=[{bg:"linear-gradient(135deg,#0d0221,#2d1b69)",border:"#7c3aed",glow:"rgba(124,58,237,0.5)"},{bg:"linear-gradient(135deg,#012312,#064e3b)",border:"#10b981",glow:"rgba(16,185,129,0.5)"},{bg:"linear-gradient(135deg,#1a0600,#7c2d12)",border:"#f97316",glow:"rgba(249,115,22,0.5)"},{bg:"linear-gradient(135deg,#020617,#1e3a8a)",border:"#3b82f6",glow:"rgba(59,130,246,0.5)"},{bg:"linear-gradient(135deg,#1a0020,#701a75)",border:"#e879f9",glow:"rgba(232,121,249,0.5)"}];
   return(
     <div style={{paddingBottom:96,background:"linear-gradient(160deg,#050010,#0a0a1a)",minHeight:"100vh"}}>
-      <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
+      <Header total={total} user={user} onLoginClick={onLoginClick} onLogout={onLogout} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
       <AnimatePresence>{confirmVote&&pending&&(
         <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:"fixed",inset:0,zIndex:800,background:"rgba(0,0,0,0.9)",backdropFilter:"blur(12px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
           <motion.div initial={{scale:0.8,y:30}} animate={{scale:1,y:0}} style={{background:confirmVote.tipo==="si"?"linear-gradient(135deg,#022c22,#14532d)":"linear-gradient(135deg,#3b0a0a,#7f1d1d)",border:`2px solid ${confirmVote.tipo==="si"?"#4ade80":"#f87171"}`,borderRadius:22,padding:"26px 22px",maxWidth:340,width:"100%",textAlign:"center"}}>
             <div style={{fontSize:54,marginBottom:8}}>{confirmVote.tipo==="si"?"👍":"👎"}</div>
-            <div style={{fontSize:17,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,marginBottom:7}}>{confirmVote.tipo==="si"?"¡VAS A APOYAR ESTO!":"NO APOYAS ESTA PROPUESTA"}</div>
-            <div style={{fontSize:12,color:"rgba(255,255,255,0.65)",marginBottom:18,fontStyle:"italic"}}>"{pending.titulo}"</div>
+            <div style={{fontSize:20,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,marginBottom:7}}>{confirmVote.tipo==="si"?"¡VAS A APOYAR ESTO!":"NO APOYAS ESTA PROPUESTA"}</div>
+            <div style={{fontSize:14,color:"rgba(255,255,255,0.75)",marginBottom:18,fontStyle:"italic"}}>"{pending.titulo}"</div>
             <div style={{display:"flex",gap:9}}>
-              <button onClick={()=>setConfirmVote(null)} style={{flex:1,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:12,padding:"10px",color:"rgba(255,255,255,0.7)",fontSize:12,fontWeight:700,cursor:"pointer"}}>CANCELAR</button>
-              <motion.button whileTap={{scale:0.96}} onClick={confirmAndVote} style={{flex:2,background:confirmVote.tipo==="si"?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#dc2626,#b91c1c)",border:"none",borderRadius:12,padding:"10px",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✅ CONFIRMAR</motion.button>
+              <button onClick={()=>setConfirmVote(null)} style={{flex:1,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:12,padding:"12px",color:"rgba(255,255,255,0.7)",fontSize:14,fontWeight:700,cursor:"pointer"}}>CANCELAR</button>
+              <motion.button whileTap={{scale:0.96}} onClick={confirmAndVote} style={{flex:2,background:confirmVote.tipo==="si"?"linear-gradient(135deg,#16a34a,#15803d)":"linear-gradient(135deg,#dc2626,#b91c1c)",border:"none",borderRadius:12,padding:"12px",color:"#fff",fontSize:15,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✅ CONFIRMAR</motion.button>
             </div>
           </motion.div>
         </motion.div>
       )}</AnimatePresence>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
-        <div style={{padding:"12px 2px 10px",borderBottom:"2px solid #7c3aed",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><div style={{fontSize:17,fontWeight:900,color:"#a78bfa",fontFamily:"Barlow Condensed,sans-serif"}}>💡 Propuestas Ciudadanas</div><div style={{fontSize:9,color:"rgba(167,139,250,0.6)",marginTop:2}}>Vota qué quieres que haga el próximo gobierno</div></div>
-          {user&&<motion.button whileTap={{scale:0.95}} onClick={()=>{playSound("click");setShowForm(s=>!s);}} style={{background:"linear-gradient(135deg,#7c3aed,#5b21b6)",border:"none",borderRadius:9,padding:"8px 12px",color:"#fff",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:.5}}>+ PROPONER</motion.button>}
+        <div style={{padding:"14px 2px 12px",borderBottom:"2px solid #7c3aed",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:22,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textShadow:"0 0 14px rgba(167,139,250,0.8)"}}>💡 PROPUESTAS CIUDADANAS</div>
+            <div style={{fontSize:13,color:"rgba(167,139,250,0.8)",marginTop:3,fontFamily:"Barlow Condensed,sans-serif"}}>Vota qué quieres que haga el próximo gobierno</div>
+          </div>
+          {user&&<motion.button whileTap={{scale:0.95}} onClick={()=>{playSound("click");setShowForm(s=>!s);}} style={{background:"linear-gradient(135deg,#7c3aed,#5b21b6)",border:"none",borderRadius:10,padding:"10px 14px",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:.5}}>+ PROPONER</motion.button>}
         </div>
         <AnimatePresence>{showForm&&(
           <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}}
-            style={{background:"rgba(124,58,237,0.15)",border:"2px solid #7c3aed",borderRadius:14,padding:"14px",marginBottom:14,overflow:"hidden"}}>
-            <div style={{fontSize:10,color:"#c4b5fd",marginBottom:8,fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>TU PROPUESTA PARA SILAO</div>
-            <input value={newProp} onChange={e=>setNewProp(e.target.value.slice(0,120))} placeholder="¿Qué necesita Silao? Ej: Más iluminación en..." style={{width:"100%",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(124,58,237,0.5)",borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:13,outline:"none",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}/>
+            style={{background:"rgba(124,58,237,0.15)",border:"2px solid #7c3aed",borderRadius:16,padding:"16px",marginBottom:16,overflow:"hidden"}}>
+            <div style={{fontSize:14,color:"#c4b5fd",marginBottom:10,fontWeight:900,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>TU PROPUESTA PARA SILAO</div>
+            {/* EMOJI PICKER */}
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:12,color:"rgba(196,181,253,0.7)",marginBottom:6,fontFamily:"Barlow Condensed,sans-serif",fontWeight:700}}>ELIGE UNA CATEGORÍA:</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                {EMOJI_CATS.map(ec=>(
+                  <motion.button key={ec.e+ec.label} whileTap={{scale:0.92}} onClick={()=>setSelEmoji(ec.e)}
+                    style={{background:selEmoji===ec.e?"#7c3aed":"rgba(255,255,255,0.07)",border:`2px solid ${selEmoji===ec.e?"#a78bfa":"rgba(255,255,255,0.1)"}`,borderRadius:10,padding:"6px 10px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                    <span style={{fontSize:18}}>{ec.e}</span>
+                    <span style={{fontSize:8,color:selEmoji===ec.e?"#fff":"rgba(196,181,253,0.6)",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>{ec.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+            <input value={newProp} onChange={e=>setNewProp(e.target.value.slice(0,120))} placeholder="¿Qué necesita Silao? Ej: Más iluminación en..." style={{width:"100%",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(124,58,237,0.5)",borderRadius:10,padding:"12px 14px",color:"#fff",fontSize:15,outline:"none",fontFamily:"Barlow Condensed,sans-serif",marginBottom:10}}/>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{fontSize:9,color:"rgba(196,181,253,0.5)",fontFamily:"Barlow Condensed,sans-serif"}}>{newProp.length}/120</span>
+              <span style={{fontSize:11,color:"rgba(196,181,253,0.5)",fontFamily:"Barlow Condensed,sans-serif"}}>{newProp.length}/120</span>
               <div style={{display:"flex",gap:7}}>
-                <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.07)",border:"none",borderRadius:8,padding:"7px 12px",color:"rgba(255,255,255,0.5)",fontSize:10,cursor:"pointer"}}>CANCELAR</button>
-                <motion.button whileTap={{scale:0.96}} onClick={addProp} disabled={!newProp.trim()} style={{background:newProp.trim()?"#7c3aed":"rgba(255,255,255,0.1)",border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",fontSize:10,fontWeight:800,cursor:newProp.trim()?"pointer":"default",fontFamily:"Barlow Condensed,sans-serif"}}>✅ ENVIAR</motion.button>
+                <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.07)",border:"none",borderRadius:8,padding:"9px 14px",color:"rgba(255,255,255,0.5)",fontSize:13,cursor:"pointer"}}>CANCELAR</button>
+                <motion.button whileTap={{scale:0.96}} onClick={addProp} disabled={!newProp.trim()} style={{background:newProp.trim()?"#7c3aed":"rgba(255,255,255,0.1)",border:"none",borderRadius:8,padding:"9px 16px",color:"#fff",fontSize:13,fontWeight:900,cursor:newProp.trim()?"pointer":"default",fontFamily:"Barlow Condensed,sans-serif"}}>✅ ENVIAR</motion.button>
               </div>
             </div>
           </motion.div>
         )}</AnimatePresence>
-        {!user&&<div style={{background:"rgba(255,255,255,0.04)",border:"1px dashed rgba(124,58,237,0.4)",borderRadius:12,padding:"12px",marginBottom:14,textAlign:"center"}}><div style={{fontSize:11,color:"rgba(196,181,253,0.6)",marginBottom:8}}>Entra para agregar tu propia propuesta</div><button onClick={()=>{playSound("click");onLoginClick();}} style={{background:"#7c3aed",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>f ENTRAR Y PROPONER</button></div>}
+        {!user&&<div style={{background:"rgba(255,255,255,0.04)",border:"1px dashed rgba(124,58,237,0.4)",borderRadius:14,padding:"14px",marginBottom:16,textAlign:"center"}}><div style={{fontSize:14,color:"rgba(196,181,253,0.8)",marginBottom:10,fontFamily:"Barlow Condensed,sans-serif"}}>Entra para agregar tu propia propuesta</div><button onClick={()=>{playSound("click");onLoginClick();}} style={{background:"#7c3aed",border:"none",borderRadius:10,padding:"10px 20px",color:"#fff",fontSize:14,cursor:"pointer",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>ENTRAR Y PROPONER</button></div>}
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {proposals.map((p,i)=>{const t=THEMES[i%THEMES.length];const siPct=p.si+p.no>0?Math.round((p.si/(p.si+p.no))*100):0;return(
             <motion.div key={p.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*0.05}}
@@ -884,7 +981,10 @@ function CommentsScreen({user,onLoginClick,total,onLogoClick,isAdmin,comments,se
     <div style={{paddingBottom:100,background:"linear-gradient(180deg,#0d0d1a,#1a0a2e,#0a0d1a)",minHeight:"100vh"}}>
       <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
-        <div style={{padding:"12px 2px 10px",borderBottom:"2px solid #7c3aed",marginBottom:12}}><div style={{fontSize:17,fontWeight:900,color:"#c4b5fd",fontFamily:"Barlow Condensed,sans-serif"}}>💬 Foro Ciudadano</div></div>
+        <div style={{padding:"14px 2px 12px",borderBottom:"2px solid #7c3aed",marginBottom:14}}>
+          <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,textShadow:"0 0 20px rgba(196,181,253,0.9)"}}>💬 FORO CIUDADANO</div>
+          <div style={{fontSize:13,color:"rgba(196,181,253,0.8)",marginTop:3,fontFamily:"Barlow Condensed,sans-serif"}}>Opina sobre las elecciones en Silao</div>
+        </div>
         {user?(<div style={{background:"linear-gradient(135deg,#1a0a2e,#2d1b69)",border:"2px solid #7c3aed",borderRadius:14,padding:"12px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}><div style={{width:26,height:26,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>🎭</div><span style={{fontSize:11,fontWeight:800,color:"#c4b5fd",fontFamily:"Barlow Condensed,sans-serif"}}>{user.nickname}</span></div>
           <textarea value={text} onChange={e=>setText(e.target.value.slice(0,280))} placeholder="¿Qué opinas sobre las elecciones en Silao?" style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1.5px solid rgba(124,58,237,0.4)",borderRadius:8,padding:"9px 10px",color:"#fff",fontSize:12,outline:"none",resize:"none",height:70,lineHeight:1.5,fontFamily:"Barlow Condensed,sans-serif"}}/>
@@ -1322,6 +1422,124 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,onClose,votes
   );
 }
 
+// ── PERFIL SCREEN ──
+function PerfilScreen({user,onLoginClick,onLogout,total,myVote,siteLogo,onLogoClick}){
+  const party=PARTIES.find(p=>p.id===myVote);
+  const{fecha,hora}=fullDate();
+  const[isIOS]=useState(()=>/iphone|ipad|ipod/i.test(navigator.userAgent));
+  const[isAndroid]=useState(()=>/android/i.test(navigator.userAgent));
+  return(
+    <div style={{paddingBottom:96,background:"linear-gradient(160deg,#0a0012,#1a0a2e,#0a0012)",minHeight:"100vh"}}>
+      <Header total={total} user={user} onLoginClick={onLoginClick} onLogout={onLogout} onLogoClick={onLogoClick} siteLogo={siteLogo}/>
+      <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
+        {/* FECHA Y HORA */}
+        <div style={{textAlign:"center",padding:"16px 0 8px"}}>
+          <div style={{fontSize:28,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",textTransform:"capitalize",textShadow:"0 0 16px rgba(167,139,250,0.7)"}}>{fecha}</div>
+          <div style={{fontSize:40,fontWeight:900,color:"#ca8a04",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:4,textShadow:"0 0 20px rgba(202,138,4,0.7)"}}>{hora}</div>
+        </div>
+
+        {/* USUARIO */}
+        {user?(
+          <div style={{background:"rgba(255,255,255,0.05)",border:"2px solid rgba(255,255,255,0.12)",borderRadius:16,padding:"18px",marginBottom:14}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+              <div style={{width:56,height:56,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,boxShadow:"0 0 20px rgba(124,58,237,0.6)"}}>🎭</div>
+              <div>
+                <div style={{fontSize:18,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif"}}>{user.nickname}</div>
+                <div style={{fontSize:12,color:"rgba(196,181,253,0.6)",fontFamily:"Barlow Condensed,sans-serif"}}>{user.email}</div>
+              </div>
+            </div>
+            {party&&<div style={{background:`${party.color}15`,border:`2px solid ${party.color}40`,borderRadius:12,padding:"12px",display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+              <div style={{width:44,height:44,borderRadius:8,overflow:"hidden",border:`2px solid ${party.color}`}}>
+                {PARTY_LOGOS[myVote]?<img src={PARTY_LOGOS[myVote]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:24,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{party.emoji}</span>}
+              </div>
+              <div><div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontFamily:"Barlow Condensed,sans-serif"}}>TU VOTO ACTUAL</div><div style={{fontSize:18,fontWeight:900,color:party.color,fontFamily:"Barlow Condensed,sans-serif"}}>{party.short}</div></div>
+            </div>}
+            <motion.button whileTap={{scale:0.96}} onClick={onLogout}
+              style={{width:"100%",background:"#e01010",border:"none",borderRadius:12,padding:"13px",color:"#fff",fontSize:15,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>
+              🚪 CERRAR SESIÓN
+            </motion.button>
+          </div>
+        ):(
+          <div style={{background:"rgba(255,255,255,0.04)",border:"2px solid rgba(255,255,255,0.1)",borderRadius:16,padding:"20px",marginBottom:14,textAlign:"center"}}>
+            <div style={{fontSize:44,marginBottom:10}}>🔐</div>
+            <div style={{fontSize:18,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>NO HAS INICIADO SESIÓN</div>
+            <motion.button whileTap={{scale:0.96}} onClick={onLoginClick}
+              style={{background:"#1877f2",border:"none",borderRadius:12,padding:"13px 24px",color:"#fff",fontSize:15,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>
+              ENTRAR PARA VOTAR
+            </motion.button>
+          </div>
+        )}
+
+        {/* COMPARTIR */}
+        <div style={{background:"rgba(255,255,255,0.04)",border:"1.5px solid rgba(255,255,255,0.1)",borderRadius:16,padding:"16px",marginBottom:14}}>
+          <div style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",marginBottom:12,letterSpacing:1}}>📣 COMPARTIR SILAO 360</div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>window.open("https://api.whatsapp.com/send?text="+encodeURIComponent("🗳️ ENCUESTA SILAO 360\nParticipa: https://silao360.com.mx\n#Silao #Guanajuato"),"_blank")} style={{flex:1,background:"linear-gradient(135deg,#25d366,#128c4e)",border:"none",borderRadius:12,padding:"12px",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>WA</button>
+            <button onClick={()=>window.open("https://www.facebook.com/share/1CCfvKYYK1/?mibextid=wwXIfr","_blank")} style={{flex:1,background:"linear-gradient(135deg,#1877f2,#0d5cc7)",border:"none",borderRadius:12,padding:"12px",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>FB</button>
+            <button onClick={()=>window.open("https://www.silao360.com.mx","_blank")} style={{flex:1,background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:12,padding:"12px",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>WEB</button>
+          </div>
+        </div>
+
+        {/* INSTALAR APP */}
+        <div style={{background:"linear-gradient(135deg,#1a0a2e,#2d1b69)",border:"2px solid #7c3aed",borderRadius:16,padding:"16px",marginBottom:14}}>
+          <div style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",marginBottom:14,letterSpacing:1}}>📲 INSTALAR ESTA APP</div>
+
+          {/* iOS */}
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:14,fontWeight:900,color:"#60a5fa",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>🍎 IPHONE / IPAD (Safari)</div>
+            {[
+              "Abre esta página en Safari (no Chrome)",
+              "Toca el botón Compartir (cuadro con flecha ↑ abajo)",
+              "Baja y toca \"Agregar a pantalla de inicio\"",
+              "Toca \"Agregar\" en la esquina superior derecha",
+              "La app aparece como ícono en tu pantalla",
+            ].map((s,i)=>(
+              <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:7}}>
+                <div style={{width:24,height:24,borderRadius:"50%",background:"#1d4ed8",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:"#fff",flexShrink:0}}>{i+1}</div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,0.85)",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.5}}>{s}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Android */}
+          <div style={{marginBottom:14}}>
+            <div style={{fontSize:14,fontWeight:900,color:"#4ade80",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>🤖 ANDROID (Chrome)</div>
+            {[
+              "Abre esta página en Chrome",
+              "Toca el menú ⋮ (tres puntos arriba a la derecha)",
+              "Toca \"Agregar a pantalla de inicio\" o \"Instalar app\"",
+              "Toca \"Agregar\" o \"Instalar\" en el diálogo",
+              "La app aparece en tu pantalla de inicio",
+            ].map((s,i)=>(
+              <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:7}}>
+                <div style={{width:24,height:24,borderRadius:"50%",background:"#16a34a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:"#fff",flexShrink:0}}>{i+1}</div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,0.85)",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.5}}>{s}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop */}
+          <div>
+            <div style={{fontSize:14,fontWeight:900,color:"#fbbf24",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>💻 COMPUTADORA (Chrome/Edge)</div>
+            {[
+              "Abre esta página en Chrome o Edge",
+              "Busca el ícono de instalación (⊕) en la barra de dirección",
+              "Si no aparece: menú ⋮ → \"Instalar Silao 360\"",
+              "Haz clic en \"Instalar\" en el diálogo",
+              "La app se abre como ventana independiente",
+            ].map((s,i)=>(
+              <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:7}}>
+                <div style={{width:24,height:24,borderRadius:"50%",background:"#ca8a04",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:"#fff",flexShrink:0}}>{i+1}</div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,0.85)",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.5}}>{s}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── PELOTA REBOTANDO GLOBAL ──
 function BouncingBall({myVote}){
   const party=PARTIES.find(p=>p.id===myVote);
@@ -1510,7 +1728,8 @@ export default function App(){
         @keyframes glow360{0%,100%{text-shadow:0 0 8px rgba(255,107,107,0.5)}50%{text-shadow:0 0 16px rgba(255,107,107,1)}}
         @keyframes ledSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         @keyframes ledShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
-        @keyframes ballSpin{0%{box-shadow:0 0 12px var(--bc,#e01010),0 4px 12px rgba(0,0,0,0.3)}50%{box-shadow:0 0 28px var(--bc,#e01010),0 4px 20px rgba(0,0,0,0.4)}100%{box-shadow:0 0 12px var(--bc,#e01010),0 4px 12px rgba(0,0,0,0.3)}}
+        @keyframes ledScan{0%,100%{opacity:0.3;transform:scaleY(0.4)}50%{opacity:1;transform:scaleY(1)}}
+        @keyframes ballSpin{0%,100%{box-shadow:0 0 12px #e01010,0 4px 12px rgba(0,0,0,0.3)}50%{box-shadow:0 0 28px #e01010,0 4px 20px rgba(0,0,0,0.4)}}
         ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#c4b5fd}
         input::placeholder{color:#9ca3af}
         textarea::placeholder{color:#6b7280}
@@ -1528,6 +1747,7 @@ export default function App(){
           {screen==="proposals"&&<ProposalsScreen {...sp} proposals={proposals} setProposals={setProposals} isAdmin={isAdmin}/>}
           {screen==="articles"&&<ArticlesScreen {...sp} candidates={candidates}/>}
           {screen==="comments"&&<CommentsScreen {...sp} isAdmin={isAdmin} comments={comments} setComments={setComments} blockedNicks={blockedNicks} pinnedMsg={pinnedMsg}/>}
+          {screen==="perfil"&&<PerfilScreen {...sp} myVote={myVote}/>}
         </div>
         <InstallBanner/>
         <BouncingBall myVote={myVote}/>
