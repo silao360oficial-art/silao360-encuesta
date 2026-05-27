@@ -837,7 +837,6 @@ function InstallBanner(){
     </motion.div>
   );
 }
-        </motion.button>
 function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,siteLogo,candidates,setScreen}){
   const[justVoted,setJustVoted]=useState(null);
   const[showMoney,setShowMoney]=useState(false);
