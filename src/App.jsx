@@ -529,8 +529,8 @@ function InstallBanner(){
           <div style={{fontSize:11,color:"#c4b5fd",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>📱 PASOS PARA INSTALAR EN iPHONE:</div>
           {[
             {n:1,txt:"Toca el botón Compartir (cuadro con flecha ↑) en Safari"},
-            {n:2,txt: 'Baja y toca "Agregar a pantalla de inicio"'},
-           {n:3,txt: 'Toca "Agregar" arriba a la derecha'},
+             {n:2,txt: "Baja y toca Agregar a pantalla de inicio"},
+   {n:3,txt: "Toca Agregar arriba a la derecha"},
           ].map(s=>(
             <div key={s.n} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:6}}>
               <div style={{width:22,height:22,borderRadius:"50%",background:"#7c3aed",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:"#fff",flexShrink:0}}>{s.n}</div>
