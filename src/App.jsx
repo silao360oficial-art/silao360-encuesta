@@ -11,6 +11,10 @@ const supabase = createClient(
 
 // ── SONIDOS (sin use-sound para el artifact, usamos Audio nativo) ──
 const playSound = (type) => {
+  const map = {
+    click: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA",
+    success: "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA",
+  };
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const o = ctx.createOscillator();
@@ -214,11 +218,8 @@ function MoneyModal({onClose}){
   );
 }
 
-// ── AUTH MODAL (unifica Onboarding + Login) ──
-// variant="onboarding" → pantalla oscura de bienvenida con opción de solo ver
-// variant="login"      → modal claro para entrar a participar
-function AuthModal({variant,onClose}){
-  const isOnboarding=variant==="onboarding";
+// ── ONBOARDING ──
+function OnboardingModal({onSkip}){
   const[loading,setLoading]=useState(null);
   const loginWith=async(provider)=>{
     setLoading(provider);
@@ -226,10 +227,9 @@ function AuthModal({variant,onClose}){
       await supabase.auth.signInWithOAuth({provider,options:{redirectTo:"https://www.silao360.com.mx"}});
     }catch(e){setLoading(null);}
   };
-  const Spinner=({color="#4285f4"})=><div style={{width:22,height:22,border:`3px solid rgba(255,255,255,0.3)`,borderTopColor:color,borderRadius:"50%",animation:"spin .7s linear infinite"}}/>;
-  if(isOnboarding){return(
+  return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{position:"fixed",inset:0,zIndex:500,background:"linear-gradient(160deg,#0f172a,#1e1b4b,#0f172a)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <button onClick={onClose} style={{position:"fixed",top:16,right:16,zIndex:600,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:20,padding:"8px 16px",color:"rgba(255,255,255,0.5)",fontSize:13,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>SALTAR →</button>
+      <button onClick={onSkip} style={{position:"fixed",top:16,right:16,zIndex:600,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:20,padding:"8px 16px",color:"rgba(255,255,255,0.5)",fontSize:13,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>SALTAR →</button>
       <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}} transition={{type:"spring",stiffness:260,damping:20}}
         style={{background:"rgba(255,255,255,0.04)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:24,padding:"28px 22px",maxWidth:360,width:"100%"}}>
         <div style={{textAlign:"center",marginBottom:24}}>
@@ -239,21 +239,31 @@ function AuthModal({variant,onClose}){
         </div>
         <motion.button whileTap={{scale:0.96}} onClick={()=>loginWith("google")} disabled={!!loading}
           style={{width:"100%",background:"#fff",border:"2px solid #e5e7eb",borderRadius:14,padding:"14px",color:"#374151",fontSize:15,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:10,opacity:loading?"0.7":"1"}}>
-          {loading==="google"?<Spinner color="#4285f4"/>:<span style={{fontSize:20}}>🔵</span>}
+          {loading==="google"?<div style={{width:22,height:22,border:"3px solid #e0e0e0",borderTopColor:"#4285f4",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>:<span style={{fontSize:20}}>🔵</span>}
           {loading==="google"?"Abriendo Google...":"ENTRAR CON GOOGLE"}
         </motion.button>
         <motion.button whileTap={{scale:0.96}} onClick={()=>loginWith("facebook")} disabled={!!loading}
           style={{width:"100%",background:"#1877f2",border:"none",borderRadius:14,padding:"14px",color:"#fff",fontSize:15,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,marginBottom:12,display:"flex",alignItems:"center",justifyContent:"center",gap:10,opacity:loading?"0.7":"1"}}>
-          {loading==="facebook"?<Spinner/>:<span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:20}}>f</span>}
+          {loading==="facebook"?<div style={{width:22,height:22,border:"3px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>:<span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:20}}>f</span>}
           {loading==="facebook"?"Abriendo Facebook...":"ENTRAR CON FACEBOOK"}
         </motion.button>
-        <motion.button whileTap={{scale:0.95}} onClick={onClose}
+        <motion.button whileTap={{scale:0.95}} onClick={onSkip}
           style={{width:"100%",background:"transparent",border:"1px solid rgba(255,255,255,0.12)",borderRadius:12,padding:"12px",cursor:"pointer",color:"rgba(255,255,255,0.4)",fontSize:13,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>
           👁️ SOLO VER SIN VOTAR
         </motion.button>
       </motion.div>
     </motion.div>
-  );}
+  );
+}
+// ── LOGIN MODAL ──
+function LoginModal({onClose}){
+  const[loading,setLoading]=useState(null);
+  const loginWith=async(provider)=>{
+    setLoading(provider);
+    try{
+      await supabase.auth.signInWithOAuth({provider,options:{redirectTo:"https://www.silao360.com.mx"}});
+    }catch(e){setLoading(null);}
+  };
   return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}} style={{background:"#fff",borderRadius:20,padding:"28px 22px",maxWidth:340,width:"100%"}}>
@@ -264,12 +274,12 @@ function AuthModal({variant,onClose}){
         </div>
         <motion.button whileTap={{scale:0.96}} onClick={()=>loginWith("google")} disabled={!!loading}
           style={{width:"100%",background:"#fff",border:"2px solid #e5e7eb",borderRadius:12,padding:"14px",color:"#374151",fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:10,opacity:loading?"0.7":"1"}}>
-          {loading==="google"?<Spinner color="#4285f4"/>:<span style={{fontSize:18}}>🔵</span>}
+          {loading==="google"?<div style={{width:22,height:22,border:"3px solid #e0e0e0",borderTopColor:"#4285f4",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>:<span style={{fontSize:18}}>🔵</span>}
           {loading==="google"?"Cargando...":"ENTRAR CON GOOGLE"}
         </motion.button>
         <motion.button whileTap={{scale:0.96}} onClick={()=>loginWith("facebook")} disabled={!!loading}
           style={{width:"100%",background:"#1877f2",border:"none",borderRadius:12,padding:"14px",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:10,opacity:loading?"0.7":"1"}}>
-          {loading==="facebook"?<Spinner/>:<span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:18}}>f</span>}
+          {loading==="facebook"?<div style={{width:22,height:22,border:"3px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>:<span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:18}}>f</span>}
           {loading==="facebook"?"Cargando...":"ENTRAR CON FACEBOOK"}
         </motion.button>
         <button onClick={onClose} style={{width:"100%",background:"transparent",border:"none",color:"#9ca3af",fontSize:13,cursor:"pointer",padding:"8px",fontFamily:"Barlow Condensed,sans-serif"}}>CANCELAR</button>
@@ -486,6 +496,10 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogout,
   );
 }
 
+// ── SUPABASE CONFIG (agregar credenciales aquí) ──
+// const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
+// const SUPABASE_ANON_KEY = "eyJ...tu-anon-key...";
+
 // ── BANNER INSTALAR APP ──
 function InstallBanner(){
   const[show,setShow]=useState(false);
@@ -543,6 +557,7 @@ function InstallBanner(){
     </motion.div>
   );
 }
+        </motion.button>
 function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,siteLogo,candidates,setScreen}){
   const[justVoted,setJustVoted]=useState(null);
   const[showMoney,setShowMoney]=useState(false);
@@ -1638,8 +1653,8 @@ export default function App(){
   const[showAdminPanel,setShowAdminPanel]=useState(false);
   const adminTaps=useRef(0);const adminTimer=useRef(null);
   const[comments,setComments]=useState(DEMO_COMMENTS);
-  const blockedNicks=[];
-  const pinnedMsg="El silencio electoral es el arma favorita de quienes quieren que nada cambie. Aquí puedes opinar sin miedo. Tu apodo te protege.";
+  const[blockedNicks]=useState([]);
+  const[pinnedMsg]=useState("El silencio electoral es el arma favorita de quienes quieren que nada cambie. Aquí puedes opinar sin miedo. Tu apodo te protege.");
   const[candidates,setCandidates]=useState({...INIT_CANDIDATES});
   const[proposals,setProposals]=useState([...INIT_PROPOSALS]);
   const[siteLogo,setSiteLogo]=useState(null);
@@ -1648,7 +1663,6 @@ export default function App(){
   const[alertaActiva,setAlertaActiva]=useState(false);
 
   // ── Cargar votos desde Supabase ──
-  // ── Loaders de Supabase ──
   const loadVotes=async()=>{
     try{
       const{data}=await supabase.from("votos").select("party_id");
@@ -1665,25 +1679,18 @@ export default function App(){
       if(data?.party_id){setMyVote(data.party_id);try{localStorage.setItem("silao360_mivoto",data.party_id);}catch(e){}}
     }catch(e){}
   };
-  const loadTableData=async(tabla,orden,limite,mapper,setter,tag)=>{
+  const loadComments=async()=>{
     try{
-      let q=supabase.from(tabla).select("*");
-      if(orden)q=q.order(orden,{ascending:false});
-      if(limite)q=q.limit(limite);
-      const{data}=await q;
-      if(data)setter(data.map(mapper));
-    }catch(e){console.error(`load${tag}:`,e);}
+      const{data}=await supabase.from("comentarios").select("*").order("created_at",{ascending:false}).limit(100);
+      if(data){setComments(data.map(c=>({id:c.id,nick:c.nick,txt:c.txt,ts:new Date(c.created_at).getTime(),reactions:c.reactions||{like:0,heart:0,fire:0,wow:0,haha:0},myReacted:{},replies:[]})));}
+    }catch(e){console.error("loadComments:",e);}
   };
-  const loadComments=()=>loadTableData(
-    "comentarios","created_at",100,
-    c=>({id:c.id,nick:c.nick,txt:c.txt,ts:new Date(c.created_at).getTime(),reactions:c.reactions||{like:0,heart:0,fire:0,wow:0,haha:0},myReacted:{},replies:[]}),
-    setComments,"Comments"
-  );
-  const loadProposals=()=>loadTableData(
-    "propuestas","created_at",50,
-    p=>({id:p.id,emoji:p.emoji||"💡",titulo:p.titulo,desc:p.descripcion||"",si:p.si||0,no:p.no||0,miVoto:null,autor:p.autor||"Ciudadano"}),
-    setProposals,"Proposals"
-  );
+  const loadProposals=async()=>{
+    try{
+      const{data}=await supabase.from("propuestas").select("*").order("created_at",{ascending:false}).limit(50);
+      if(data){setProposals(data.map(p=>({id:p.id,emoji:p.emoji||"💡",titulo:p.titulo,desc:p.descripcion||"",si:p.si||0,no:p.no||0,miVoto:null,autor:p.autor||"Ciudadano"})));}
+    }catch(e){console.error("loadProposals:",e);}
+  };
 
   // ── Supabase auth session ──
   useEffect(()=>{
@@ -1776,9 +1783,9 @@ export default function App(){
       {alertaActiva&&alertaMsg&&<div style={{position:"fixed",top:isAdmin?22:0,left:0,right:0,zIndex:998,background:"linear-gradient(90deg,#dc2626,#b91c1c)",padding:"6px 16px",textAlign:"center",fontSize:12,color:"#fff",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>📢 {alertaMsg}</div>}
       <AnimatePresence>{showAdminLogin&&<AdminLogin onSuccess={()=>{setIsAdmin(true);setShowAdminLogin(false);setShowAdminPanel(true);}} onCancel={()=>setShowAdminLogin(false)}/>}</AnimatePresence>
       {showAdminPanel&&isAdmin&&<AdminPanel candidates={candidates} setCandidates={setCandidates} siteLogo={siteLogo} setSiteLogo={setSiteLogo} onClose={()=>setShowAdminPanel(false)} votes={votes} setVotes={setVotes} proposals={proposals} setProposals={setProposals} comments={comments} encuestaActiva={encuestaActiva} setEncuestaActiva={setEncuestaActiva} alertaMsg={alertaMsg} setAlertaMsg={setAlertaMsg} alertaActiva={alertaActiva} setAlertaActiva={setAlertaActiva} blockedNicks={blockedNicks}/>}
-      <AnimatePresence>{showOnboarding&&<AuthModal variant="onboarding" onClose={()=>setShowOnboarding(false)}/>}</AnimatePresence>
+      <AnimatePresence>{showOnboarding&&<OnboardingModal onSkip={()=>setShowOnboarding(false)}/>}</AnimatePresence>
       {!showOnboarding&&(<>
-        <AnimatePresence>{showLogin&&<AuthModal variant="login" onClose={()=>setShowLogin(false)}/>}</AnimatePresence>
+        <AnimatePresence>{showLogin&&<LoginModal onClose={()=>setShowLogin(false)}/>}</AnimatePresence>
         <div style={{paddingTop:isAdmin&&alertaActiva?46:isAdmin||alertaActiva?22:0}}>
           {screen==="results"&&<ResultsScreen {...sp} myVote={myVote} setScreen={setScreen}/>}
           {screen==="vote"&&<VoteScreen {...sp} myVote={myVote} onVote={handleVote} candidates={candidates} setScreen={setScreen}/>}
