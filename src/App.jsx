@@ -287,8 +287,7 @@ function LoginModal({onClose}){
     </motion.div>
   );
 }
-          </>}
-          <button onClick={onClose} style={{width:"100%",background:"transparent",border:"none",marginTop:6,color:"#ccc",fontSize:10,cursor:"pointer"}}>CANCELAR</button>
+
 // ── HEADER ──
 function Header({total,user,onLoginClick,onLogout,onLogoClick,siteLogo}){
   return(
