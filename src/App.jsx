@@ -1663,13 +1663,47 @@ export default function App(){
   const[alertaMsg,setAlertaMsg]=useState("");
   const[alertaActiva,setAlertaActiva]=useState(false);
 
+  // ── Cargar votos desde Supabase ──
+  const loadVotes=async()=>{
+    try{
+      const{data}=await supabase.from("votos").select("party_id");
+      if(data){
+        const counts=Object.fromEntries(PARTIES.map(p=>[p.id,0]));
+        data.forEach(r=>{if(counts[r.party_id]!==undefined)counts[r.party_id]++;});
+        setVotes(counts);
+      }
+    }catch(e){console.error("loadVotes:",e);}
+  };
+  const loadUserVote=async(uid)=>{
+    try{
+      const{data}=await supabase.from("votos").select("party_id").eq("user_id",uid).single();
+      if(data?.party_id){setMyVote(data.party_id);try{localStorage.setItem("silao360_mivoto",data.party_id);}catch(e){}}
+    }catch(e){}
+  };
+  const loadComments=async()=>{
+    try{
+      const{data}=await supabase.from("comentarios").select("*").order("created_at",{ascending:false}).limit(100);
+      if(data){setComments(data.map(c=>({id:c.id,nick:c.nick,txt:c.txt,ts:new Date(c.created_at).getTime(),reactions:c.reactions||{like:0,heart:0,fire:0,wow:0,haha:0},myReacted:{},replies:[]})));}
+    }catch(e){console.error("loadComments:",e);}
+  };
+  const loadProposals=async()=>{
+    try{
+      const{data}=await supabase.from("propuestas").select("*").order("created_at",{ascending:false}).limit(50);
+      if(data){setProposals(data.map(p=>({id:p.id,emoji:p.emoji||"💡",titulo:p.titulo,desc:p.descripcion||"",si:p.si||0,no:p.no||0,miVoto:null,autor:p.autor||"Ciudadano"})));}
+    }catch(e){console.error("loadProposals:",e);}
+  };
+
   // ── Supabase auth session ──
   useEffect(()=>{
+    loadVotes();
+    loadComments();
+    loadProposals();
     supabase.auth.getSession().then(({data:{session}})=>{
       if(session?.user){
         const u=session.user;
         const nick=genNickname(u.id);
         setUser({id:u.id,nickname:nick,email:u.email,name:u.user_metadata?.full_name||u.email});
+        loadUserVote(u.id);
       } else {
         setShowOnboarding(true);
       }
@@ -1681,25 +1715,37 @@ export default function App(){
         const nick=genNickname(u.id);
         setUser({id:u.id,nickname:nick,email:u.email,name:u.user_metadata?.full_name||u.email});
         setShowOnboarding(false);
+        loadUserVote(u.id);
       } else {
         setUser(null);
         setShowOnboarding(true);
       }
     });
-    return()=>subscription.unsubscribe();
+    // Realtime
+    const ch1=supabase.channel("votos-rt").on("postgres_changes",{event:"*",schema:"public",table:"votos"},()=>loadVotes()).subscribe();
+    const ch2=supabase.channel("comments-rt").on("postgres_changes",{event:"*",schema:"public",table:"comentarios"},()=>loadComments()).subscribe();
+    return()=>{subscription.unsubscribe();supabase.removeChannel(ch1);supabase.removeChannel(ch2);};
   },[]);
 
   const handleLogout=async()=>{
     await supabase.auth.signOut();
-    setUser(null);
-    setMyVote(null);
+    setUser(null);setMyVote(null);
     try{localStorage.removeItem("silao360_mivoto");}catch(e){}
-    setShowOnboarding(true);
-    setScreen("results");
+    setShowOnboarding(true);setScreen("results");
   };
 
   const total=Object.values(votes).reduce((a,b)=>a+b,0);
-  const handleVote=(id)=>{setVotes(prev=>{const next={...prev};if(myVote&&next[myVote]>0)next[myVote]--;next[id]=(next[id]||0)+1;return next;});setMyVote(id);};
+
+  // ── Votar real en Supabase ──
+  const handleVote=async(id)=>{
+    if(!user)return;
+    setVotes(prev=>{const next={...prev};if(myVote&&next[myVote]>0)next[myVote]--;next[id]=(next[id]||0)+1;return next;});
+    setMyVote(id);
+    try{localStorage.setItem("silao360_mivoto",id);}catch(e){}
+    try{
+      await supabase.from("votos").upsert({user_id:user.id,party_id:id,nickname:user.nickname,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    }catch(e){console.error("saveVote:",e);}
+  };
   const handleLogoClick=()=>{
     setScreen("results");
     adminTaps.current+=1;
