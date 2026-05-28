@@ -839,6 +839,69 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
         </>):(<motion.div initial={{opacity:0}} animate={{opacity:1}} style={{background:"#fff",border:"2px dashed #e5e7eb",borderRadius:14,padding:"28px 20px",textAlign:"center",marginBottom:14}}>
           <div style={{fontSize:44,marginBottom:8}}>🗳️</div><div style={{fontSize:13,fontWeight:900,color:"#d1d5db",letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:4}}>SIN VOTOS AÚN</div><div style={{fontSize:10,color:"#9ca3af"}}>Sé el primero en participar</div>
         </motion.div>)}
+        {/* ── BOTONES ESTADÍSTICAS PÚBLICAS ── */}
+        {(()=>{
+          const[activeStat,setActiveStat]=useState(null);
+          const vv=PARTIES.map(p=>votes[p.id]||0);
+          const mean=total>0?total/PARTIES.length:0;
+          const sorted_vv=[...vv].sort((a,b)=>a-b);
+          const median=sorted_vv.length%2===0?(sorted_vv[sorted_vv.length/2-1]+sorted_vv[sorted_vv.length/2])/2:sorted_vv[Math.floor(sorted_vv.length/2)];
+          const variance=vv.reduce((a,v)=>a+Math.pow(v-mean,2),0)/vv.length;
+          const sigma=Math.sqrt(variance);
+          const leader=[...PARTIES].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0))[0];
+          const leaderPct=total>0?(votes[leader.id]||0)/total:0;
+          const me=total>1?1.96*Math.sqrt(leaderPct*(1-leaderPct)/total)*100:0;
+          const STATS=[
+            {id:"pct",sym:"%",label:"PORCENTAJE",color:"#e01010",val:`${(leaderPct*100).toFixed(1)}%`,sub:`Líder: ${leader.short}`,exp:`Del total de ${total} votos, ${leader.short} tiene ${(leaderPct*100).toFixed(1)}%. Se calcula dividiendo sus votos entre el total × 100.`},
+            {id:"mean",sym:"x̄",label:"PROMEDIO",color:"#7c3aed",val:mean.toFixed(1),sub:"votos/partido",exp:`Promedio de votos por partido: ${total} ÷ ${PARTIES.length} partidos = ${mean.toFixed(2)} votos en promedio.`},
+            {id:"med",sym:"Md",label:"MEDIANA",color:"#0891b2",val:median.toFixed(0),sub:"valor central",exp:`Ordenando los votos: [${sorted_vv.join(", ")}]. El valor central es ${median.toFixed(0)}.`},
+            {id:"std",sym:"σ",label:"DESV. STD",color:"#ca8a04",val:sigma.toFixed(1),sub:"dispersión",exp:`σ=${sigma.toFixed(2)} indica qué tan disparejos están los votos. Mayor σ = más concentración en un partido.`},
+            {id:"me",sym:"±",label:"MARGEN",color:"#059669",val:total>9?`±${me.toFixed(1)}%`:"n<10",sub:"95% confianza",exp:total>9?`Con n=${total} votos, el líder tiene rango 95% de [${Math.max(0,leaderPct*100-me).toFixed(1)}% – ${Math.min(100,leaderPct*100+me).toFixed(1)}%].`:"Necesitas al menos 10 votos para calcular el margen de error."},
+            {id:"n",sym:"n",label:"MUESTRA",color:"#1d4ed8",val:String(total),sub:"votos totales",exp:total<30?"⚠️ Muestra muy pequeña — resultados preliminares.":total<100?"📈 Muestra en crecimiento.":"✅ Muestra estadísticamente relevante."},
+          ];
+          return(
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:9,color:"#6b7280",letterSpacing:3,textAlign:"center",marginBottom:10,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>◉ ESTADÍSTICAS DE LA ENCUESTA</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:activeStat?0:0}}>
+                {STATS.map(s=>{
+                  const isAct=activeStat===s.id;
+                  return(
+                    <motion.button key={s.id} whileTap={{scale:0.93}}
+                      onClick={()=>{playSound("click");setActiveStat(isAct?null:s.id);}}
+                      style={{background:isAct?s.color:"#fff",
+                        border:`2px solid ${isAct?s.color:s.color+"55"}`,
+                        borderRadius:14,padding:"14px 8px",cursor:"pointer",
+                        boxShadow:isAct?`0 6px 20px ${s.color}50`:"0 2px 8px rgba(0,0,0,0.06)",
+                        transition:"all .15s"}}>
+                      <div style={{fontSize:22,fontWeight:900,color:isAct?"#fff":s.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1,marginBottom:5}}>{s.sym}</div>
+                      <div style={{fontSize:20,fontWeight:900,color:isAct?"#fff":s.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1,marginBottom:4}}>{s.val}</div>
+                      <div style={{fontSize:8,color:isAct?"rgba(255,255,255,0.75)":"#9ca3af",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{s.label}</div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+              <AnimatePresence>
+                {activeStat&&(()=>{
+                  const s=STATS.find(x=>x.id===activeStat);
+                  return s?(
+                    <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-8}} transition={{duration:0.2}}
+                      style={{background:`${s.color}12`,border:`2px solid ${s.color}50`,borderRadius:14,padding:"16px",marginTop:8,marginBottom:8}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                        <div style={{width:44,height:44,borderRadius:12,background:s.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",flexShrink:0}}>{s.sym}</div>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:900,color:s.color,letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif"}}>{s.label}</div>
+                          <div style={{fontSize:26,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{s.val} <span style={{fontSize:11,color:"#9ca3af"}}>{s.sub}</span></div>
+                        </div>
+                      </div>
+                      <div style={{fontSize:13,color:"#374151",lineHeight:1.8,fontFamily:"Barlow Condensed,sans-serif",fontWeight:600}}>{s.exp}</div>
+                    </motion.div>
+                  ):null;
+                })()}
+              </AnimatePresence>
+            </div>
+          );
+        })()}
+
         <div style={{fontSize:9,color:"#6b7280",letterSpacing:3,textAlign:"center",marginBottom:10,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>▼ RESULTADOS POR PARTIDO</div>
         {/* BOTONES GRANDES DE PARTIDOS */}
         <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:16}}> 
