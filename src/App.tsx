@@ -840,75 +840,105 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
           <div style={{fontSize:44,marginBottom:8}}>🗳️</div><div style={{fontSize:13,fontWeight:900,color:"#d1d5db",letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:4}}>SIN VOTOS AÚN</div><div style={{fontSize:10,color:"#9ca3af"}}>Sé el primero en participar</div>
         </motion.div>)}
         <div style={{fontSize:9,color:"#6b7280",letterSpacing:3,textAlign:"center",marginBottom:10,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>▼ RESULTADOS POR PARTIDO</div>
-        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+        {/* BOTONES GRANDES DE PARTIDOS */}
+        <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:16}}> 
           {sorted.map((p,rank)=>{
             const count=votes[p.id]||0,pc=pct(p.id),isMe=myVote===p.id,isTop=rank===0&&count>0;
-            const ahead=rank>0?(pc-(pct(sorted[rank-1].id)||0)).toFixed(1):null;
-            const gap=rank<sorted.length-1?(pc-(pct(sorted[rank+1].id)||0)).toFixed(1):null;
+            const[open,setOpen]=useState(false);
+            const cand=null; // candidates no está en scope aquí, se mostrará info del partido
             return(
-            <motion.div key={p.id} initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:rank*0.05}}
-              style={{background:isTop?"linear-gradient(135deg,#fffbeb,#fff)":isMe?`${p.color}06`:"#fff",
-                border:`2px solid ${isTop?"#f59e0b50":isMe?p.color+"40":"#e5e7eb"}`,
-                borderRadius:14,padding:"12px 14px",position:"relative",overflow:"hidden",
-                boxShadow:isTop?"0 4px 20px rgba(245,158,11,0.15)":isMe?`0 2px 12px ${p.color}20`:"0 1px 4px rgba(0,0,0,0.04)"}}>
-
-              {/* fondo fill animado */}
-              <div style={{position:"absolute",left:0,top:0,bottom:0,width:bars?`${pc}%`:"0%",background:`${p.color}08`,transition:"width 1.6s cubic-bezier(.16,1,.3,1)",pointerEvents:"none",borderRadius:"12px 0 0 12px"}}/>
-
-              {/* fila superior: rank + logo + nombre + badges + % grande */}
-              <div style={{display:"flex",alignItems:"center",gap:10,position:"relative",marginBottom:8}}>
-                <div style={{width:24,height:24,borderRadius:"50%",background:isTop?"#fef3c7":`${p.color}15`,
-                  border:`2px solid ${isTop?"#f59e0b":p.color+"40"}`,display:"flex",alignItems:"center",
-                  justifyContent:"center",fontSize:10,fontWeight:900,color:isTop?"#d97706":p.color,flexShrink:0}}>
-                  {isTop&&count>0?"🏆":rank+1}
-                </div>
-                <div style={{width:44,height:44,borderRadius:10,overflow:"hidden",flexShrink:0,
-                  background:`${p.color}12`,border:`2px solid ${p.color}40`,
-                  boxShadow:`0 2px 8px ${p.color}30`}}>
-                  {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                    :<span style={{fontSize:22,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:14,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
-                    {p.short}
-                    {isMe&&<span style={{fontSize:8,color:"#1877f2",background:"#dbeafe",padding:"2px 6px",borderRadius:4,fontWeight:800,letterSpacing:1}}>✓ TU VOTO</span>}
+            <motion.div key={p.id} initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:rank*0.05}}>
+              {/* BOTÓN PRINCIPAL */}
+              <motion.button whileTap={{scale:0.98}} onClick={()=>{playSound("click");setOpen(o=>!o);}}
+                style={{width:"100%",background:isTop?"linear-gradient(135deg,#fffbeb,#fff)":isMe?`${p.color}06`:"#fff",
+                  border:`2.5px solid ${isTop?"#f59e0b":isMe?p.color:"#e5e7eb"}`,
+                  borderRadius:open?"16px 16px 0 0":"16px",padding:"14px 16px",cursor:"pointer",
+                  boxShadow:isTop?"0 6px 24px rgba(245,158,11,0.2)":isMe?`0 4px 16px ${p.color}25`:"0 2px 8px rgba(0,0,0,0.06)",
+                  position:"relative",overflow:"hidden",display:"block",textAlign:"left",transition:"border-radius .2s"}}>
+                {/* Fondo fill */}
+                <div style={{position:"absolute",left:0,top:0,bottom:0,width:bars?`${pc}%`:"0%",background:`${p.color}09`,transition:"width 1.6s cubic-bezier(.16,1,.3,1)",pointerEvents:"none"}}/>
+                <div style={{display:"flex",alignItems:"center",gap:12,position:"relative"}}>
+                  {/* Rank */}
+                  <div style={{width:28,height:28,borderRadius:"50%",background:isTop?"#fef3c7":`${p.color}15`,border:`2px solid ${isTop?"#f59e0b":p.color+"40"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:isTop?"#d97706":p.color,flexShrink:0}}>
+                    {isTop&&count>0?"🏆":rank+1}
                   </div>
-                  <div style={{fontSize:10,color:"#6b7280",fontFamily:"Barlow Condensed,sans-serif"}}>{p.spectrumLabel}</div>
+                  {/* Logo */}
+                  <div style={{width:56,height:56,borderRadius:12,overflow:"hidden",flexShrink:0,background:`${p.color}12`,border:`2.5px solid ${p.color}50`,boxShadow:`0 3px 10px ${p.color}35`}}>
+                    {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:28,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
+                  </div>
+                  {/* Info */}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:16,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                      {p.short}
+                      {isMe&&<span style={{fontSize:8,color:"#1877f2",background:"#dbeafe",padding:"2px 6px",borderRadius:4,fontWeight:800,letterSpacing:1}}>✓ TU VOTO</span>}
+                      {isTop&&count>0&&<span style={{fontSize:8,color:"#d97706",background:"#fef3c7",padding:"2px 6px",borderRadius:4,fontWeight:800}}>LÍDER</span>}
+                    </div>
+                    <div style={{fontSize:11,color:"#6b7280",fontFamily:"Barlow Condensed,sans-serif",marginBottom:4}}>{p.spectrumLabel}</div>
+                    {/* Barra */}
+                    <div style={{height:7,background:"#f3f4f6",borderRadius:6,overflow:"hidden"}}>
+                      <motion.div initial={{width:0}} animate={{width:bars?`${pc}%`:"0%"}} transition={{duration:1.4,ease:[.16,1,.3,1]}}
+                        style={{height:"100%",borderRadius:6,background:isTop?`linear-gradient(90deg,${p.color},#f59e0b)`:p.color,boxShadow:`0 0 8px ${p.color}60`}}/>
+                    </div>
+                  </div>
+                  {/* % grande */}
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontSize:30,fontWeight:900,color:isTop&&count>0?"#d97706":p.color,lineHeight:1,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:-1}}>{pc.toFixed(1)}<span style={{fontSize:14}}>%</span></div>
+                    <div style={{fontSize:13,fontWeight:800,color:"#374151",fontFamily:"Barlow Condensed,sans-serif"}}>{count} votos</div>
+                    <div style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{open?"▲ CERRAR":"▼ VER MÁS"}</div>
+                  </div>
                 </div>
-                <div style={{textAlign:"right",flexShrink:0}}>
-                  <div style={{fontSize:26,fontWeight:900,color:isTop&&count>0?"#d97706":p.color,lineHeight:1,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:-1}}>{pc.toFixed(1)}<span style={{fontSize:14}}>%</span></div>
-                  <div style={{fontSize:12,fontWeight:800,color:"#374151",fontFamily:"Barlow Condensed,sans-serif"}}><LiveCount value={count}/> votos</div>
-                </div>
-              </div>
+              </motion.button>
 
-              {/* barra de progreso gruesa */}
-              <div style={{height:8,background:"#f3f4f6",borderRadius:6,marginBottom:8,overflow:"hidden"}}>
-                <motion.div initial={{width:0}} animate={{width:bars?`${pc}%`:"0%"}} transition={{duration:1.4,ease:[.16,1,.3,1]}}
-                  style={{height:"100%",borderRadius:6,background:isTop?`linear-gradient(90deg,${p.color},#f59e0b)`:p.color,boxShadow:`0 0 8px ${p.color}60`}}/>
-              </div>
-
-              {/* fila de stats mini */}
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                <div style={{background:`${p.color}10`,border:`1px solid ${p.color}25`,borderRadius:7,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center",flex:1,minWidth:60}}>
-                  <span style={{fontSize:8,color:"#9ca3af",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>POSICIÓN</span>
-                  <span style={{fontSize:14,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif"}}>#{rank+1}</span>
-                </div>
-                <div style={{background:`${p.color}10`,border:`1px solid ${p.color}25`,borderRadius:7,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center",flex:1,minWidth:60}}>
-                  <span style={{fontSize:8,color:"#9ca3af",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>VOTOS</span>
-                  <span style={{fontSize:14,fontWeight:900,color:"#374151",fontFamily:"Barlow Condensed,sans-serif"}}>{count}</span>
-                </div>
-                <div style={{background:`${p.color}10`,border:`1px solid ${p.color}25`,borderRadius:7,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center",flex:1,minWidth:60}}>
-                  <span style={{fontSize:8,color:"#9ca3af",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>VS SIGUIENTE</span>
-                  <span style={{fontSize:14,fontWeight:900,color:gap&&parseFloat(gap)>0?"#16a34a":gap&&parseFloat(gap)<0?"#dc2626":"#9ca3af",fontFamily:"Barlow Condensed,sans-serif"}}>
-                    {total>0&&gap?`${parseFloat(gap)>0?"+":""}${gap}%`:"—"}
-                  </span>
-                </div>
-                <div style={{background:isTop?"#fef3c7":`${p.color}10`,border:`1px solid ${isTop?"#f59e0b40":p.color+"25"}`,borderRadius:7,padding:"4px 9px",display:"flex",flexDirection:"column",alignItems:"center",flex:1,minWidth:60}}>
-                  <span style={{fontSize:8,color:"#9ca3af",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>ESPECTRO</span>
-                  <span style={{fontSize:9,fontWeight:800,color:isTop?"#d97706":p.color,fontFamily:"Barlow Condensed,sans-serif",textAlign:"center",lineHeight:1.2}}>{p.spectrumLabel.replace("Centro-","C-")}</span>
-                </div>
-              </div>
-
+              {/* PANEL EXPANDIDO — explicación 5× más grande */}
+              <AnimatePresence>
+                {open&&(
+                  <motion.div initial={{height:0,opacity:0}} animate={{height:"auto",opacity:1}} exit={{height:0,opacity:0}} transition={{duration:0.3}}
+                    style={{background:`linear-gradient(135deg,${p.color}08,${p.color}03)`,border:`2.5px solid ${isTop?"#f59e0b":p.color}`,borderTop:"none",borderRadius:"0 0 16px 16px",overflow:"hidden"}}>
+                    <div style={{padding:"16px 16px 20px"}}>
+                      {/* Estadísticas mini */}
+                      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+                        {[{l:"POSICIÓN",v:`#${rank+1}`,c:p.color},{l:"VOTOS",v:count,c:"#374151"},{l:"PORCENTAJE",v:`${pc.toFixed(1)}%`,c:p.color},{l:"ESPECTRO",v:p.spectrumLabel,c:"#6b7280"}].map(({l,v,c})=>(
+                          <div key={l} style={{background:"rgba(255,255,255,0.8)",border:`1px solid ${p.color}30`,borderRadius:10,padding:"8px 12px",flex:1,minWidth:70,textAlign:"center"}}>
+                            <div style={{fontSize:8,color:"#9ca3af",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",marginBottom:3}}>{l}</div>
+                            <div style={{fontSize:15,fontWeight:900,color:c,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{v}</div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* DESCRIPCIÓN GRANDE */}
+                      <div style={{background:"rgba(255,255,255,0.85)",borderRadius:12,padding:"14px",marginBottom:12,border:`1px solid ${p.color}25`}}>
+                        <div style={{fontSize:9,color:p.color,letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>📋 DESCRIPCIÓN DEL PARTIDO</div>
+                        <div style={{fontSize:14,color:"#1a1a1a",lineHeight:1.8,fontFamily:"Barlow Condensed,sans-serif",fontWeight:600}}>{p.descripcion}</div>
+                      </div>
+                      {/* DATO CURIOSO */}
+                      <div style={{background:`${p.color}12`,borderRadius:12,padding:"14px",marginBottom:12,border:`1px solid ${p.color}30`}}>
+                        <div style={{fontSize:9,color:p.color,letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>💡 DATO CURIOSO</div>
+                        <div style={{fontSize:14,color:"#1a1a1a",lineHeight:1.8,fontFamily:"Barlow Condensed,sans-serif",fontWeight:600}}>{p.curioso}</div>
+                      </div>
+                      {/* OPINIÓN SILAO 360 */}
+                      <div style={{background:"rgba(255,255,255,0.85)",borderRadius:12,padding:"14px",marginBottom:12,border:`1px solid ${p.color}25`}}>
+                        <div style={{fontSize:9,color:"#7c3aed",letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>🎯 PERSPECTIVA SILAO 360</div>
+                        <div style={{fontSize:14,color:"#1a1a1a",lineHeight:1.8,fontFamily:"Barlow Condensed,sans-serif",fontWeight:600}}>{p.opinion}</div>
+                      </div>
+                      {/* FICHA TÉCNICA */}
+                      <div style={{background:"rgba(0,0,0,0.03)",borderRadius:12,padding:"12px",border:"1px solid rgba(0,0,0,0.06)"}}>
+                        <div style={{fontSize:9,color:"#9ca3af",letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>🗂️ FICHA TÉCNICA</div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                          {[{l:"Fundado",v:p.fundado},{l:"Fundador",v:p.fundador},{l:"Dirigente",v:p.dirigente},{l:"Militantes",v:p.militantes}].map(({l,v})=>(
+                            <div key={l} style={{background:"rgba(255,255,255,0.7)",borderRadius:8,padding:"7px 10px"}}>
+                              <div style={{fontSize:8,color:"#9ca3af",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",marginBottom:2}}>{l.toUpperCase()}</div>
+                              <div style={{fontSize:12,fontWeight:700,color:"#374151",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.3}}>{v}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Tags ideología */}
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:12}}>
+                        {p.ideologyTags.map(tag=>{const ideo=IDEOLOGIES.find(i=>i.id===tag);return ideo?(<div key={tag} style={{background:ideo.bg,color:ideo.color,padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>{ideo.label}</div>):null;})}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           );})}
         </div>
@@ -1487,23 +1517,9 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,onClose,votes
               </div>
               <div style={{fontSize:9,color:"rgba(196,181,253,0.5)",marginTop:2,fontFamily:"Barlow Condensed,sans-serif"}}>{new Date().toLocaleDateString("es-MX",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
             </div>
-            <motion.button whileTap={{scale:0.95}} onClick={onClose} style={{background:"#dc2626",border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",fontSize:11,cursor:"pointer",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ SALIR</motion.button>
+            <motion.button whileTap={{scale:0.95}} onClick={onClose} style={{background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"2px solid #f87171",borderRadius:10,padding:"10px 18px",color:"#fff",fontSize:13,cursor:"pointer",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,boxShadow:"0 4px 14px rgba(220,38,38,0.5)"}}>🚪 SALIR</motion.button>
           </div>
-          {/* Apodo grande en admin */}
-          <div style={{background:"rgba(124,58,237,0.2)",border:"1px solid rgba(124,58,237,0.4)",borderRadius:12,padding:"8px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
-            <div style={{position:"relative",width:36,height:36,flexShrink:0}}>
-              <div style={{position:"absolute",inset:-2,borderRadius:"50%",background:"conic-gradient(from 0deg,#7c3aed,#a78bfa,#e01010,#7c3aed)",animation:"ledSpin 2s linear infinite"}}/>
-              <div style={{position:"absolute",inset:2,borderRadius:"50%",background:"#1a0a2e",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>🎭</div>
-            </div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:8,color:"rgba(196,181,253,0.5)",letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:2}}>APODO ADMIN</div>
-              <div style={{fontSize:20,fontWeight:900,color:"#a78bfa",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>Administrador</div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:8,color:"rgba(196,181,253,0.4)",fontFamily:"Barlow Condensed,sans-serif"}}>{new Date().toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"})}</div>
-              <div style={{fontSize:8,color:"rgba(196,181,253,0.4)",fontFamily:"Barlow Condensed,sans-serif"}}>{new Date().toLocaleDateString("es-MX",{day:"numeric",month:"short"}).toUpperCase()}</div>
-            </div>
-          </div>
+          {/* Sin bloque de apodo — más espacio y salida libre */}
           {/* Tabs */}
           <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2}}>
             {TABS.map(t=>(<motion.button key={t.id} whileTap={{scale:0.95}} onClick={()=>setTab(t.id)}
@@ -1798,9 +1814,23 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,onClose,votes
                 <div style={{fontSize:13,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif"}}>{p.short}</div>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.4)"}}>{votes[p.id]||0} votos · {p.spectrumLabel}</div>
               </div>
-              <label style={{background:`${p.color}20`,border:`1px solid ${p.color}`,borderRadius:8,padding:"6px 10px",color:p.color,fontSize:9,cursor:"pointer",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>
-                🖼️ LOGO<input type="file" accept="image/*" onChange={e=>uploadLogo(p.id,e)} style={{display:"none"}}/>
-              </label>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                <label style={{background:`${p.color}20`,border:`1px solid ${p.color}`,borderRadius:8,padding:"6px 10px",color:p.color,fontSize:9,cursor:"pointer",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",textAlign:"center"}}>
+                  🖼️ LOGO<input type="file" accept="image/*" onChange={e=>uploadLogo(p.id,e)} style={{display:"none"}}/>
+                </label>
+                {p.id.startsWith("p_")&&(
+                  <button onClick={()=>{
+                    if(!window.confirm(`¿Eliminar ${p.short} de la encuesta?`))return;
+                    const idx=PARTIES.findIndex(x=>x.id===p.id);
+                    if(idx>-1)PARTIES.splice(idx,1);
+                    setVotes(prev=>{const n={...prev};delete n[p.id];return n;});
+                    setCandidates(prev=>{const n={...prev};delete n[p.id];return n;});
+                    playSound("click");
+                  }} style={{background:"rgba(220,38,38,0.2)",border:"1px solid #dc2626",borderRadius:8,padding:"5px 10px",color:"#f87171",fontSize:9,cursor:"pointer",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>
+                    🗑 BORRAR
+                  </button>
+                )}
+              </div>
             </div>)}
           </div>
         </div>)}
@@ -1819,26 +1849,62 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,onClose,votes
                 <input type="date" value={exportTo} onChange={e=>setExportTo(e.target.value)} style={{width:"100%",background:"rgba(255,255,255,0.07)",border:"1.5px solid rgba(16,185,129,0.3)",borderRadius:8,padding:"10px",color:"#fff",fontSize:12,outline:"none"}}/>
               </div>
             </div>
-            <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <div style={{display:"flex",gap:8,marginBottom:10}}>
               <motion.button whileTap={{scale:0.96}} onClick={()=>{
-                const fecha=new Date().toLocaleDateString("es-MX");
-                const votos=PARTIES.map(p=>`${p.short},${votes[p.id]||0}`).join("\n");
                 const total2=Object.values(votes).reduce((a,b)=>a+b,0);
-                const csv=`Reporte Silao 360\nFecha:,${fecha}\nRango:,${exportFrom||"inicio"} - ${exportTo||"hoy"}\nTotal votos:,${total2}\n\nPartido,Votos,Porcentaje\n${PARTIES.map(p=>`${p.short},${votes[p.id]||0},${total2>0?((votes[p.id]||0)/total2*100).toFixed(1)+"%" : "0%"}`).join("\n")}`;
+                const csv=`Reporte Silao 360\nFecha:,${new Date().toLocaleDateString("es-MX")}\nTotal votos:,${total2}\n\nPartido,Votos,Porcentaje\n${PARTIES.map(p=>`${p.short},${votes[p.id]||0},${total2>0?((votes[p.id]||0)/total2*100).toFixed(1)+"%" : "0%"}`).join("\n")}`;
                 const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});
                 const url=URL.createObjectURL(blob);
                 const a=document.createElement("a");a.href=url;a.download=`silao360_votos_${new Date().toISOString().slice(0,10)}.csv`;a.click();
                 URL.revokeObjectURL(url);playSound("success");
-              }} style={{flex:1,background:"linear-gradient(135deg,#059669,#047857)",border:"none",borderRadius:10,padding:"12px",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>📊 EXPORTAR VOTOS CSV</motion.button>
+              }} style={{flex:1,background:"linear-gradient(135deg,#059669,#047857)",border:"none",borderRadius:10,padding:"12px",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>📊 VOTOS CSV</motion.button>
               <motion.button whileTap={{scale:0.96}} onClick={()=>{
-                const commentsCsv=["Nick,Comentario,Fecha",...(comments||[]).map(c=>`"${c.nick}","${c.txt.replace(/"/g,"'")}","${new Date(c.ts).toLocaleDateString("es-MX")}"`).join("\n")];
-                const csv=commentsCsv.join?commentsCsv.join("\n"):"Nick,Comentario,Fecha\n"+commentsCsv;
-                const blob=new Blob([typeof csv==="string"?csv:commentsCsv.join("\n")],{type:"text/csv;charset=utf-8;"});
+                const rows=["Nick,Comentario,Fecha",...(comments||[]).map(c=>`"${c.nick}","${(c.txt||"").replace(/"/g,"'")}","${new Date(c.ts).toLocaleDateString("es-MX")}"`)];
+                const blob=new Blob([rows.join("\n")],{type:"text/csv;charset=utf-8;"});
                 const url=URL.createObjectURL(blob);
                 const a=document.createElement("a");a.href=url;a.download=`silao360_comentarios_${new Date().toISOString().slice(0,10)}.csv`;a.click();
                 URL.revokeObjectURL(url);playSound("success");
-              }} style={{flex:1,background:"linear-gradient(135deg,#7c3aed,#5b21b6)",border:"none",borderRadius:10,padding:"12px",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>💬 EXPORTAR COMENTARIOS</motion.button>
+              }} style={{flex:1,background:"linear-gradient(135deg,#7c3aed,#5b21b6)",border:"none",borderRadius:10,padding:"12px",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>💬 COMENTARIOS</motion.button>
             </div>
+            <motion.button whileTap={{scale:0.96}} onClick={()=>{
+              const total2=Object.values(votes).reduce((a,b)=>a+b,0);
+              const sorted2=[...PARTIES].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0)).filter(p=>(votes[p.id]||0)>0).slice(0,8);
+              const h=Math.max(520,120+sorted2.length*72+80);
+              const canvas=document.createElement("canvas");canvas.width=800;canvas.height=h;
+              const ctx=canvas.getContext("2d");
+              ctx.fillStyle="#0d0a1e";ctx.fillRect(0,0,800,h);
+              ctx.fillStyle="#e01010";ctx.font="bold 34px Arial";ctx.textAlign="center";
+              ctx.fillText("SILAO 360 — ENCUESTA CIUDADANA",400,50);
+              ctx.fillStyle="#a78bfa";ctx.font="14px Arial";
+              ctx.fillText(new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).toUpperCase()+" · "+total2+" VOTOS",400,78);
+              sorted2.forEach((p,i)=>{
+                const pct2=total2>0?(votes[p.id]||0)/total2:0;
+                const y=106+i*72;
+                ctx.fillStyle="rgba(255,255,255,0.06)";ctx.beginPath();
+                if(ctx.roundRect)ctx.roundRect(28,y,744,54,10);else ctx.rect(28,y,744,54);ctx.fill();
+                ctx.fillStyle=p.color;ctx.beginPath();
+                if(ctx.roundRect)ctx.roundRect(28,y,744*pct2,54,10);else ctx.rect(28,y,744*pct2,54);ctx.fill();
+                ctx.fillStyle="#fff";ctx.font="bold 20px Arial";ctx.textAlign="left";
+                ctx.fillText(`${i+1}. ${p.short}`,42,y+34);
+                ctx.textAlign="right";ctx.fillText(`${(pct2*100).toFixed(1)}% — ${votes[p.id]||0} votos`,764,y+34);
+              });
+              ctx.fillStyle="rgba(255,255,255,0.3)";ctx.font="13px Arial";ctx.textAlign="center";
+              ctx.fillText("silao360.com.mx — #Silao #Guanajuato",400,h-20);
+              canvas.toBlob(blob=>{
+                if(!blob)return;
+                if(navigator.share&&navigator.canShare){
+                  const file=new File([blob],"silao360.png",{type:"image/png"});
+                  try{if(navigator.canShare({files:[file]})){navigator.share({files:[file],title:"Silao 360 Resultados"}).catch(()=>{});return;}}catch(e){}
+                }
+                const url=URL.createObjectURL(blob);
+                const a=document.createElement("a");a.href=url;a.download="silao360_resultados.png";a.click();
+                URL.revokeObjectURL(url);
+              },"image/png");
+              playSound("success");
+            }} style={{width:"100%",background:"linear-gradient(135deg,#1d4ed8,#7c3aed)",border:"none",borderRadius:12,padding:"14px",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,marginBottom:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 4px 20px rgba(124,58,237,0.4)"}}>
+              <span style={{fontSize:22}}>🖼️</span> COMPARTIR COMO IMAGEN PNG
+            </motion.button>
+            {/* Mini chart */}
             {/* Mini chart */}
             <div style={{background:"rgba(0,0,0,0.3)",borderRadius:12,padding:"14px"}}>
               <div style={{fontSize:9,color:"#34d399",letterSpacing:2,marginBottom:10,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>DISTRIBUCIÓN ACTUAL</div>
@@ -2007,7 +2073,7 @@ export default function App(){
         textarea::placeholder{color:#6b7280}
       `}</style>
       {isAdmin&&<div onClick={()=>setShowAdminPanel(true)} style={{position:"fixed",top:0,left:0,right:0,zIndex:999,background:"linear-gradient(90deg,#5b21b6,#7c3aed)",padding:"4px 16px",textAlign:"center",fontSize:9,color:"#fff",fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>⚙️ ADMIN ACTIVO — TOCA PARA ABRIR PANEL</div>}
-      {alertaActiva&&alertaMsg&&<div style={{position:"fixed",top:isAdmin?22:0,left:0,right:0,zIndex:998,background:"linear-gradient(90deg,#dc2626,#b91c1c)",padding:"6px 16px",textAlign:"center",fontSize:10,color:"#fff",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>📢 {alertaMsg}</div>}
+      {alertaActiva&&alertaMsg&&<motion.div initial={{y:80,opacity:0}} animate={{y:0,opacity:1}} style={{position:"fixed",bottom:90,left:12,right:12,zIndex:998,background:"linear-gradient(135deg,#dc2626,#b91c1c)",padding:"10px 14px",borderRadius:14,fontSize:11,color:"#fff",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",boxShadow:"0 4px 20px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",gap:8,maxWidth:500,margin:"0 auto"}}><span style={{fontSize:16}}>📢</span><span style={{flex:1,lineHeight:1.4}}>{alertaMsg}</span></motion.div>}
       <AnimatePresence>{showAdminLogin&&<AdminLogin onSuccess={()=>{setIsAdmin(true);setShowAdminLogin(false);setShowAdminPanel(true);}} onCancel={()=>setShowAdminLogin(false)}/>}</AnimatePresence>
       {showAdminPanel&&isAdmin&&<AdminPanel candidates={candidates} setCandidates={setCandidates} siteLogo={siteLogo} setSiteLogo={setSiteLogo} onClose={()=>setShowAdminPanel(false)} votes={votes} setVotes={setVotes} proposals={proposals} setProposals={setProposals} comments={comments} encuestaActiva={encuestaActiva} setEncuestaActiva={setEncuestaActiva} alertaMsg={alertaMsg} setAlertaMsg={setAlertaMsg} alertaActiva={alertaActiva} setAlertaActiva={setAlertaActiva} blockedNicks={blockedNicks}/>}
       <AnimatePresence>{showOnboarding&&<OnboardingModal onComplete={u=>{saveUser(u);setShowOnboarding(false);}} onSkip={()=>setShowOnboarding(false)}/>}</AnimatePresence>
