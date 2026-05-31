@@ -383,7 +383,7 @@ function OnboardingModal({onComplete,onSkip}){
   const go=()=>{if(!name.trim())return;setLoading(true);setTimeout(()=>{setNickname(genNickname(name.trim()+Date.now()));setLoading(false);setStep(3);},900);};
   return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{position:"fixed",inset:0,zIndex:500,background:"linear-gradient(160deg,#0f172a,#1e1b4b,#0f172a)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <button onClick={onSkip} style={{position:"fixed",top:16,right:16,zIndex:600,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:20,padding:"6px 14px",color:"rgba(255,255,255,0.4)",fontSize:10,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>SALTAR →</button>
+      <button onClick={onSkip} style={{position:"fixed",top:14,right:14,zIndex:600,background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"2px solid #f87171",borderRadius:14,padding:"10px 18px",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,boxShadow:"0 4px 16px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",gap:6}}>✕ SALIR</button>
       <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}} transition={{type:"spring",stiffness:260,damping:20}}
         style={{background:"rgba(255,255,255,0.05)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:24,padding:"28px 22px",maxWidth:360,width:"100%"}}>
         <div style={{textAlign:"center",marginBottom:20}}>
@@ -444,19 +444,23 @@ function LoginModal({onLogin,onClose}){
   const[name,setName]=useState("");const[loading,setLoading]=useState(false);const[step,setStep]=useState(1);const[nickname,setNickname]=useState("");
   const go=()=>{if(!name.trim())return;setLoading(true);setTimeout(()=>{setNickname(genNickname(name.trim()+Date.now()));setLoading(false);setStep(2);},900);};
   return(
-    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}} style={{background:"#fff",borderRadius:18,padding:"24px 20px",maxWidth:340,width:"100%"}}>
+    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      {/* SALIR grande arriba */}
+      <button onClick={onClose} style={{position:"absolute",top:16,right:16,background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"2px solid #f87171",borderRadius:14,padding:"10px 18px",color:"#fff",fontSize:14,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,boxShadow:"0 4px 16px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",gap:6,zIndex:10}}>✕ SALIR</button>
+      <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}} style={{background:"#fff",borderRadius:18,padding:"24px 20px",maxWidth:340,width:"100%",position:"relative",overflow:"hidden"}}>
+        {/* Bar light top */}
+        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,#e01010,#7c3aed,#3b82f6,#10b981,#e01010)",backgroundSize:"200% 100%",animation:"barLights 2s linear infinite"}}/>
         {step===1?(<>
           <div style={{textAlign:"center",marginBottom:12}}><div style={{width:44,height:44,borderRadius:"50%",background:"#1877f2",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:22,fontFamily:"Georgia,serif",fontWeight:900,color:"#fff",marginBottom:7}}>f</div><div style={{fontSize:15,fontWeight:800}}>Entra con Facebook</div></div>
           {loading?<div style={{textAlign:"center",padding:"14px 0"}}><div style={{width:28,height:28,border:"3px solid #e8e8e8",borderTopColor:"#1877f2",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 8px"}}/></div>:<>
             <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&name.trim()&&go()} placeholder="Tu nombre completo" style={{width:"100%",background:"#f5f5f5",border:"1.5px solid #e0e0e0",borderRadius:9,padding:"10px 12px",fontSize:13,outline:"none",marginBottom:8}}/>
             <motion.button whileTap={{scale:0.96}} onClick={go} disabled={!name.trim()} style={{width:"100%",background:name.trim()?"#1877f2":"#e0e0e0",border:"none",borderRadius:9,padding:"11px",color:name.trim()?"#fff":"#aaa",fontSize:13,fontWeight:700,cursor:name.trim()?"pointer":"default"}}>GENERAR MI APODO →</motion.button>
           </>}
-          <button onClick={onClose} style={{width:"100%",background:"transparent",border:"none",marginTop:6,color:"#ccc",fontSize:10,cursor:"pointer"}}>CANCELAR</button>
+          <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",marginTop:10,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
         </>):(<>
           <div style={{textAlign:"center",marginBottom:12}}><div style={{fontSize:34,marginBottom:6}}>🎭</div><div style={{fontSize:8,color:"#9ca3af",letterSpacing:2,marginBottom:5}}>TU APODO SERÁ</div><div style={{fontSize:17,fontWeight:900,background:"#f3f4f6",borderRadius:10,padding:"10px 12px",marginBottom:6,fontFamily:"Barlow Condensed,sans-serif"}}>{nickname}</div></div>
-          <motion.button whileTap={{scale:0.96}} onClick={()=>{playSound("success");onLogin({name:name.trim(),nickname,id:"u_"+Math.random().toString(36).slice(2)});}} style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:9,padding:"11px",color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer"}}>🗳️ ENTRAR Y PARTICIPAR</motion.button>
-          <button onClick={onClose} style={{width:"100%",background:"transparent",border:"none",marginTop:6,color:"#ccc",fontSize:10,cursor:"pointer"}}>CANCELAR</button>
+          <motion.button whileTap={{scale:0.96}} onClick={()=>{playSound("success");onLogin({name:name.trim(),nickname,id:"u_"+Math.random().toString(36).slice(2)});}} style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:9,padding:"11px",color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer",marginBottom:8}}>🗳️ ENTRAR Y PARTICIPAR</motion.button>
+          <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
         </>)}
       </motion.div>
     </motion.div>
@@ -1339,15 +1343,26 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,onL
 
 // ── PROPOSALS SCREEN ──
 function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals,setProposals,siteLogo,isAdmin}){
-  const[confirmVote,setConfirmVote]=useState(null);const[newProp,setNewProp]=useState("");const[showForm,setShowForm]=useState(false);
+  const[confirmVote,setConfirmVote]=useState(null);const[newProp,setNewProp]=useState("");const[showForm,setShowForm]=useState(false);const[newPropEmoji,setNewPropEmoji]=useState("🙏");
+  const TEMA_EMOJIS=[
+    {e:"🚔",label:"Seguridad"},{e:"🚧",label:"Baches"},{e:"💧",label:"Agua"},{e:"🌳",label:"Parques"},
+    {e:"💡",label:"Alumbrado"},{e:"🚌",label:"Transporte"},{e:"🏥",label:"Salud"},{e:"📚",label:"Educación"},
+    {e:"💼",label:"Empleo"},{e:"🧾",label:"Corrupción"},{e:"🙏",label:"Otro"},
+  ];
   const doVote=(pid,tipo)=>{if(!user){playSound("click");onLoginClick();return;}const p=proposals.find(x=>x.id===pid);if(p?.miVoto===tipo)return;if(p?.miVoto){setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,[x.miVoto]:x[x.miVoto]-1,miVoto:tipo};}));}else{playSound("vote");setConfirmVote({pid,tipo});}};
   const confirmAndVote=()=>{if(!confirmVote)return;const{pid,tipo}=confirmVote;setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,miVoto:tipo};}));playSound("success");setConfirmVote(null);};
-  const addProp=()=>{if(!newProp.trim())return;setProposals(prev=>[{id:"p"+Date.now(),emoji:"💬",titulo:newProp.trim(),desc:`Propuesta de ${user?.nickname||"ciudadano"}`,si:1,no:0,miVoto:"si",autor:user?.nickname||"Ciudadano"},...prev]);setNewProp("");setShowForm(false);playSound("success");};
+  const addProp=()=>{if(!newProp.trim())return;const newP={id:"p"+Date.now(),emoji:newPropEmoji,titulo:newProp.trim(),desc:`Propuesta de ${user?.nickname||"ciudadano"}`,si:1,no:0,miVoto:"si",autor:user?.nickname||"Ciudadano"};setProposals(prev=>[newP,...prev]);sb.from("propuestas").insert({emoji:newP.emoji,titulo:newP.titulo,descripcion:newP.desc,si:1,no:0,autor:newP.autor}).catch(()=>{});setNewProp("");setNewPropEmoji("🙏");setShowForm(false);playSound("success");};
   const deleteProp=(pid)=>setProposals(prev=>prev.filter(x=>x.id!==pid));
   const pending=confirmVote?proposals.find(x=>x.id===confirmVote.pid):null;
   const THEMES=[{bg:"linear-gradient(135deg,#0d0221,#2d1b69)",border:"#7c3aed",glow:"rgba(124,58,237,0.5)"},{bg:"linear-gradient(135deg,#012312,#064e3b)",border:"#10b981",glow:"rgba(16,185,129,0.5)"},{bg:"linear-gradient(135deg,#1a0600,#7c2d12)",border:"#f97316",glow:"rgba(249,115,22,0.5)"},{bg:"linear-gradient(135deg,#020617,#1e3a8a)",border:"#3b82f6",glow:"rgba(59,130,246,0.5)"},{bg:"linear-gradient(135deg,#1a0020,#701a75)",border:"#e879f9",glow:"rgba(232,121,249,0.5)"}];
   return(
-    <div style={{paddingBottom:96,background:"linear-gradient(160deg,#050010,#0a0a1a)",minHeight:"100vh"}}>
+    <div style={{paddingBottom:96,minHeight:"100vh",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"fixed",inset:0,zIndex:0,background:"#050010"}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:"conic-gradient(from 0deg at 50% 50%,#e01010,#f59e0b,#10b981,#3b82f6,#7c3aed,#e01010)",backgroundSize:"200% 200%",animation:"barLights 3s linear infinite",opacity:0.9}}/>
+        <div style={{position:"absolute",bottom:90,left:0,right:0,height:3,background:"conic-gradient(from 180deg at 50% 50%,#7c3aed,#e01010,#3b82f6,#10b981,#f59e0b,#7c3aed)",backgroundSize:"200% 200%",animation:"barLights 5s linear infinite reverse",opacity:0.7}}/>
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg,#050010 0%,#0a0520 40%,#050010 100%)"}}/>
+      </div>
+      <div style={{position:"relative",zIndex:1}}>
       <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <AnimatePresence>{confirmVote&&pending&&(
         <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:"fixed",inset:0,zIndex:800,background:"rgba(0,0,0,0.9)",backdropFilter:"blur(12px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
@@ -1371,7 +1386,18 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals
           <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}}
             style={{background:"rgba(124,58,237,0.15)",border:"2px solid #7c3aed",borderRadius:14,padding:"14px",marginBottom:14,overflow:"hidden"}}>
             <div style={{fontSize:10,color:"#c4b5fd",marginBottom:8,fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>TU PROPUESTA PARA SILAO</div>
-            <input value={newProp} onChange={e=>setNewProp(e.target.value.slice(0,120))} placeholder="¿Qué necesita Silao? Ej: Más iluminación en..." style={{width:"100%",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(124,58,237,0.5)",borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:13,outline:"none",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}/>
+            {/* Selector de emoji temático */}
+            <div style={{fontSize:9,color:"rgba(196,181,253,0.7)",marginBottom:6,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>¿DE QUÉ TRATA?</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+              {TEMA_EMOJIS.map(({e,label})=>(
+                <motion.button key={e} whileTap={{scale:0.9}} onClick={()=>setNewPropEmoji(e)}
+                  style={{background:newPropEmoji===e?"rgba(124,58,237,0.6)":"rgba(255,255,255,0.07)",border:`1.5px solid ${newPropEmoji===e?"#a78bfa":"rgba(255,255,255,0.15)"}`,borderRadius:10,padding:"7px 10px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,minWidth:44,boxShadow:newPropEmoji===e?"0 0 8px rgba(124,58,237,0.6)":"none"}}>
+                  <span style={{fontSize:20}}>{e}</span>
+                  <span style={{fontSize:7,color:newPropEmoji===e?"#c4b5fd":"rgba(255,255,255,0.35)",fontFamily:"Barlow Condensed,sans-serif",fontWeight:700,whiteSpace:"nowrap"}}>{label}</span>
+                </motion.button>
+              ))}
+            </div>
+            <input value={newProp} onChange={e=>setNewProp(e.target.value.slice(0,120))} placeholder={`${newPropEmoji} ¿Qué necesita Silao? Ej: Más iluminación en...`} style={{width:"100%",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(124,58,237,0.5)",borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:13,outline:"none",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}/>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <span style={{fontSize:9,color:"rgba(196,181,253,0.5)",fontFamily:"Barlow Condensed,sans-serif"}}>{newProp.length}/120</span>
               <div style={{display:"flex",gap:7}}>
@@ -1400,6 +1426,7 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals
             </motion.div>
           );})}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -1465,7 +1492,8 @@ function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo
             animate={{opacity:1,x:0}}
             exit={{opacity:0,x:dir>0?-80:80}}
             transition={{duration:0.22,ease:[0.22,1,0.36,1]}}
-            style={{background:"linear-gradient(135deg,#0f172a,#1e3a8a)",borderRadius:20,padding:"24px 20px",marginBottom:14,boxShadow:"0 8px 32px rgba(14,30,115,0.3)",position:"relative",overflow:"hidden"}}>
+            className="q-active"
+            style={{background:"linear-gradient(135deg,#0f172a,#1e3a8a)",borderRadius:20,padding:"24px 20px",marginBottom:14,boxShadow:"0 8px 32px rgba(14,30,115,0.3)",position:"relative",overflow:"hidden",border:"2px solid #e01010"}}>
             {/* top green line like trivia */}
             <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,transparent,#e01010,transparent)`,opacity:0.8}}/>
             <div style={{position:"absolute",inset:0,opacity:0.04,backgroundImage:"radial-gradient(circle,#fff 1px,transparent 1px)",backgroundSize:"20px 20px",pointerEvents:"none"}}/>
@@ -1666,11 +1694,16 @@ function ReactionBtn({emoji,count,onReact,reacted}){
 }
 
 function CommentsScreen({user,onLoginClick,total,onLogoClick,onLogout,isAdmin,comments,setComments,blockedNicks,pinnedMsg,siteLogo}){
-  const[text,setText]=useState("");const[replyOpen,setReplyOpen]=useState({});const[replyText,setReplyText]=useState({});const[sending,setSending]=useState(false);
+  const[text,setText]=useState("");const[replyOpen,setReplyOpen]=useState({});const[replyText,setReplyText]=useState({});const[sending,setSending]=useState(false);const[foroEmoji,setForoEmoji]=useState("💬");
+  const FORO_EMOJIS=[
+    {e:"🚔",label:"Seguridad"},{e:"🚧",label:"Baches"},{e:"💧",label:"Agua"},{e:"🌳",label:"Parques"},
+    {e:"💡",label:"Alumbrado"},{e:"🚌",label:"Transporte"},{e:"🏥",label:"Salud"},{e:"📚",label:"Educación"},
+    {e:"💼",label:"Empleo"},{e:"🧾",label:"Corrupción"},{e:"💬",label:"General"},
+  ];
   const post=async()=>{
     if(!text.trim()||sending)return;
     playSound("success");
-    const newC={id:Date.now(),nick:user?user.nickname:"Visitante",txt:text.trim(),ts:Date.now(),reactions:{like:0,heart:0,fire:0,wow:0,haha:0},myReacted:{},replies:[]};
+    const newC={id:Date.now(),nick:user?user.nickname:"Visitante",txt:foroEmoji+" "+text.trim(),ts:Date.now(),reactions:{like:0,heart:0,fire:0,wow:0,haha:0},myReacted:{},replies:[]};
     setComments(prev=>[newC,...prev]);setText("");setSending(true);
     try{await sb.from("comentarios").insert({nick:newC.nick,txt:newC.txt,ts:newC.ts});}
     catch(e){console.warn("Foro offline",e);}
@@ -1681,12 +1714,29 @@ function CommentsScreen({user,onLoginClick,total,onLogoClick,onLogout,isAdmin,co
   const postReply=(cid)=>{if(!replyText[cid]?.trim()||!user)return;setComments(prev=>prev.map(c=>{if(c.id!==cid)return c;return{...c,replies:[...(c.replies||[]),{nick:user.nickname,txt:replyText[cid].trim(),ts:Date.now()}]};}));setReplyText(r=>({...r,[cid]:""}));};
   const visible=(comments||[]).filter(c=>!(blockedNicks||[]).includes(c.nick));
   return(
-    <div style={{paddingBottom:100,background:"linear-gradient(180deg,#0d0d1a,#1a0a2e,#0a0d1a)",minHeight:"100vh"}}>
+    <div style={{paddingBottom:100,minHeight:"100vh",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"fixed",inset:0,zIndex:0,background:"#0d0d1a"}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:"conic-gradient(from 0deg at 50% 50%,#7c3aed,#3b82f6,#10b981,#e01010,#f59e0b,#7c3aed)",backgroundSize:"200% 200%",animation:"barLights 4s linear infinite",opacity:0.85}}/>
+        <div style={{position:"absolute",bottom:90,left:0,right:0,height:3,background:"conic-gradient(from 180deg at 50% 50%,#3b82f6,#7c3aed,#e01010,#10b981,#3b82f6)",backgroundSize:"200% 200%",animation:"barLights 6s linear infinite reverse",opacity:0.6}}/>
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,#0d0d1a 0%,#1a0a2e 50%,#0a0d1a 100%)"}}/>
+      </div>
+      <div style={{position:"relative",zIndex:1}}>
       <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
         <div style={{padding:"12px 2px 10px",borderBottom:"2px solid #7c3aed",marginBottom:12}}><div style={{fontSize:17,fontWeight:900,color:"#c4b5fd",fontFamily:"Barlow Condensed,sans-serif"}}>💬 Foro Ciudadano de Silao</div></div>
         {user?(<div style={{background:"linear-gradient(135deg,#1a0a2e,#2d1b69)",border:"2px solid #7c3aed",borderRadius:14,padding:"12px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}><div style={{width:26,height:26,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>🎭</div><span style={{fontSize:11,fontWeight:800,color:"#c4b5fd",fontFamily:"Barlow Condensed,sans-serif"}}>{user.nickname}</span></div>
+          {/* Selector de tema */}
+          <div style={{fontSize:8,color:"rgba(196,181,253,0.6)",letterSpacing:1,marginBottom:5,fontFamily:"Barlow Condensed,sans-serif",fontWeight:700}}>¿DE QUÉ TRATA TU COMENTARIO?</div>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
+            {FORO_EMOJIS.map(({e,label})=>(
+              <motion.button key={e} whileTap={{scale:0.9}} onClick={()=>setForoEmoji(e)}
+                style={{background:foroEmoji===e?"rgba(124,58,237,0.5)":"rgba(255,255,255,0.06)",border:`1px solid ${foroEmoji===e?"#a78bfa":"rgba(255,255,255,0.12)"}`,borderRadius:8,padding:"5px 8px",cursor:"pointer",display:"flex",alignItems:"center",gap:4,boxShadow:foroEmoji===e?"0 0 6px rgba(124,58,237,0.5)":"none"}}>
+                <span style={{fontSize:14}}>{e}</span>
+                <span style={{fontSize:7,color:foroEmoji===e?"#c4b5fd":"rgba(255,255,255,0.3)",fontFamily:"Barlow Condensed,sans-serif",fontWeight:700}}>{label}</span>
+              </motion.button>
+            ))}
+          </div>
           <textarea value={text} onChange={e=>setText(e.target.value.slice(0,280))} placeholder="¿Qué te falta ver en Silao? Opina sin miedo, tu apodo te protege..." style={{width:"100%",background:"rgba(255,255,255,0.05)",border:"1.5px solid rgba(124,58,237,0.4)",borderRadius:8,padding:"9px 10px",color:"#fff",fontSize:12,outline:"none",resize:"none",height:70,lineHeight:1.5,fontFamily:"Barlow Condensed,sans-serif"}}/>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:7}}>
             <span style={{fontSize:8,color:"rgba(196,181,253,0.5)",fontFamily:"Barlow Condensed,sans-serif"}}>{text.length}/280</span>
@@ -1715,6 +1765,7 @@ function CommentsScreen({user,onLoginClick,total,onLogoClick,onLogout,isAdmin,co
             </motion.div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -2381,6 +2432,14 @@ export default function App(){
         @keyframes ledSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         @keyframes ledShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
         @keyframes voteGlow{0%,100%{box-shadow:0 0 0 0 rgba(224,16,16,0.4),0 4px 20px rgba(220,0,0,0.5)}50%{box-shadow:0 0 0 8px rgba(224,16,16,0),0 4px 28px rgba(220,0,0,0.7)}}
+        @keyframes spinCatBorder{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        @keyframes spinFrame{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        @keyframes barLights{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+        @keyframes qPorfavor{0%,100%{box-shadow:0 0 8px rgba(224,16,16,0.5),0 0 20px rgba(124,58,237,0.3)}50%{box-shadow:0 0 20px rgba(224,16,16,0.9),0 0 40px rgba(124,58,237,0.7),0 0 60px rgba(59,130,246,0.4)}}
+        .frame-spin{animation:spinFrame 8s linear infinite}
+        .q-active{animation:qPorfavor 1.8s ease-in-out infinite;border-color:#e01010 !important}
+        .q-porfavor{animation:qPorfavor 0.9s ease-in-out infinite}
+        .bar-bg{background:linear-gradient(270deg,#e01010,#7c3aed,#3b82f6,#10b981,#f59e0b,#e01010);background-size:400% 400%;animation:barLights 4s linear infinite}
         ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#c4b5fd}
         input::placeholder{color:#9ca3af}
         textarea::placeholder{color:#6b7280}
