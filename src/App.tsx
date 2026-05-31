@@ -469,8 +469,9 @@ function LoginModal({onLogin,onClose}){
 // ── FLOATING VOTE BUBBLE ──
 function FloatingBubble({myVote,candidates}){
   const party=myVote?PARTIES.find(p=>p.id===myVote):null;
+  const SIZE=56;
   const[pos,setPos]=useState({x:window.innerWidth-80,y:window.innerHeight/2});
-  const[vel,setVel]=useState({x:-1.5,y:-1.2});
+  const[vel]=useState({x:-1.5,y:-1.2});
   const[exploded,setExploded]=useState(false);
   const[pieces,setPieces]=useState([]);
   const rafRef=useRef();
@@ -480,23 +481,24 @@ function FloatingBubble({myVote,candidates}){
     const animate=()=>{
       setPos(p=>{
         let nx=p.x+vel.x,ny=p.y+vel.y;
-        if(nx<20||nx>window.innerWidth-60){vel.x*=-1;nx=p.x+vel.x;}
-        if(ny<60||ny>window.innerHeight-100){vel.y*=-1;ny=p.y+vel.y;}
+        if(nx<20||nx>window.innerWidth-SIZE-10){vel.x*=-1;nx=p.x+vel.x;}
+        if(ny<60||ny>window.innerHeight-SIZE-80){vel.y*=-1;ny=p.y+vel.y;}
         return{x:nx,y:ny};
       });
       rafRef.current=requestAnimationFrame(animate);
     };
     rafRef.current=requestAnimationFrame(animate);
     return()=>cancelAnimationFrame(rafRef.current);
-  },[party,exploded,vel]);
+  },[party,exploded]);
 
   const handleTap=()=>{
     if(exploded)return;
     setExploded(true);
-    const ps=Array.from({length:8},(_,i)=>({id:i,angle:(i/8)*Math.PI*2,dist:60+Math.random()*40}));
+    // 12 piezas — solo tu partido, grandes
+    const ps=Array.from({length:12},(_,i)=>({id:i,angle:(i/12)*Math.PI*2,dist:80+Math.random()*60,rot:Math.random()*720}));
     setPieces(ps);
-    setTimeout(()=>{setExploded(false);setPieces([]);},3000);
     playSound("success");
+    setTimeout(()=>{setExploded(false);setPieces([]);},4000);
   };
 
   if(!party)return null;
@@ -504,29 +506,32 @@ function FloatingBubble({myVote,candidates}){
 
   return(
     <div style={{position:"fixed",zIndex:500,pointerEvents:"none"}}>
-      {/* Main bubble */}
       {!exploded&&(
         <motion.div animate={{x:pos.x,y:pos.y}} transition={{type:"tween",duration:0}}
           style={{position:"fixed",left:0,top:0,pointerEvents:"auto",cursor:"pointer"}}
           onClick={handleTap}>
-          <div style={{position:"relative",width:52,height:52}}>
+          <div style={{position:"relative",width:SIZE,height:SIZE}}>
             <div style={{position:"absolute",inset:-3,borderRadius:"50%",background:`conic-gradient(from 0deg,${party.color},#fff,${party.color})`,animation:"ledSpin 1.5s linear infinite"}}/>
             <div style={{position:"absolute",inset:2,borderRadius:"50%",background:"#fff",overflow:"hidden",border:`2px solid ${party.color}`,boxShadow:`0 0 16px ${party.color}80`}}>
-              {logo?<img src={logo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:22,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{party.emoji}</span>}
+              {logo?<img src={logo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:SIZE*0.45,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{party.emoji}</span>}
             </div>
           </div>
         </motion.div>
       )}
-      {/* Explosion pieces */}
-      {exploded&&pieces.map(p=>(
-        <motion.div key={p.id}
-          initial={{x:pos.x+20,y:pos.y+20,scale:1,opacity:1}}
-          animate={{x:pos.x+20+Math.cos(p.angle)*p.dist,y:pos.y+20+Math.sin(p.angle)*p.dist,scale:0,opacity:0}}
-          transition={{duration:0.8,ease:"easeOut"}}
-          style={{position:"fixed",left:0,top:0,width:28,height:28,borderRadius:"50%",overflow:"hidden",border:`2px solid ${party.color}`,background:"#fff"}}>
-          {logo?<img src={logo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{party.emoji}</span>}
-        </motion.div>
-      ))}
+      {/* Explosión — solo tu partido, mismo tamaño SIZE */}
+      <AnimatePresence>
+        {exploded&&pieces.map(p=>(
+          <motion.div key={p.id}
+            initial={{x:pos.x,y:pos.y,scale:1.2,opacity:1,rotate:0}}
+            animate={{x:pos.x+Math.cos(p.angle)*p.dist,y:pos.y+Math.sin(p.angle)*p.dist,scale:0.15,opacity:0,rotate:p.rot}}
+            transition={{duration:4,ease:[0.2,0.8,0.4,1]}}
+            style={{position:"fixed",left:0,top:0,width:SIZE,height:SIZE,borderRadius:"50%",overflow:"hidden",
+              border:`3px solid ${party.color}`,background:"#fff",pointerEvents:"none",
+              boxShadow:`0 0 14px ${party.color}99`}}>
+            {logo?<img src={logo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:SIZE*0.45,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{party.emoji}</span>}
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
   );
 }
@@ -587,24 +592,20 @@ function Header({total,user,onLoginClick,onLogoClick,onLogout,siteLogo}){
           <LiveClock/>
         </div>
 
-        {/* CENTER: apodo con conic frame OR login */}
+        {/* CENTER: apodo OR login */}
         {user?(
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flex:1}}>
-            <div style={{position:"relative",display:"inline-flex",alignItems:"center",justifyContent:"center",padding:3}}>
-              {/* conic-gradient spinCatBorder */}
-              <div style={{position:"absolute",inset:0,borderRadius:14,background:"conic-gradient(from 0deg,#e01010,#f59e0b,#10b981,#3b82f6,#7c3aed,#e01010)",animation:"spinCatBorder 3s linear infinite",zIndex:0}}/>
-              <div style={{position:"relative",zIndex:1,background:"#fff",borderRadius:11,padding:"5px 14px"}}>
-                <span style={{fontSize:16,fontWeight:900,color:"#1d4ed8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:110,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,display:"block"}}>{user.nickname}</span>
-              </div>
+          <div style={{display:"flex",alignItems:"center",gap:6,flex:1,justifyContent:"center"}}>
+            <div style={{background:"#eff6ff",border:"2px solid #1d4ed8",borderRadius:10,padding:"5px 12px",maxWidth:120,overflow:"hidden"}}>
+              <span style={{fontSize:14,fontWeight:900,color:"#1d4ed8",whiteSpace:"nowrap",textOverflow:"ellipsis",overflow:"hidden",display:"block",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{user.nickname}</span>
             </div>
             <motion.button whileTap={{scale:0.95}} onClick={onLogout}
-              style={{background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:8,padding:"4px 12px",color:"#fff",fontSize:10,cursor:"pointer",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",fontWeight:800,boxShadow:"0 2px 8px rgba(220,38,38,0.4)"}}>✕ SALIR</motion.button>
+              style={{background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:8,padding:"6px 12px",color:"#fff",fontSize:11,cursor:"pointer",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",fontWeight:900,boxShadow:"0 2px 8px rgba(220,38,38,0.5)",flexShrink:0}}>✕ SALIR</motion.button>
           </div>
         ):(
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flex:1}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,flex:1,justifyContent:"center"}}>
             <AnonFlipBtn/>
             <motion.button whileTap={{scale:0.94}} onClick={()=>{playSound("click");onLoginClick();}}
-              style={{background:"#1877f2",border:"none",borderRadius:8,padding:"5px 10px",color:"#fff",fontSize:9,fontWeight:700,cursor:"pointer",letterSpacing:1}}>f ENTRAR</motion.button>
+              style={{background:"#1877f2",border:"none",borderRadius:8,padding:"6px 10px",color:"#fff",fontSize:10,fontWeight:700,cursor:"pointer",letterSpacing:1,flexShrink:0}}>f ENTRAR</motion.button>
           </div>
         )}
 
