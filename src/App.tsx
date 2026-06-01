@@ -727,6 +727,672 @@ const PantallaPropuestas = () => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
+// PANTALLA: NOTICIAS
+// ══════════════════════════════════════════════════════════════════════════════
+const PantallaNoticias = () => {
+  const [noticias, setNoticias] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [seleccionada, setSeleccionada] = useState<any>(null);
+  const slideAnim = useRef(new Animated.Value(SW)).current;
+
+  useEffect(() => { cargarNoticias(); }, []);
+
+  const cargarNoticias = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('noticias').select('*').order('created_at', { ascending: false }).limit(20);
+    if (data) setNoticias(data);
+    setLoading(false);
+  };
+
+  const abrirNoticia = (n: any) => {
+    setSeleccionada(n);
+    slideAnim.setValue(SW);
+    Animated.timing(slideAnim, { toValue: 0, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  };
+
+  const cerrarNoticia = () => {
+    Animated.timing(slideAnim, { toValue: SW, duration: 280, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => setSeleccionada(null));
+  };
+
+  if (loading) return <View style={styles.centrado}><ActivityIndicator size="large" color={C.accent} /><Text style={[styles.wip, { marginTop: 14 }]}>Cargando noticias...</Text></View>;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={styles.noticiaHeader}>
+        <Text style={styles.noticiaHeaderEmoji}>📰</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.noticiaHeaderTitle}>NOTICIAS SILAO</Text>
+          <Text style={styles.noticiaHeaderSub}>Información local actualizada</Text>
+        </View>
+        <TouchableOpacity onPress={cargarNoticias} style={styles.reloadBtn}>
+          <Text style={styles.reloadBtnText}>🔄</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+        {noticias.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>📰</Text>
+            <Text style={styles.emptyText}>No hay noticias publicadas aún</Text>
+            <Text style={styles.emptySubText}>Añade noticias desde el panel Admin</Text>
+          </View>
+        )}
+        {noticias.map((n, i) => (
+          <TouchableOpacity key={n.id || i} style={styles.noticiaCard} onPress={() => abrirNoticia(n)} activeOpacity={0.85}>
+            {n.imagen_url
+              ? <Image source={{ uri: n.imagen_url }} style={styles.noticiaImg} resizeMode="cover" />
+              : <View style={styles.noticiaImgPlaceholder}><Text style={{ fontSize: 44 }}>📰</Text></View>
+            }
+            <View style={styles.noticiaBody}>
+              <View style={styles.noticiaMetaRow}>
+                <View style={styles.noticiaBadge}><Text style={styles.noticiaBadgeText}>NOTICIA</Text></View>
+                <Text style={styles.noticiaFecha}>
+                  {n.created_at ? new Date(n.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '—'}
+                </Text>
+              </View>
+              <Text style={styles.noticiaTitulo} numberOfLines={2}>{n.titulo}</Text>
+              <Text style={styles.noticiaResumen} numberOfLines={3}>{n.contenido || n.resumen}</Text>
+              <Text style={styles.noticiaLeer}>Leer más →</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {seleccionada && (
+        <Animated.View style={[styles.noticiaDetalle, { transform: [{ translateX: slideAnim }] }]}>
+          <TouchableOpacity style={styles.noticiaDetalleBack} onPress={cerrarNoticia}>
+            <Text style={styles.noticiaDetalleBackText}>← Volver a Noticias</Text>
+          </TouchableOpacity>
+          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+            {seleccionada.imagen_url && (
+              <Image source={{ uri: seleccionada.imagen_url }} style={styles.noticiaDetalleImg} resizeMode="cover" />
+            )}
+            <Text style={styles.noticiaDetalleFecha}>
+              {seleccionada.created_at ? new Date(seleccionada.created_at).toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+            </Text>
+            <Text style={styles.noticiaDetalleTitulo}>{seleccionada.titulo}</Text>
+            <Text style={styles.noticiaDetalleTexto}>{seleccionada.contenido || seleccionada.resumen}</Text>
+            {seleccionada.link && (
+              <TouchableOpacity style={styles.noticiaDetalleLink} onPress={() => Linking.openURL(seleccionada.link)}>
+                <Text style={styles.noticiaDetalleLinkText}>🔗 Ver fuente completa</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+        </Animated.View>
+      )}
+    </View>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PANTALLA: CANDIDATOS
+// ══════════════════════════════════════════════════════════════════════════════
+const PantallaCandidatos = ({ partidos, votos, totalVotos }: any) => {
+  const [seleccionado, setSeleccionado] = useState<any>(null);
+  const modalAnim = useRef(new Animated.Value(0)).current;
+
+  const abrirCandidato = (p: any) => {
+    setSeleccionado(p);
+    Animated.spring(modalAnim, { toValue: 1, friction: 7, useNativeDriver: true }).start();
+  };
+
+  const cerrarCandidato = () => {
+    Animated.timing(modalAnim, { toValue: 0, duration: 250, useNativeDriver: true }).start(() => setSeleccionado(null));
+  };
+
+  const ordenados = [...partidos].sort((a, b) => (votos[b.id] || 0) - (votos[a.id] || 0));
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={styles.candidatosHeader}>
+        <Text style={styles.candidatosHeaderEmoji}>👥</Text>
+        <View>
+          <Text style={styles.candidatosHeaderTitle}>CANDIDATOS 2024</Text>
+          <Text style={styles.candidatosHeaderSub}>Conoce a los participantes · Toca para ver perfil</Text>
+        </View>
+      </View>
+
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+        <Text style={styles.seccionTitulo}>🏆 Clasificación Actual</Text>
+        {ordenados.map((p, i) => {
+          const pct = totalVotos > 0 ? Math.round(((votos[p.id] || 0) / totalVotos) * 100) : 0;
+          const rankMedal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+          return (
+            <TouchableOpacity key={p.id} style={[styles.candidatoCard, { borderLeftColor: p.color || C.accent }]} onPress={() => abrirCandidato(p)} activeOpacity={0.85}>
+              <View style={[styles.candidatoAvatarBig, { backgroundColor: p.color || C.accent }]}>
+                {p.logo
+                  ? <Image source={{ uri: p.logo }} style={{ width: 72, height: 72, borderRadius: 36 }} />
+                  : <Text style={{ fontSize: 36 }}>{p.emoji || '⚽'}</Text>
+                }
+              </View>
+              <View style={{ flex: 1, marginLeft: 16 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <Text style={styles.candidatoNombrePartido}>{p.nombre}</Text>
+                  <Text style={{ fontSize: F.md }}>{rankMedal}</Text>
+                </View>
+                <Text style={styles.candidatoNombrePersona}>{p.candidato || 'Candidato registrado'}</Text>
+                <Text style={styles.candidatoSlogan} numberOfLines={2}>{p.slogan || p.bio || 'Toca para ver perfil completo →'}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 10 }}>
+                  <Text style={[styles.candidatoPct, { color: p.color || C.accent }]}>{pct}%</Text>
+                  <View style={styles.candidatoBarraContainer}>
+                    <View style={[styles.candidatoBarraFill, { width: `${Math.max(pct, 2)}%`, backgroundColor: p.color || C.accent }]} />
+                  </View>
+                </View>
+              </View>
+              <Text style={[styles.candidatoVerMas, { color: p.color || C.accent }]}>Ver →</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      <Modal visible={!!seleccionado} transparent animationType="none">
+        <TouchableOpacity style={styles.modalOverlay} onPress={cerrarCandidato} activeOpacity={1}>
+          <Animated.View style={[styles.candidatoModal, {
+            transform: [{ scale: modalAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }],
+            opacity: modalAnim,
+          }]}>
+            <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+              <View style={[styles.candidatoModalHeader, { backgroundColor: seleccionado?.color || C.accent }]}>
+                <View style={styles.candidatoModalAvatar}>
+                  {seleccionado?.logo
+                    ? <Image source={{ uri: seleccionado.logo }} style={{ width: 80, height: 80, borderRadius: 40 }} />
+                    : <Text style={{ fontSize: 48 }}>{seleccionado?.emoji || '⚽'}</Text>
+                  }
+                </View>
+                <TouchableOpacity style={styles.candidatoModalClose} onPress={cerrarCandidato}>
+                  <Text style={{ fontSize: F.xl, color: C.white, fontWeight: '900' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={{ maxHeight: SH * 0.58 }} contentContainerStyle={{ padding: 24 }}>
+                <Text style={styles.candidatoModalPartido}>{seleccionado?.nombre}</Text>
+                <Text style={styles.candidatoModalNombre}>{seleccionado?.candidato || 'Candidato registrado'}</Text>
+                {seleccionado?.slogan && <Text style={styles.candidatoModalSlogan}>"{seleccionado.slogan}"</Text>}
+                <View style={styles.candidatoModalDivider} />
+
+                <View style={styles.candidatoModalStats}>
+                  <View style={styles.candidatoModalStatItem}>
+                    <Text style={[styles.candidatoModalStatNum, { color: seleccionado?.color || C.accent }]}>
+                      {totalVotos > 0 ? Math.round(((votos[seleccionado?.id] || 0) / totalVotos) * 100) : 0}%
+                    </Text>
+                    <Text style={styles.candidatoModalStatLbl}>Preferencia</Text>
+                  </View>
+                  <View style={styles.candidatoModalStatItem}>
+                    <Text style={[styles.candidatoModalStatNum, { color: seleccionado?.color || C.accent }]}>
+                      {(votos[seleccionado?.id] || 0).toLocaleString()}
+                    </Text>
+                    <Text style={styles.candidatoModalStatLbl}>Votos Totales</Text>
+                  </View>
+                </View>
+
+                {seleccionado?.bio && (
+                  <>
+                    <Text style={styles.candidatoModalSeccion}>📋 Perfil</Text>
+                    <Text style={styles.candidatoModalBio}>{seleccionado.bio}</Text>
+                  </>
+                )}
+
+                <View style={styles.candidatoRedesRow}>
+                  {seleccionado?.telefono && (
+                    <TouchableOpacity style={[styles.candidatoRedBtn, { backgroundColor: C.success }]} onPress={() => Linking.openURL(`tel:${seleccionado.telefono}`)}>
+                      <Text style={styles.candidatoRedBtnText}>📞 Llamar</Text>
+                    </TouchableOpacity>
+                  )}
+                  {seleccionado?.facebook && (
+                    <TouchableOpacity style={[styles.candidatoRedBtn, { backgroundColor: '#1877F2' }]} onPress={() => Linking.openURL(seleccionado.facebook)}>
+                      <Text style={styles.candidatoRedBtnText}>📘 Facebook</Text>
+                    </TouchableOpacity>
+                  )}
+                  {seleccionado?.instagram && (
+                    <TouchableOpacity style={[styles.candidatoRedBtn, { backgroundColor: '#E1306C' }]} onPress={() => Linking.openURL(seleccionado.instagram)}>
+                      <Text style={styles.candidatoRedBtnText}>📸 Instagram</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </ScrollView>
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PANTALLA: ADMINISTRACIÓN — 5 tabs completos
+// ══════════════════════════════════════════════════════════════════════════════
+const PantallaAdmin = ({ partidos, votos, onRefresh }: any) => {
+  const [tab, setTab] = useState(0);
+  const [authed, setAuthed] = useState(false);
+  const [adminPass, setAdminPass] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  // Tab Candidatos
+  const [editando, setEditando] = useState<any>(null);
+  const [formCand, setFormCand] = useState({ nombre: '', partido: '', color: '', emoji: '', bio: '', slogan: '', foto_url: '', facebook: '', instagram: '', telefono: '' });
+  // Tab Votos
+  const [votosRaw, setVotosRaw] = useState<any[]>([]);
+  // Tab Banner
+  const [banners, setBanners] = useState<any[]>([]);
+  const [formBanner, setFormBanner] = useState({ titulo: '', imagen_url: '', link: '', activo: true });
+  // Tab Noticias
+  const [noticiasList, setNoticiasList] = useState<any[]>([]);
+  const [formNoticia, setFormNoticia] = useState({ titulo: '', contenido: '', imagen_url: '', link: '' });
+  // Tab Ajustes
+  const [configEdit, setConfigEdit] = useState<Record<string, string>>({});
+
+  const TABS = ['👥 Candidatos', '🗳️ Votos', '🎠 Banner', '📰 Noticias', '⚙️ Ajustes'];
+  const ADMIN_PASS = 'silao360';
+
+  const mostrarMsg = (t: string) => { setMsg(t); setTimeout(() => setMsg(''), 3000); };
+
+  useEffect(() => { if (authed) cargarTab(); }, [authed, tab]);
+
+  const cargarTab = async () => {
+    setLoading(true);
+    try {
+      if (tab === 1) {
+        const { data } = await supabase.from('votos').select('*').order('timestamp', { ascending: false }).limit(100);
+        if (data) setVotosRaw(data);
+      }
+      if (tab === 2) {
+        const { data } = await supabase.from('banner').select('*').order('orden');
+        if (data) setBanners(data);
+      }
+      if (tab === 3) {
+        const { data } = await supabase.from('noticias').select('*').order('created_at', { ascending: false });
+        if (data) setNoticiasList(data);
+      }
+      if (tab === 4) {
+        const { data } = await supabase.from('config').select('*');
+        if (data) {
+          const m: Record<string, string> = {};
+          data.forEach((r: any) => { m[r.clave] = r.valor; });
+          setConfigEdit(m);
+        }
+      }
+    } catch (e) {}
+    setLoading(false);
+  };
+
+  const guardarCandidato = async () => {
+    if (!formCand.partido) { Alert.alert('⚠️', 'Escribe el nombre del partido'); return; }
+    setLoading(true);
+    if (editando) {
+      await supabase.from('candidatos').update({ ...formCand }).eq('id', editando.id);
+      mostrarMsg('✅ Candidato actualizado');
+    } else {
+      await supabase.from('candidatos').insert([{ ...formCand, created_at: new Date().toISOString() }]);
+      mostrarMsg('✅ Candidato agregado');
+    }
+    setEditando(null);
+    setFormCand({ nombre: '', partido: '', color: '', emoji: '', bio: '', slogan: '', foto_url: '', facebook: '', instagram: '', telefono: '' });
+    onRefresh();
+    setLoading(false);
+  };
+
+  const editarCandidato = (p: any) => {
+    setEditando(p);
+    setFormCand({
+      nombre: p.candidato || p.nombre || '', partido: p.nombre || p.partido || '',
+      color: p.color || '', emoji: p.emoji || '', bio: p.bio || '',
+      slogan: p.slogan || '', foto_url: p.logo || p.foto_url || '',
+      facebook: p.facebook || '', instagram: p.instagram || '', telefono: p.telefono || '',
+    });
+  };
+
+  const eliminarCandidato = (id: number) => {
+    Alert.alert('⚠️ Eliminar', '¿Eliminar este candidato permanentemente?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Eliminar', style: 'destructive', onPress: async () => {
+        await supabase.from('candidatos').delete().eq('id', id);
+        mostrarMsg('🗑️ Eliminado');
+        onRefresh();
+      }},
+    ]);
+  };
+
+  const guardarNoticia = async () => {
+    if (!formNoticia.titulo) { Alert.alert('⚠️', 'Escribe el título'); return; }
+    setLoading(true);
+    await supabase.from('noticias').insert([{ ...formNoticia, created_at: new Date().toISOString() }]);
+    setFormNoticia({ titulo: '', contenido: '', imagen_url: '', link: '' });
+    mostrarMsg('✅ Noticia publicada');
+    cargarTab();
+    setLoading(false);
+  };
+
+  const eliminarNoticia = (id: number) => {
+    Alert.alert('⚠️', '¿Eliminar esta noticia?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Eliminar', style: 'destructive', onPress: async () => {
+        await supabase.from('noticias').delete().eq('id', id);
+        mostrarMsg('🗑️ Noticia eliminada');
+        cargarTab();
+      }},
+    ]);
+  };
+
+  const guardarConfig = async (clave: string) => {
+    setLoading(true);
+    await supabase.from('config').upsert([{ clave, valor: configEdit[clave] || '' }], { onConflict: 'clave' });
+    mostrarMsg(`✅ "${clave}" guardado`);
+    setLoading(false);
+  };
+
+  // ── LOGIN ADMIN ──
+  if (!authed) {
+    return (
+      <View style={[styles.centrado, { padding: 32 }]}>
+        <Text style={{ fontSize: 72, marginBottom: 16 }}>⚙️</Text>
+        <Text style={[styles.loginTitle, { fontSize: F.xl, marginBottom: 8 }]}>Panel Admin</Text>
+        <Text style={[styles.loginSub, { marginBottom: 32 }]}>Acceso restringido a administradores</Text>
+        <TextInput
+          style={[styles.loginInput, { width: '100%' }]}
+          placeholder="Contraseña de administrador"
+          placeholderTextColor={C.textMuted}
+          value={adminPass}
+          onChangeText={setAdminPass}
+          secureTextEntry
+          onSubmitEditing={() => adminPass === ADMIN_PASS ? setAuthed(true) : Alert.alert('❌ Contraseña incorrecta')}
+        />
+        <TouchableOpacity style={[styles.btnLogin, { width: '100%', marginTop: 4 }]}
+          onPress={() => adminPass === ADMIN_PASS ? setAuthed(true) : Alert.alert('❌ Contraseña incorrecta')} activeOpacity={0.85}>
+          <Text style={styles.btnLoginText}>🔓 ENTRAR AL PANEL</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={styles.adminHeader}>
+        <Text style={styles.adminHeaderTitle}>⚙️ ADMINISTRACIÓN</Text>
+        <Text style={styles.adminHeaderSub}>Encuesta Silao · Panel de control</Text>
+      </View>
+
+      {!!msg && <View style={styles.adminMsg}><Text style={styles.adminMsgText}>{msg}</Text></View>}
+
+      {/* Tab bar admin */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.adminTabsBar} contentContainerStyle={{ paddingHorizontal: 8 }}>
+        {TABS.map((t, i) => (
+          <TouchableOpacity key={i} style={[styles.adminTab, tab === i && styles.adminTabActive]} onPress={() => setTab(i)} activeOpacity={0.8}>
+            <Text style={[styles.adminTabText, tab === i && styles.adminTabTextActive]}>{t}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {loading && <ActivityIndicator color={C.accent} style={{ marginVertical: 12 }} />}
+
+      {/* ── TAB 0: CANDIDATOS ── */}
+      {tab === 0 && (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+          <Text style={styles.adminSeccionTitle}>{editando ? '✏️ Editando Candidato' : '➕ Nuevo Candidato'}</Text>
+          {([
+            ['partido',    'Nombre del Partido (ej: MORENA)'],
+            ['nombre',     'Nombre completo del Candidato'],
+            ['slogan',     'Eslogan de campaña'],
+            ['color',      'Color HEX (ej: #8B0000)'],
+            ['emoji',      'Emoji representativo (ej: 🔴)'],
+            ['foto_url',   'URL de foto del candidato'],
+            ['facebook',   'URL Facebook del candidato'],
+            ['instagram',  'URL Instagram del candidato'],
+            ['telefono',   'Teléfono de contacto'],
+          ] as [string, string][]).map(([key, label]) => (
+            <TextInput
+              key={key}
+              style={styles.adminInput}
+              placeholder={label}
+              placeholderTextColor={C.textMuted}
+              value={(formCand as any)[key]}
+              onChangeText={(v) => setFormCand(p => ({ ...p, [key]: v }))}
+            />
+          ))}
+          <TextInput
+            style={[styles.adminInput, { height: 90, textAlignVertical: 'top' }]}
+            placeholder="Biografía corta del candidato"
+            placeholderTextColor={C.textMuted}
+            value={formCand.bio}
+            onChangeText={(v) => setFormCand(p => ({ ...p, bio: v }))}
+            multiline
+          />
+          <TouchableOpacity style={[styles.btnPublicar, { backgroundColor: C.accent }]} onPress={guardarCandidato} activeOpacity={0.8}>
+            <Text style={[styles.btnPublicarText, { color: C.bg }]}>{editando ? '💾 GUARDAR CAMBIOS' : '➕ AGREGAR CANDIDATO'}</Text>
+          </TouchableOpacity>
+          {editando && (
+            <TouchableOpacity style={[styles.btnPublicar, { backgroundColor: 'transparent', borderWidth: 1, borderColor: C.border, marginTop: 10 }]}
+              onPress={() => { setEditando(null); setFormCand({ nombre: '', partido: '', color: '', emoji: '', bio: '', slogan: '', foto_url: '', facebook: '', instagram: '', telefono: '' }); }}>
+              <Text style={[styles.btnPublicarText, { color: C.textSub }]}>✕ Cancelar</Text>
+            </TouchableOpacity>
+          )}
+
+          <Text style={[styles.adminSeccionTitle, { marginTop: 30 }]}>📋 Candidatos Registrados ({partidos.length})</Text>
+          {partidos.map((p: any) => (
+            <View key={p.id} style={[styles.adminCandCard, { borderLeftColor: p.color || C.accent }]}>
+              <View style={[styles.adminCandAvatar, { backgroundColor: p.color || C.accent }]}>
+                <Text style={{ fontSize: F.lg }}>{p.emoji || '⚽'}</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.adminCandNombre}>{p.nombre}</Text>
+                <Text style={styles.adminCandCandidato}>{p.candidato || '—'}</Text>
+                <Text style={[styles.adminCandCandidato, { color: p.color || C.accent }]}>{p.color}</Text>
+              </View>
+              <TouchableOpacity style={styles.adminBtnEditar} onPress={() => editarCandidato(p)}>
+                <Text style={styles.adminBtnEditarText}>✏️</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.adminBtnEliminar, { marginLeft: 6 }]} onPress={() => eliminarCandidato(p.id)}>
+                <Text style={styles.adminBtnEliminarText}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* ── TAB 1: VOTOS ── */}
+      {tab === 1 && (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+          <Text style={styles.adminSeccionTitle}>📊 Resumen de Votación</Text>
+          <View style={styles.adminVotosResumen}>
+            {partidos.map((p: any) => {
+              const count = votosRaw.filter(v => v.partido_id === p.id).length;
+              const pct = votosRaw.length > 0 ? Math.round((count / votosRaw.length) * 100) : 0;
+              return (
+                <View key={p.id} style={[styles.adminVotoCard, { borderLeftColor: p.color || C.accent }]}>
+                  <Text style={{ fontSize: F.md, color: C.white }}>{p.emoji} {p.nombre}</Text>
+                  <Text style={{ fontSize: F.xl, fontWeight: '900', color: p.color || C.accent }}>{count}</Text>
+                  <Text style={{ fontSize: F.sm, color: C.textSub }}>{pct}%</Text>
+                </View>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.btnPublicar, { backgroundColor: '#7f1d1d', borderWidth: 1, borderColor: C.danger, marginBottom: 20 }]}
+            onPress={() => Alert.alert('⚠️ REINICIAR VOTOS', '¿Eliminar TODOS los votos registrados? Esta acción NO se puede deshacer.', [
+              { text: 'Cancelar', style: 'cancel' },
+              { text: 'REINICIAR TODO', style: 'destructive', onPress: async () => {
+                await supabase.from('votos').delete().neq('id', 0);
+                setVotosRaw([]);
+                mostrarMsg('🗑️ Todos los votos eliminados');
+                onRefresh();
+              }},
+            ])}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.btnPublicarText, { color: C.danger }]}>🗑️ REINICIAR TODOS LOS VOTOS</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.adminSeccionTitle}>📋 Últimos 100 registros</Text>
+          {votosRaw.map((v, i) => {
+            const p = partidos.find((pp: any) => pp.id === v.partido_id);
+            return (
+              <View key={i} style={styles.adminVotoRow}>
+                <Text style={{ fontSize: F.sm, color: p?.color || C.accent, fontWeight: '800', width: 80 }}>{p?.nombre || `ID ${v.partido_id}`}</Text>
+                <Text style={{ fontSize: F.xs, color: C.textMuted, flex: 1 }}>{v.timestamp ? new Date(v.timestamp).toLocaleString('es-MX') : '—'}</Text>
+                <View style={styles.adminPlatBadge}>
+                  <Text style={{ fontSize: 10, color: C.textMuted }}>{v.plataforma || 'web'}</Text>
+                </View>
+              </View>
+            );
+          })}
+          {votosRaw.length === 0 && <View style={styles.emptyState}><Text style={styles.emptyEmoji}>🗳️</Text><Text style={styles.emptyText}>No hay votos registrados</Text></View>}
+        </ScrollView>
+      )}
+
+      {/* ── TAB 2: BANNER ── */}
+      {tab === 2 && (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+          <Text style={styles.adminSeccionTitle}>➕ Nuevo Banner</Text>
+          {([
+            ['titulo',     'Título del banner'],
+            ['imagen_url', 'URL de imagen del banner'],
+            ['link',       'URL de enlace al tocarlo (opcional)'],
+          ] as [string, string][]).map(([key, label]) => (
+            <TextInput
+              key={key}
+              style={styles.adminInput}
+              placeholder={label}
+              placeholderTextColor={C.textMuted}
+              value={(formBanner as any)[key]}
+              onChangeText={(v) => setFormBanner(p => ({ ...p, [key]: v }))}
+            />
+          ))}
+          <TouchableOpacity style={[styles.btnPublicar, { backgroundColor: C.accent }]} onPress={async () => {
+            if (!formBanner.titulo && !formBanner.imagen_url) { Alert.alert('⚠️', 'Agrega título o imagen'); return; }
+            setLoading(true);
+            await supabase.from('banner').insert([{ ...formBanner, orden: banners.length + 1, created_at: new Date().toISOString() }]);
+            setFormBanner({ titulo: '', imagen_url: '', link: '', activo: true });
+            mostrarMsg('✅ Banner agregado');
+            cargarTab();
+            setLoading(false);
+          }} activeOpacity={0.8}>
+            <Text style={[styles.btnPublicarText, { color: C.bg }]}>➕ AGREGAR BANNER</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.adminSeccionTitle, { marginTop: 24 }]}>🎠 Banners ({banners.length})</Text>
+          {banners.map((b, i) => (
+            <View key={b.id || i} style={styles.adminBannerCard}>
+              {b.imagen_url
+                ? <Image source={{ uri: b.imagen_url }} style={styles.adminBannerImg} resizeMode="cover" />
+                : <View style={[styles.adminBannerImg, { backgroundColor: C.bgGlass, alignItems: 'center', justifyContent: 'center' }]}><Text style={{ fontSize: 28 }}>🖼️</Text></View>
+              }
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.adminCandNombre} numberOfLines={1}>{b.titulo || '(Sin título)'}</Text>
+                <Text style={styles.adminCandCandidato} numberOfLines={1}>{b.link || 'Sin enlace'}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                  <View style={[styles.adminActiveBadge, { backgroundColor: b.activo ? C.success + '20' : C.danger + '20', borderColor: b.activo ? C.success : C.danger }]}>
+                    <Text style={{ fontSize: 11, color: b.activo ? C.success : C.danger, fontWeight: '800' }}>{b.activo ? '✓ Activo' : '✗ Oculto'}</Text>
+                  </View>
+                  <TouchableOpacity onPress={async () => { await supabase.from('banner').update({ activo: !b.activo }).eq('id', b.id); cargarTab(); }}>
+                    <Text style={{ fontSize: F.xs, color: C.accent, fontWeight: '700' }}>Cambiar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => Alert.alert('Eliminar banner', '¿Seguro?', [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Eliminar', style: 'destructive', onPress: async () => { await supabase.from('banner').delete().eq('id', b.id); cargarTab(); } },
+              ])}>
+                <Text style={{ fontSize: F.lg, marginLeft: 8 }}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* ── TAB 3: NOTICIAS ── */}
+      {tab === 3 && (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+          <Text style={styles.adminSeccionTitle}>➕ Publicar Noticia</Text>
+          <TextInput style={styles.adminInput} placeholder="Título de la noticia *" placeholderTextColor={C.textMuted} value={formNoticia.titulo} onChangeText={(v) => setFormNoticia(p => ({ ...p, titulo: v }))} />
+          <TextInput style={styles.adminInput} placeholder="URL de imagen (opcional)" placeholderTextColor={C.textMuted} value={formNoticia.imagen_url} onChangeText={(v) => setFormNoticia(p => ({ ...p, imagen_url: v }))} />
+          <TextInput style={styles.adminInput} placeholder="URL fuente / enlace (opcional)" placeholderTextColor={C.textMuted} value={formNoticia.link} onChangeText={(v) => setFormNoticia(p => ({ ...p, link: v }))} />
+          <TextInput style={[styles.adminInput, { height: 120, textAlignVertical: 'top' }]} placeholder="Contenido completo de la noticia..." placeholderTextColor={C.textMuted} value={formNoticia.contenido} onChangeText={(v) => setFormNoticia(p => ({ ...p, contenido: v }))} multiline />
+          <TouchableOpacity style={[styles.btnPublicar, { backgroundColor: C.success }]} onPress={guardarNoticia} activeOpacity={0.8}>
+            <Text style={styles.btnPublicarText}>📰 PUBLICAR NOTICIA</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.adminSeccionTitle, { marginTop: 28 }]}>📋 Noticias ({noticiasList.length})</Text>
+          {noticiasList.map((n) => (
+            <View key={n.id} style={styles.adminNoticiaCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.adminCandNombre} numberOfLines={2}>{n.titulo}</Text>
+                <Text style={styles.adminCandCandidato}>{n.created_at ? new Date(n.created_at).toLocaleDateString('es-MX') : '—'}</Text>
+              </View>
+              <TouchableOpacity style={styles.adminBtnEliminar} onPress={() => eliminarNoticia(n.id)}>
+                <Text style={styles.adminBtnEliminarText}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* ── TAB 4: AJUSTES ── */}
+      {tab === 4 && (
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+          <Text style={styles.adminSeccionTitle}>⚙️ Configuración General</Text>
+          {([
+            ['fecha_eleccion',          '📅 Fecha de elección (YYYY-MM-DD)'],
+            ['fecha_cierre_encuesta',   '⏰ Cierre de encuesta (YYYY-MM-DD)'],
+            ['titulo_app',              '📱 Título principal de la app'],
+            ['subtitulo_app',           '📝 Subtítulo de la app'],
+            ['whatsapp_numero',         '📱 Número WhatsApp (con código país)'],
+            ['facebook_url',            '📘 URL página Facebook oficial'],
+            ['web_url',                 '🌐 URL del sitio web'],
+            ['encuesta_activa',         '🔘 Encuesta activa? (true / false)'],
+            ['mensaje_bienvenida',      '👋 Mensaje de bienvenida'],
+            ['velocidad_carrusel',      '⚡ Velocidad carrusel (ms, ej: 4000)'],
+          ] as [string, string][]).map(([clave, label]) => (
+            <View key={clave} style={styles.adminConfigRow}>
+              <Text style={styles.adminConfigLabel}>{label}</Text>
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TextInput
+                  style={[styles.adminInput, { flex: 1, marginBottom: 0 }]}
+                  placeholder={`Valor actual...`}
+                  placeholderTextColor={C.textMuted}
+                  value={configEdit[clave] || ''}
+                  onChangeText={(v) => setConfigEdit(prev => ({ ...prev, [clave]: v }))}
+                />
+                <TouchableOpacity style={styles.adminBtnGuardar} onPress={() => guardarConfig(clave)}>
+                  <Text style={styles.adminBtnGuardarText}>💾</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+    </View>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB BAR INFERIOR
+// ══════════════════════════════════════════════════════════════════════════════
+const TabBarInferior = ({ pantalla, onNavigate }: any) => {
+  const TABS = [
+    { screen: 'home',       icon: '🏠', label: 'Inicio'    },
+    { screen: 'stats',      icon: '📊', label: 'Stats'     },
+    { screen: 'forum',      icon: '💬', label: 'Foro'      },
+    { screen: 'proposals',  icon: '💡', label: 'Ideas'     },
+    { screen: 'news',       icon: '📰', label: 'Noticias'  },
+  ];
+  return (
+    <View style={styles.tabBar}>
+      {TABS.map((t) => {
+        const active = pantalla === t.screen;
+        return (
+          <TouchableOpacity key={t.screen} style={styles.tabItem} onPress={() => onNavigate(t.screen)} activeOpacity={0.7}>
+            {active && <View style={styles.tabIndicator} />}
+            <Text style={[styles.tabIcon, active && styles.tabIconActive]}>{t.icon}</Text>
+            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{t.label}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
 // DRAWER LATERAL
 // ══════════════════════════════════════════════════════════════════════════════
 const Drawer = ({ visible, onClose, onNavigate, onLogout, visitantes, votos }: any) => {
@@ -900,10 +1566,13 @@ export default function App() {
 
   const renderPantalla = () => {
     switch (pantalla) {
-      case 'home': return <PantallaHome partidos={partidos} votos={votos} totalVotos={totalVotos} visitantes={visitantes} onVotar={handleVotar} onNavigate={handleNavigate} />;
-      case 'stats': return <PantallaEstadisticas partidos={partidos} votos={votos} totalVotos={totalVotos} visitantes={visitantes} />;
-      case 'forum': return <PantallaForo />;
-      case 'proposals': return <PantallaPropuestas />;
+      case 'home':       return <PantallaHome partidos={partidos} votos={votos} totalVotos={totalVotos} visitantes={visitantes} onVotar={handleVotar} onNavigate={handleNavigate} />;
+      case 'stats':      return <PantallaEstadisticas partidos={partidos} votos={votos} totalVotos={totalVotos} visitantes={visitantes} />;
+      case 'forum':      return <PantallaForo />;
+      case 'proposals':  return <PantallaPropuestas />;
+      case 'news':       return <PantallaNoticias />;
+      case 'candidates': return <PantallaCandidatos partidos={partidos} votos={votos} totalVotos={totalVotos} />;
+      case 'admin':      return <PantallaAdmin partidos={partidos} votos={votos} onRefresh={cargarDatos} />;
       default:
         return (
           <View style={styles.centrado}>
@@ -976,6 +1645,9 @@ export default function App() {
           : renderPantalla()
         }
       </View>
+
+      {/* Tab bar inferior */}
+      <TabBarInferior pantalla={pantalla} onNavigate={handleNavigate} />
 
       <Drawer
         visible={drawerOpen}
@@ -1402,4 +2074,244 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 62, marginBottom: 14 },
   emptyText: { fontSize: F.lg, color: C.textSub, textAlign: 'center', fontWeight: '700' },
   emptySubText: { fontSize: F.sm, color: C.textMuted, textAlign: 'center', marginTop: 8 },
+
+  // ── NOTICIAS ──────────────────────────────────────────────────────────────
+  noticiaHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.bgCard, padding: 20, gap: 14,
+    borderBottomWidth: 3, borderBottomColor: C.success,
+  },
+  noticiaHeaderEmoji: { fontSize: 42 },
+  noticiaHeaderTitle: { fontSize: F.lg, fontWeight: '900', color: C.white, letterSpacing: 2 },
+  noticiaHeaderSub: { fontSize: F.sm, color: C.textSub, marginTop: 3 },
+  reloadBtn: { padding: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12 },
+  reloadBtnText: { fontSize: F.xl },
+  noticiaCard: {
+    backgroundColor: C.bgCard, borderRadius: 20, marginBottom: 16,
+    overflow: 'hidden', borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35, shadowRadius: 10, elevation: 8,
+  },
+  noticiaImg: { width: '100%', height: 180 },
+  noticiaImgPlaceholder: {
+    width: '100%', height: 140,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  noticiaBody: { padding: 18 },
+  noticiaMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  noticiaBadge: {
+    backgroundColor: C.success + '25', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderColor: C.success,
+  },
+  noticiaBadgeText: { fontSize: 11, color: C.success, fontWeight: '900', letterSpacing: 1 },
+  noticiaFecha: { fontSize: F.xs, color: C.textMuted },
+  noticiaTitulo: { fontSize: F.lg, fontWeight: '900', color: C.white, marginBottom: 8, lineHeight: 28 },
+  noticiaResumen: { fontSize: F.sm, color: C.textSub, lineHeight: 24, marginBottom: 10 },
+  noticiaLeer: { fontSize: F.sm, color: C.accent, fontWeight: '800' },
+  noticiaDetalle: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: C.bg, zIndex: 50,
+  },
+  noticiaDetalleBack: {
+    backgroundColor: C.bgCard, padding: 18,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
+  noticiaDetalleBackText: { fontSize: F.md, color: C.accent, fontWeight: '800' },
+  noticiaDetalleImg: { width: '100%', height: 220, borderRadius: 16, marginBottom: 18 },
+  noticiaDetalleFecha: { fontSize: F.sm, color: C.textMuted, marginBottom: 8 },
+  noticiaDetalleTitulo: { fontSize: F.xl, fontWeight: '900', color: C.white, marginBottom: 16, lineHeight: 34 },
+  noticiaDetalleTexto: { fontSize: F.md, color: C.textSub, lineHeight: 28 },
+  noticiaDetalleLink: {
+    marginTop: 24, backgroundColor: '#1877F2',
+    borderRadius: 14, paddingVertical: 16, alignItems: 'center',
+  },
+  noticiaDetalleLinkText: { fontSize: F.md, color: C.white, fontWeight: '900' },
+
+  // ── CANDIDATOS ────────────────────────────────────────────────────────────
+  candidatosHeader: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.bgCard, padding: 20, gap: 14,
+    borderBottomWidth: 3, borderBottomColor: C.accentPink,
+  },
+  candidatosHeaderEmoji: { fontSize: 42 },
+  candidatosHeaderTitle: { fontSize: F.lg, fontWeight: '900', color: C.white, letterSpacing: 2 },
+  candidatosHeaderSub: { fontSize: F.sm, color: C.textSub, marginTop: 3 },
+  candidatoCard: {
+    backgroundColor: C.bgCard, borderRadius: 20, padding: 18,
+    marginBottom: 14, flexDirection: 'row', alignItems: 'center',
+    borderLeftWidth: 5, borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 6,
+  },
+  candidatoAvatarBig: {
+    width: 76, height: 76, borderRadius: 38,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: C.white,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 5,
+  },
+  candidatoNombrePartido: { fontSize: F.lg, fontWeight: '900', color: C.white, letterSpacing: 1 },
+  candidatoNombrePersona: { fontSize: F.sm, color: C.textSub, marginBottom: 4 },
+  candidatoSlogan: { fontSize: F.xs, color: C.textMuted, fontStyle: 'italic' },
+  candidatoPct: { fontSize: F.lg, fontWeight: '900', minWidth: 50 },
+  candidatoBarraContainer: {
+    flex: 1, height: 8, backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 4, overflow: 'hidden',
+  },
+  candidatoBarraFill: { height: 8, borderRadius: 4 },
+  candidatoVerMas: { fontSize: F.md, fontWeight: '900', marginLeft: 10 },
+  candidatoModal: {
+    backgroundColor: C.bgCard, borderRadius: 28, overflow: 'hidden',
+    width: SW * 0.92, maxHeight: SH * 0.82,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.5, shadowRadius: 20, elevation: 20,
+  },
+  candidatoModalHeader: {
+    height: 140, alignItems: 'center', justifyContent: 'center',
+    position: 'relative',
+  },
+  candidatoModalAvatar: {
+    width: 90, height: 90, borderRadius: 45,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 3, borderColor: C.white,
+  },
+  candidatoModalClose: {
+    position: 'absolute', top: 14, right: 16,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  candidatoModalPartido: { fontSize: F.xl, fontWeight: '900', color: C.white, textAlign: 'center', letterSpacing: 2, marginBottom: 4 },
+  candidatoModalNombre: { fontSize: F.lg, color: C.textSub, textAlign: 'center', marginBottom: 8 },
+  candidatoModalSlogan: { fontSize: F.sm, color: C.textMuted, textAlign: 'center', fontStyle: 'italic', marginBottom: 14 },
+  candidatoModalDivider: { height: 1, backgroundColor: C.border, marginBottom: 16 },
+  candidatoModalSeccion: { fontSize: F.md, fontWeight: '800', color: C.accent, marginBottom: 8 },
+  candidatoModalBio: { fontSize: F.sm, color: C.textSub, lineHeight: 24, marginBottom: 16 },
+  candidatoModalStats: {
+    flexDirection: 'row', justifyContent: 'space-around',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16, padding: 16, marginBottom: 18,
+    borderWidth: 1, borderColor: C.border,
+  },
+  candidatoModalStatItem: { alignItems: 'center' },
+  candidatoModalStatNum: { fontSize: F.xxl, fontWeight: '900' },
+  candidatoModalStatLbl: { fontSize: F.xs, color: C.textMuted, marginTop: 4 },
+  candidatoRedesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 6 },
+  candidatoRedBtn: {
+    borderRadius: 12, paddingVertical: 14, paddingHorizontal: 20,
+    flex: 1, alignItems: 'center',
+  },
+  candidatoRedBtnText: { fontSize: F.sm, color: C.white, fontWeight: '900' },
+
+  // ── ADMIN ─────────────────────────────────────────────────────────────────
+  adminHeader: {
+    backgroundColor: C.bgCard, padding: 20,
+    borderBottomWidth: 2, borderBottomColor: C.orange,
+    alignItems: 'center',
+  },
+  adminHeaderTitle: { fontSize: F.lg, fontWeight: '900', color: C.orange, letterSpacing: 2 },
+  adminHeaderSub: { fontSize: F.sm, color: C.textSub, marginTop: 4 },
+  adminMsg: {
+    backgroundColor: C.success + '20', borderWidth: 1, borderColor: C.success,
+    borderRadius: 12, margin: 12, padding: 14, alignItems: 'center',
+  },
+  adminMsgText: { fontSize: F.md, color: C.success, fontWeight: '800' },
+  adminTabsBar: {
+    backgroundColor: C.bgCard, borderBottomWidth: 1, borderBottomColor: C.border,
+    maxHeight: 56,
+  },
+  adminTab: {
+    paddingHorizontal: 18, paddingVertical: 16,
+    borderBottomWidth: 3, borderBottomColor: 'transparent', marginHorizontal: 2,
+  },
+  adminTabActive: { borderBottomColor: C.orange },
+  adminTabText: { fontSize: F.sm, color: C.textMuted, fontWeight: '700' },
+  adminTabTextActive: { color: C.orange, fontWeight: '900' },
+  adminSeccionTitle: { fontSize: F.lg, fontWeight: '900', color: C.white, marginBottom: 14, marginTop: 4 },
+  adminInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14, borderWidth: 1, borderColor: C.border,
+    padding: 16, fontSize: F.md, color: C.white, marginBottom: 12,
+  },
+  adminCandCard: {
+    backgroundColor: C.bgCard, borderRadius: 16, padding: 16,
+    marginBottom: 10, flexDirection: 'row', alignItems: 'center',
+    borderLeftWidth: 4, borderWidth: 1, borderColor: C.border,
+  },
+  adminCandAvatar: {
+    width: 46, height: 46, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  adminCandNombre: { fontSize: F.md, fontWeight: '900', color: C.white },
+  adminCandCandidato: { fontSize: F.sm, color: C.textSub, marginTop: 3 },
+  adminBtnEditar: {
+    backgroundColor: C.accent + '20', borderRadius: 10,
+    padding: 10, borderWidth: 1, borderColor: C.accent,
+  },
+  adminBtnEditarText: { fontSize: F.lg },
+  adminBtnEliminar: {
+    backgroundColor: C.danger + '20', borderRadius: 10,
+    padding: 10, borderWidth: 1, borderColor: C.danger,
+  },
+  adminBtnEliminarText: { fontSize: F.lg },
+  adminVotosResumen: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  adminVotoCard: {
+    flex: 1, minWidth: '44%',
+    backgroundColor: C.bgCard, borderRadius: 14, padding: 14,
+    borderLeftWidth: 4, borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', gap: 4,
+  },
+  adminVotoRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)',
+  },
+  adminPlatBadge: {
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  adminBannerCard: {
+    backgroundColor: C.bgCard, borderRadius: 16, padding: 14,
+    marginBottom: 12, flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1, borderColor: C.border,
+  },
+  adminBannerImg: { width: 72, height: 52, borderRadius: 10 },
+  adminActiveBadge: {
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1,
+  },
+  adminNoticiaCard: {
+    backgroundColor: C.bgCard, borderRadius: 14, padding: 16,
+    marginBottom: 10, flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1, borderColor: C.border,
+  },
+  adminConfigRow: { marginBottom: 16 },
+  adminConfigLabel: { fontSize: F.sm, color: C.textSub, marginBottom: 8, fontWeight: '700' },
+  adminBtnGuardar: {
+    backgroundColor: C.accent + '20', borderRadius: 12,
+    padding: 14, borderWidth: 1, borderColor: C.accent, alignItems: 'center',
+  },
+  adminBtnGuardarText: { fontSize: F.md },
+
+  // ── TAB BAR INFERIOR ──────────────────────────────────────────────────────
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: C.bgCard,
+    borderTopWidth: 1, borderTopColor: C.border,
+    paddingBottom: Platform.OS === 'ios' ? 22 : 8,
+    paddingTop: 8,
+  },
+  tabItem: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 4, position: 'relative',
+  },
+  tabIndicator: {
+    position: 'absolute', top: 0, left: '20%', right: '20%',
+    height: 3, backgroundColor: C.accent, borderRadius: 2,
+  },
+  tabIcon: { fontSize: 24, marginBottom: 3 },
+  tabIconActive: {},
+  tabLabel: { fontSize: 11, color: C.textMuted, fontWeight: '600' },
+  tabLabelActive: { color: C.accent, fontWeight: '900' },
 });
