@@ -744,11 +744,11 @@ function NavBar({screen,setScreen}){
         @keyframes spinFast{to{transform:rotate(360deg)}}
         @keyframes navDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
       `}</style>
-      <div style={{background:"rgba(8,8,16,0.98)",backdropFilter:"blur(20px)",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,8px)",paddingTop:8,borderTop:"1px solid rgba(255,255,255,0.07)"}}>
+      <div style={{background:"linear-gradient(180deg,#ffffff,#f0f4ff)",backdropFilter:"blur(20px)",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,8px)",paddingTop:8,borderTop:"3px solid #e01010",boxShadow:"0 -4px 20px rgba(0,0,0,0.12)"}}>
         {tabs.map(t=>{
           const active=screen===t.id;
           const dur=burst?"0.35s":active?"0.7s":"2.8s";
-          const opacity=burst?1:active?1:0.3;
+          const opacity=burst?1:active?1:0.4;
           const bright=burst||active;
           return(
             <motion.button key={t.id}
@@ -756,8 +756,7 @@ function NavBar({screen,setScreen}){
               onClick={()=>handleTab(t.id)}
               style={{flex:1,background:"transparent",border:"none",padding:"3px 1px 5px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,position:"relative"}}>
               {/* LED spinning box */}
-              <div style={{position:"relative",width:52,height:52,borderRadius:14,overflow:"hidden",flexShrink:0}}>
-                {/* Conic spinning LED */}
+              <div style={{position:"relative",width:54,height:54,borderRadius:14,overflow:"hidden",flexShrink:0}}>
                 <div style={{
                   position:"absolute",width:"200%",height:"200%",top:"-50%",left:"-50%",
                   background:`conic-gradient(from 0deg,${t.color} 0deg,transparent ${burst?60:active?45:18}deg,transparent ${burst?160:active?170:342}deg,${t.color} ${burst?220:active?215:355}deg,transparent ${burst?270:active?255:360}deg)`,
@@ -767,18 +766,16 @@ function NavBar({screen,setScreen}){
                   zIndex:0,pointerEvents:"none",
                   transition:"opacity .3s, filter .3s",
                 }}/>
-                {/* Inner mask */}
                 <div style={{
                   position:"absolute",inset:2,borderRadius:12,
-                  background:active?`linear-gradient(145deg,${t.color}30,${t.color}12)`:"#0c0c1a",
+                  background:active?`linear-gradient(145deg,${t.color}25,${t.color}10)`:"rgba(255,255,255,0.9)",
                   zIndex:1,
                   transition:"background .3s",
                 }}/>
-                {/* Label */}
                 <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
                   <span style={{
-                    fontSize:active?13:11,fontWeight:900,
-                    color:active?t.color:burst?t.color:"rgba(255,255,255,0.38)",
+                    fontSize:active?14:12,fontWeight:900,
+                    color:active?t.color:burst?t.color:"#9ca3af",
                     fontFamily:"Barlow Condensed,sans-serif",
                     letterSpacing:0.5,lineHeight:1,textAlign:"center",padding:"0 3px",
                     textShadow:bright?`0 0 14px ${t.color},0 0 28px ${t.color}88`:"none",
@@ -1313,22 +1310,22 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,onL
                 {/* LED shimmer cuando es mi voto */}
                 {isMe&&<div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent,${p.color}15,transparent)`,animation:"ledShimmer 1.5s ease-in-out infinite",pointerEvents:"none"}}/>}
                 {/* Logo partido */}
-                <div style={{width:54,height:54,borderRadius:10,overflow:"hidden",flexShrink:0,border:`2.5px solid ${isMe?p.color:`${p.color}40`}`,boxShadow:isMe?`0 0 14px ${p.color}60`:"none",background:`${p.color}10`}}>
-                  {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:26,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
+                <div style={{width:68,height:68,borderRadius:14,overflow:"hidden",flexShrink:0,border:`3px solid ${isMe?p.color:`${p.color}40`}`,boxShadow:isMe?`0 0 18px ${p.color}80`:"none",background:`${p.color}10`}}>
+                  {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:32,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
                 </div>
                 {/* Info */}
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:14,fontWeight:900,color:isMe?p.color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif",display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
+                  <div style={{fontSize:17,fontWeight:900,color:isMe?p.color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif",display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
                     {p.short}
-                    {isMe&&<span style={{fontSize:8,color:"#fff",background:p.color,padding:"2px 7px",borderRadius:10,fontWeight:800,letterSpacing:.5}}>✓ TU VOTO</span>}
+                    {isMe&&<span style={{fontSize:9,color:"#fff",background:p.color,padding:"2px 7px",borderRadius:10,fontWeight:800,letterSpacing:.5}}>✓ TU VOTO</span>}
                   </div>
-                  <div style={{fontSize:8,color:p.color,fontWeight:700,marginTop:2,fontFamily:"Barlow Condensed,sans-serif"}}>{p.spectrumLabel}</div>
-                  <div style={{fontSize:18,fontWeight:900,color:isMe?p.color:count>0?"#1a1a1a":"#d1d5db",fontFamily:"Barlow Condensed,sans-serif",marginTop:3,lineHeight:1}}>
-                    <LiveCount value={count}/> <span style={{fontSize:9,fontWeight:500,color:"#9ca3af"}}>votos</span>
+                  <div style={{fontSize:11,color:p.color,fontWeight:700,marginTop:2,fontFamily:"Barlow Condensed,sans-serif"}}>{p.spectrumLabel}</div>
+                  <div style={{fontSize:20,fontWeight:900,color:isMe?p.color:count>0?"#1a1a1a":"#d1d5db",fontFamily:"Barlow Condensed,sans-serif",marginTop:3,lineHeight:1}}>
+                    <LiveCount value={count}/> <span style={{fontSize:10,fontWeight:500,color:"#9ca3af"}}>votos</span>
                   </div>
                 </div>
-                {/* Foto candidato con LED */}
-                <CandidateBox candidate={cand} color={p.color} size={54} radius={10}/>
+                {/* Foto candidato */}
+                <CandidateBox candidate={cand} color={p.color} size={68} radius={12}/>
               </motion.button>
             );
           })}
