@@ -632,9 +632,100 @@ const PantallaHome = ({ partidos, votos, totalVotos, visitantes, onVotar, onNavi
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
+// PANTALLA: INSTALAR
+// ══════════════════════════════════════════════════════════════════════════════
+const PantallaInstalar = ({ onNavigate }: any) => {
+  const [tab, setTab] = useState<'ios' | 'android' | 'pc'>('ios');
+
+  const STEPS: Record<string, { emoji: string; text: string }[]> = {
+    ios: [
+      { emoji: '🌐', text: 'Abre esta página en Safari (no Chrome ni otro navegador).' },
+      { emoji: '📤', text: 'Toca el ícono de Compartir (cuadro con flecha hacia arriba) en la barra inferior.' },
+      { emoji: '➕', text: 'Desliza hacia abajo y elige "Agregar a pantalla de inicio".' },
+      { emoji: '✅', text: 'Aparecerá un ícono de Encuesta Silao en tu pantalla. Ábrelo como app normal.' },
+    ],
+    android: [
+      { emoji: '🌐', text: 'Abre esta página en Chrome.' },
+      { emoji: '⋮', text: 'Toca los tres puntos (⋮) en la esquina superior derecha.' },
+      { emoji: '➕', text: 'Selecciona "Agregar a pantalla de inicio" o "Instalar app".' },
+      { emoji: '✅', text: 'Tendrás el ícono de Encuesta Silao directo en tu pantalla.' },
+    ],
+    pc: [
+      { emoji: '🌐', text: 'Abre silao360.com.mx en Chrome o Edge.' },
+      { emoji: '📥', text: 'Busca el ícono de instalar (pantalla con flecha ↓) en la barra de dirección, a la derecha.' },
+      { emoji: '➕', text: 'Haz clic en él y confirma la instalación.' },
+      { emoji: '✅', text: 'La app se abrirá como ventana independiente en tu escritorio.' },
+    ],
+  };
+
+  const TAB_LABELS = [
+    { key: 'ios',     label: '🍎 iPhone / iPad' },
+    { key: 'android', label: '🤖 Android' },
+    { key: 'pc',      label: '💻 Computadora' },
+  ];
+
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+      <Text style={styles.pantallaTitle}>📲 Instalar App</Text>
+
+      {/* Tabs */}
+      <View style={{ flexDirection: 'row', gap: 6, marginBottom: 18 }}>
+        {TAB_LABELS.map((t) => (
+          <TouchableOpacity
+            key={t.key}
+            onPress={() => setTab(t.key as any)}
+            style={{
+              flex: 1,
+              paddingVertical: 9,
+              borderRadius: 10,
+              backgroundColor: tab === t.key ? C.accent : C.card,
+              borderWidth: 1,
+              borderColor: tab === t.key ? C.accent : C.border,
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ color: tab === t.key ? '#fff' : C.textSub, fontSize: 11, fontWeight: '700', textAlign: 'center' }}>
+              {t.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Pasos */}
+      <View style={styles.tarjetaGlass}>
+        {STEPS[tab].map((s, i) => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+            <View style={{
+              width: 38, height: 38, borderRadius: 10,
+              backgroundColor: C.accent + '22',
+              alignItems: 'center', justifyContent: 'center',
+              borderWidth: 1, borderColor: C.accent + '44',
+            }}>
+              <Text style={{ fontSize: 18 }}>{s.emoji}</Text>
+            </View>
+            <View style={{ flex: 1, paddingTop: 4 }}>
+              <Text style={{ color: C.text, fontSize: 14, lineHeight: 20 }}>
+                <Text style={{ color: C.accent, fontWeight: '800' }}>Paso {i + 1}: </Text>
+                {s.text}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      <TouchableOpacity
+        style={[styles.btnVolver, { marginTop: 8 }]}
+        onPress={() => onNavigate('stats')}
+      >
+        <Text style={styles.btnVolverText}>← Volver</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+};
+
 // PANTALLA: ESTADÍSTICAS
 // ══════════════════════════════════════════════════════════════════════════════
-const PantallaEstadisticas = ({ partidos, votos, totalVotos, visitantes }: any) => {
+const PantallaEstadisticas = ({ partidos, votos, totalVotos, visitantes, onNavigate }: any) => {
   const [showExplain, setShowExplain] = useState<string | null>(null);
   const ordenados = [...partidos].sort((a, b) => (votos[b.id] || 0) - (votos[a.id] || 0));
 
@@ -649,84 +740,135 @@ const PantallaEstadisticas = ({ partidos, votos, totalVotos, visitantes }: any) 
 
   const participacionPct = totalVotos > 0 && visitantes > 0 ? Math.round((totalVotos / visitantes) * 100) : 0;
 
-  return (
-    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-      <Text style={styles.pantallaTitle}>📊 Estadísticas Detalladas</Text>
+  // ── 6 BOTONES HERO (del HTML v26) ──────────────────────────────────────────
+  const HERO_BTNS = [
+    { id: 'pulso',      icon: '📊', label: 'PULSO\nEN VIVO',  bg: '#0f4c0f', shadow: '#0f4c0f', onPress: () => onNavigate('pulso') },
+    { id: 'encuesta',   icon: '🗳️', label: 'ENCUESTA',        bg: '#cc0a0a', shadow: '#cc0a0a', onPress: () => Linking.openURL('https://silao360.com.mx') },
+    { id: 'trivia',     icon: '🎯', label: 'TRIVIA',           bg: '#7c3aed', shadow: '#7c3aed', onPress: () => Linking.openURL('https://trivia.silao360.com.mx') },
+    { id: 'peso',       icon: '💰', label: 'PESO\nA PESO',    bg: '#db2777', shadow: '#db2777', onPress: () => Linking.openURL('https://pesoapeso.silao360.com.mx') },
+    { id: 'comunicate', icon: '✉️', label: 'COMUNÍCATE',      bg: '#059669', shadow: '#059669', onPress: () => onNavigate('contact') },
+    { id: 'instalar',   icon: '📲', label: 'INSTALAR',         bg: '#2563eb', shadow: '#2563eb', onPress: () => onNavigate('install') },
+  ];
 
-      {/* Resumen global */}
-      <View style={styles.tarjetaGlass}>
-        <Text style={styles.tarjetaGlassTitle}>Resumen Global en Tiempo Real</Text>
-        <View style={[styles.statsGrid, { gap: 8 }]}>
-          {[
-            { num: totalVotos.toLocaleString(), lbl: 'Total Votos', color: C.accent },
-            { num: visitantes.toLocaleString(), lbl: 'Visitantes', color: C.success },
-            { num: String(partidos.length), lbl: 'Partidos', color: C.purple },
-            { num: `${participacionPct}%`, lbl: 'Participación', color: C.accentGold },
-          ].map((s) => (
-            <View key={s.lbl} style={[styles.statItemBig, { borderColor: s.color + '40' }]}>
-              <Text style={[styles.statBigNum, { color: s.color }]}>{s.num}</Text>
-              <Text style={styles.statBigLbl}>{s.lbl}</Text>
-            </View>
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ paddingBottom: 100 }}>
+
+      {/* ── 6 BOTONES HERO ── */}
+      <View style={statsStyles.heroBtnsWrap}>
+        <View style={statsStyles.hero6Grid}>
+          {HERO_BTNS.map((btn) => (
+            <TouchableOpacity
+              key={btn.id}
+              activeOpacity={0.82}
+              onPress={btn.onPress}
+              style={[statsStyles.hBtn, { backgroundColor: btn.bg }]}
+            >
+              <Text style={statsStyles.hBtnIco}>{btn.icon}</Text>
+              <Text style={statsStyles.hBtnLbl}>{btn.label}</Text>
+            </TouchableOpacity>
           ))}
         </View>
-        <TouchableOpacity style={styles.btnExplicar} onPress={() => setShowExplain('participacion')}>
-          <Text style={styles.btnExplicarText}>❓ ¿Qué significa participación?</Text>
-        </TouchableOpacity>
+
+        {/* COMPARTIR FB + WA */}
+        <View style={statsStyles.compartirRow}>
+          <TouchableOpacity
+            style={[statsStyles.compartirBtn, { backgroundColor: '#1877f2' }]}
+            activeOpacity={0.82}
+            onPress={() => onNavigate('share_facebook')}
+          >
+            <Text style={statsStyles.compartirIco}>f</Text>
+            <Text style={statsStyles.compartirTxt}>COMPARTIR FB</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[statsStyles.compartirBtn, { backgroundColor: '#25D366' }]}
+            activeOpacity={0.82}
+            onPress={() => onNavigate('share_whatsapp')}
+          >
+            <Text style={statsStyles.compartirIco}>💬</Text>
+            <Text style={statsStyles.compartirTxt}>COMPARTIR WA</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Por partido */}
-      {ordenados.map((p, i) => {
-        const pct = totalVotos > 0 ? Math.round(((votos[p.id] || 0) / totalVotos) * 100) : 0;
-        const rankMedal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
-        return (
-          <View key={p.id} style={[styles.tarjetaStats, { borderTopColor: p.color || C.accent }]}>
-            <View style={styles.tarjetaStatsHeader}>
-              <View style={[styles.partidoBadge, { backgroundColor: p.color || C.accent }]}>
-                <Text style={styles.partidoBadgeText}>{p.emoji || '⚽'}</Text>
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.statsNombre}>{p.nombre}</Text>
-                <Text style={styles.statsCandidato}>{p.candidato || '—'}</Text>
-              </View>
-              <View style={styles.statsRankBadge}>
-                <Text style={styles.statsPct}>{pct}%</Text>
-                <Text style={[styles.statsRankLabel, { color: p.color || C.accent }]}>{rankMedal}</Text>
-              </View>
-            </View>
+      {/* ── ESTADÍSTICAS ── */}
+      <View style={{ padding: 16 }}>
+        <Text style={styles.pantallaTitle}>📊 Estadísticas Detalladas</Text>
 
-            <View style={styles.barraContainerStats}>
-              <View style={[styles.barraFillStats, { width: `${pct}%`, backgroundColor: p.color || C.accent }]} />
-            </View>
-
-            <View style={styles.statsDetalleGrid}>
-              <View style={styles.statsDetalleItem}>
-                <Text style={styles.statsDetalleLabel}>🗳️ Votos</Text>
-                <Text style={styles.statsDetalleVal}>{(votos[p.id] || 0).toLocaleString()}</Text>
+        {/* Resumen global */}
+        <View style={styles.tarjetaGlass}>
+          <Text style={styles.tarjetaGlassTitle}>Resumen Global en Tiempo Real</Text>
+          <View style={[styles.statsGrid, { gap: 8 }]}>
+            {[
+              { num: totalVotos.toLocaleString(), lbl: 'Total Votos', color: C.accent },
+              { num: visitantes.toLocaleString(), lbl: 'Visitantes', color: C.success },
+              { num: String(partidos.length), lbl: 'Partidos', color: C.purple },
+              { num: `${participacionPct}%`, lbl: 'Participación', color: C.accentGold },
+            ].map((s) => (
+              <View key={s.lbl} style={[styles.statItemBig, { borderColor: s.color + '40' }]}>
+                <Text style={[styles.statBigNum, { color: s.color }]}>{s.num}</Text>
+                <Text style={styles.statBigLbl}>{s.lbl}</Text>
               </View>
-              <View style={styles.statsDetalleItem}>
-                <Text style={styles.statsDetalleLabel}>📍 Posición</Text>
-                <Text style={styles.statsDetalleVal}>{rankMedal}</Text>
-              </View>
-              <View style={styles.statsDetalleItem}>
-                <Text style={styles.statsDetalleLabel}>📈 Estado</Text>
-                <Text style={[styles.statsDetalleVal, { color: pct > 33 ? C.success : C.textSub }]}>
-                  {pct > 33 ? 'Líder' : pct > 15 ? 'Competitivo' : 'En carrera'}
-                </Text>
-              </View>
-              <View style={styles.statsDetalleItem}>
-                <Text style={styles.statsDetalleLabel}>🔥 Interés</Text>
-                <Text style={[styles.statsDetalleVal, { color: C.accentGold }]}>
-                  {pct > 40 ? 'Muy Alto' : pct > 20 ? 'Alto' : pct > 10 ? 'Medio' : 'Bajo'}
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.btnExplicar} onPress={() => setShowExplain('porcentaje')}>
-              <Text style={styles.btnExplicarText}>❓ ¿Qué significa este porcentaje?</Text>
-            </TouchableOpacity>
+            ))}
           </View>
-        );
-      })}
+          <TouchableOpacity style={styles.btnExplicar} onPress={() => setShowExplain('participacion')}>
+            <Text style={styles.btnExplicarText}>❓ ¿Qué significa participación?</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Por partido */}
+        {ordenados.map((p, i) => {
+          const pct = totalVotos > 0 ? Math.round(((votos[p.id] || 0) / totalVotos) * 100) : 0;
+          const rankMedal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+          return (
+            <View key={p.id} style={[styles.tarjetaStats, { borderTopColor: p.color || C.accent }]}>
+              <View style={styles.tarjetaStatsHeader}>
+                <View style={[styles.partidoBadge, { backgroundColor: p.color || C.accent }]}>
+                  <Text style={styles.partidoBadgeText}>{p.emoji || '⚽'}</Text>
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.statsNombre}>{p.nombre}</Text>
+                  <Text style={styles.statsCandidato}>{p.candidato || '—'}</Text>
+                </View>
+                <View style={styles.statsRankBadge}>
+                  <Text style={styles.statsPct}>{pct}%</Text>
+                  <Text style={[styles.statsRankLabel, { color: p.color || C.accent }]}>{rankMedal}</Text>
+                </View>
+              </View>
+
+              <View style={styles.barraContainerStats}>
+                <View style={[styles.barraFillStats, { width: `${pct}%`, backgroundColor: p.color || C.accent }]} />
+              </View>
+
+              <View style={styles.statsDetalleGrid}>
+                <View style={styles.statsDetalleItem}>
+                  <Text style={styles.statsDetalleLabel}>🗳️ Votos</Text>
+                  <Text style={styles.statsDetalleVal}>{(votos[p.id] || 0).toLocaleString()}</Text>
+                </View>
+                <View style={styles.statsDetalleItem}>
+                  <Text style={styles.statsDetalleLabel}>📍 Posición</Text>
+                  <Text style={styles.statsDetalleVal}>{rankMedal}</Text>
+                </View>
+                <View style={styles.statsDetalleItem}>
+                  <Text style={styles.statsDetalleLabel}>📈 Estado</Text>
+                  <Text style={[styles.statsDetalleVal, { color: pct > 33 ? C.success : C.textSub }]}>
+                    {pct > 33 ? 'Líder' : pct > 15 ? 'Competitivo' : 'En carrera'}
+                  </Text>
+                </View>
+                <View style={styles.statsDetalleItem}>
+                  <Text style={styles.statsDetalleLabel}>🔥 Interés</Text>
+                  <Text style={[styles.statsDetalleVal, { color: C.accentGold }]}>
+                    {pct > 40 ? 'Muy Alto' : pct > 20 ? 'Alto' : pct > 10 ? 'Medio' : 'Bajo'}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.btnExplicar} onPress={() => setShowExplain('porcentaje')}>
+                <Text style={styles.btnExplicarText}>❓ ¿Qué significa este porcentaje?</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </View>
 
       {/* Modal */}
       <Modal visible={!!showExplain} transparent animationType="fade">
@@ -744,6 +886,77 @@ const PantallaEstadisticas = ({ partidos, votos, totalVotos, visitantes }: any) 
   );
 };
 
+// Estilos exclusivos de PantallaEstadisticas — botones hero 6-grid
+const statsStyles = StyleSheet.create({
+  heroBtnsWrap: {
+    backgroundColor: '#0a0a0a',
+    paddingTop: 14,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.07)',
+  },
+  hero6Grid: {
+    flexDirection: 'row',
+    paddingHorizontal: 10,
+    gap: 6,
+  },
+  hBtn: {
+    flex: 1,
+    aspectRatio: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.18)',
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+    minWidth: 44,
+  },
+  hBtnIco: {
+    fontSize: 20,
+    lineHeight: 24,
+    textAlign: 'center',
+  },
+  hBtnLbl: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 8,
+    letterSpacing: 1,
+    color: '#fff',
+    textAlign: 'center',
+    lineHeight: 9,
+    marginTop: 2,
+  },
+  compartirRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  compartirBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 10,
+    paddingVertical: 11,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  compartirIco: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 18,
+    color: '#fff',
+    lineHeight: 20,
+  },
+  compartirTxt: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 14,
+    letterSpacing: 2,
+    color: '#fff',
+  },
+});
 // ══════════════════════════════════════════════════════════════════════════════
 // PANTALLA: FORO
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1783,18 +1996,32 @@ export default function App() {
       Linking.openURL('https://silao360.com.mx');
       return;
     }
+    if (screen === 'pulso') {
+      // Pulso en vivo — navega a stats (misma pantalla, ya muestra datos en vivo)
+      setPantalla('stats');
+      return;
+    }
+    if (screen === 'contact') {
+      Linking.openURL('https://wa.me/524770000000?text=' + encodeURIComponent('Hola, me comunico desde la app Encuesta Silao'));
+      return;
+    }
+    if (screen === 'install') {
+      setPantalla('install');
+      return;
+    }
     setPantalla(screen);
   };
 
   const renderPantalla = () => {
     switch (pantalla) {
       case 'home':       return <PantallaHome partidos={partidos} votos={votos} totalVotos={totalVotos} visitantes={visitantes} onVotar={handleVotar} onNavigate={handleNavigate} config={config} onRefresh={cargarDatos} />;
-      case 'stats':      return <PantallaEstadisticas partidos={partidos} votos={votos} totalVotos={totalVotos} visitantes={visitantes} />;
+      case 'stats':      return <PantallaEstadisticas partidos={partidos} votos={votos} totalVotos={totalVotos} visitantes={visitantes} onNavigate={handleNavigate} />;
       case 'forum':      return <PantallaForo />;
       case 'proposals':  return <PantallaPropuestas />;
       case 'news':       return <PantallaNoticias />;
       case 'candidates': return <PantallaCandidatos partidos={partidos} votos={votos} totalVotos={totalVotos} />;
       case 'admin':      return <PantallaAdmin partidos={partidos} votos={votos} onRefresh={cargarDatos} />;
+      case 'install':    return <PantallaInstalar onNavigate={handleNavigate} />;
       default:
         return (
           <View style={styles.centrado}>
