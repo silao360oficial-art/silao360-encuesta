@@ -306,20 +306,224 @@ const TarjetaCandidato = ({ partido, votos, totalVotos, rank, onVotar }: any) =>
 // ══════════════════════════════════════════════════════════════════════════════
 // PANTALLA: HOME
 // ══════════════════════════════════════════════════════════════════════════════
-const PantallaHome = ({ partidos, votos, totalVotos, visitantes, onVotar, onNavigate }: any) => {
+// ══════════════════════════════════════════════════════════════════════════════
+// COMPONENTE: CARRUSEL DE BANNERS
+// ══════════════════════════════════════════════════════════════════════════════
+const CarruselBanners = ({ velocidad = 4000 }: { velocidad?: number }) => {
+  const [banners, setBanners] = useState<any[]>([]);
+  const [indice, setIndice] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    supabase.from('banner').select('*').eq('activo', true).order('orden').then(({ data }) => {
+      if (data?.length) setBanners(data);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    timerRef.current = setInterval(() => {
+      Animated.sequence([
+        Animated.timing(fadeAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      ]).start();
+      setTimeout(() => setIndice(i => (i + 1) % banners.length), 400);
+    }, velocidad);
+    return () => clearInterval(timerRef.current);
+  }, [banners, velocidad]);
+
+  if (!banners.length) return null;
+
+  const banner = banners[indice];
+  return (
+    <TouchableOpacity
+      activeOpacity={0.92}
+      onPress={() => banner.link && Linking.openURL(banner.link)}
+      style={styles.carruselContainer}
+    >
+      <Animated.View style={{ opacity: fadeAnim }}>
+        {banner.imagen_url ? (
+          <Image source={{ uri: banner.imagen_url }} style={styles.carruselImg} resizeMode="cover" />
+        ) : (
+          <View style={styles.carruselPlaceholder}>
+            <Text style={styles.carruselPlaceholderText}>{banner.titulo || 'Encuesta Silao'}</Text>
+          </View>
+        )}
+        {banner.titulo ? (
+          <View style={styles.carruselOverlay}>
+            <Text style={styles.carruselTitulo} numberOfLines={2}>{banner.titulo}</Text>
+          </View>
+        ) : null}
+      </Animated.View>
+      {/* Indicadores */}
+      {banners.length > 1 && (
+        <View style={styles.carruselDots}>
+          {banners.map((_, i) => (
+            <View key={i} style={[styles.carruselDot, i === indice && styles.carruselDotActive]} />
+          ))}
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COMPONENTE: COUNTDOWN DUAL (elección + cierre encuesta)
+// ══════════════════════════════════════════════════════════════════════════════
+const CountdownDual = ({ config }: { config: Record<string, string> }) => {
+  const calcularTiempo = (fechaStr: string) => {
+    if (!fechaStr) return null;
+    const target = new Date(fechaStr).getTime();
+    const now = Date.now();
+    const diff = target - now;
+    if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0, pasado: true };
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    return { d, h, m, s, pasado: false };
+  };
+
+  const [tiempoEleccion, setTiempoEleccion] = useState<any>(null);
+  const [tiempoCierre, setTiempoCierre] = useState<any>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const tick = () => {
+      setTiempoEleccion(calcularTiempo(config.fecha_eleccion));
+      setTiempoCierre(calcularTiempo(config.fecha_cierre_encuesta));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.04, duration: 900, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+      ])
+    ).start();
+    return () => clearInterval(id);
+  }, [config]);
+
+  if (!tiempoEleccion && !tiempoCierre) return null;
+
+  const Bloque = ({ num, lbl }: { num: number; lbl: string }) => (
+    <View style={styles.cdBloque}>
+      <Text style={styles.cdNum}>{String(num).padStart(2, '0')}</Text>
+      <Text style={styles.cdLbl}>{lbl}</Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.countdownWrapper}>
+      {tiempoEleccion && !tiempoEleccion.pasado && (
+        <Animated.View style={[styles.countdownCard, { transform: [{ scale: pulseAnim }] }]}>
+          <Text style={styles.cdTitle}>🗳️ ELECCIÓN EN</Text>
+          <View style={styles.cdRow}>
+            <Bloque num={tiempoEleccion.d} lbl="días" />
+            <Text style={styles.cdSep}>:</Text>
+            <Bloque num={tiempoEleccion.h} lbl="hrs" />
+            <Text style={styles.cdSep}>:</Text>
+            <Bloque num={tiempoEleccion.m} lbl="min" />
+            <Text style={styles.cdSep}>:</Text>
+            <Bloque num={tiempoEleccion.s} lbl="seg" />
+          </View>
+        </Animated.View>
+      )}
+      {tiempoEleccion?.pasado && (
+        <View style={[styles.countdownCard, { borderColor: C.accentGold }]}>
+          <Text style={[styles.cdTitle, { color: C.accentGold }]}>🏆 ¡DÍA DE ELECCIÓN!</Text>
+        </View>
+      )}
+      {tiempoCierre && !tiempoCierre.pasado && (
+        <View style={[styles.countdownCard, { borderColor: C.accentPink, marginTop: 10 }]}>
+          <Text style={[styles.cdTitle, { color: C.accentPink }]}>⏰ ENCUESTA CIERRA EN</Text>
+          <View style={styles.cdRow}>
+            <Bloque num={tiempoCierre.d} lbl="días" />
+            <Text style={styles.cdSep}>:</Text>
+            <Bloque num={tiempoCierre.h} lbl="hrs" />
+            <Text style={styles.cdSep}>:</Text>
+            <Bloque num={tiempoCierre.m} lbl="min" />
+            <Text style={styles.cdSep}>:</Text>
+            <Bloque num={tiempoCierre.s} lbl="seg" />
+          </View>
+        </View>
+      )}
+      {tiempoCierre?.pasado && (
+        <View style={[styles.countdownCard, { borderColor: C.danger, marginTop: 10 }]}>
+          <Text style={[styles.cdTitle, { color: C.danger }]}>🔒 ENCUESTA CERRADA</Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COMPONENTE: TICKER ANIMADO (texto desplazable)
+// ══════════════════════════════════════════════════════════════════════════════
+const TickerAnimado = ({ config }: { config: Record<string, string> }) => {
+  const translateX = useRef(new Animated.Value(SW)).current;
+  const texto = config.mensaje_bienvenida || '⚽ Bienvenido a Encuesta Silao · Plataforma Ciudadana 2024 · silao360.com.mx ·';
+
+  useEffect(() => {
+    const animar = () => {
+      translateX.setValue(SW);
+      Animated.timing(translateX, {
+        toValue: -SW * 2.5,
+        duration: 18000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }).start(({ finished }) => { if (finished) animar(); });
+    };
+    animar();
+  }, [texto]);
+
+  return (
+    <View style={styles.tickerContainer}>
+      <Animated.Text style={[styles.tickerText, { transform: [{ translateX }] }]} numberOfLines={1}>
+        {texto}
+      </Animated.Text>
+    </View>
+  );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PANTALLA: HOME
+// ══════════════════════════════════════════════════════════════════════════════
+const PantallaHome = ({ partidos, votos, totalVotos, visitantes, onVotar, onNavigate, config, onRefresh }: any) => {
   const headerAnim = useRef(new Animated.Value(0)).current;
   const [explosionVisible, setExplosionVisible] = useState(false);
   const [explosionOrigin, setExplosionOrigin] = useState({ x: SW / 2, y: SH / 3 });
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     Animated.timing(headerAnim, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
   }, []);
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await onRefresh();
+    setRefreshing(false);
+  };
+
   const ordenados = [...partidos].sort((a, b) => (votos[b.id] || 0) - (votos[a.id] || 0));
+  const lider = ordenados[0];
+  const velocidadCarrusel = Number(config?.velocidad_carrusel) || 4000;
 
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={C.accent} colors={[C.accent]} />
+        }
+      >
+        {/* Ticker */}
+        <TickerAnimado config={config || {}} />
+
+        {/* Carrusel banners */}
+        <CarruselBanners velocidad={velocidadCarrusel} />
 
         {/* Hero */}
         <Animated.View style={[styles.heroHeader, {
@@ -328,11 +532,26 @@ const PantallaHome = ({ partidos, votos, totalVotos, visitantes, onVotar, onNavi
         }]}>
           <View style={styles.heroLogoRow}>
             <Text style={styles.heroLogo}>⚽</Text>
-            <View>
-              <Text style={styles.heroTitle}>ENCUESTA SILAO</Text>
-              <Text style={styles.heroSubtitle}>Plataforma Ciudadana 2024</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.heroTitle}>{config?.titulo_app || 'ENCUESTA SILAO'}</Text>
+              <Text style={styles.heroSubtitle}>{config?.subtitulo_app || 'Plataforma Ciudadana 2024'}</Text>
             </View>
           </View>
+
+          {/* Líder destacado */}
+          {lider && totalVotos > 0 && (
+            <View style={[styles.heroLiderBanner, { borderColor: lider.color || C.accentGold }]}>
+              <Text style={styles.heroLiderEmoji}>{lider.emoji || '🏆'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.heroLiderLabel}>🏆 Va ganando</Text>
+                <Text style={[styles.heroLiderNombre, { color: lider.color || C.accentGold }]}>{lider.nombre}</Text>
+              </View>
+              <Text style={[styles.heroLiderPct, { color: lider.color || C.accentGold }]}>
+                {Math.round(((votos[lider.id] || 0) / totalVotos) * 100)}%
+              </Text>
+            </View>
+          )}
+
           <View style={styles.heroStats}>
             <View style={styles.heroStatBadge}>
               <Text style={styles.heroStatNum}>{visitantes.toLocaleString()}</Text>
@@ -348,6 +567,9 @@ const PantallaHome = ({ partidos, votos, totalVotos, visitantes, onVotar, onNavi
             </View>
           </View>
         </Animated.View>
+
+        {/* Countdowns */}
+        <CountdownDual config={config || {}} />
 
         {/* Votación */}
         <View style={styles.seccion}>
@@ -1566,7 +1788,7 @@ export default function App() {
 
   const renderPantalla = () => {
     switch (pantalla) {
-      case 'home':       return <PantallaHome partidos={partidos} votos={votos} totalVotos={totalVotos} visitantes={visitantes} onVotar={handleVotar} onNavigate={handleNavigate} />;
+      case 'home':       return <PantallaHome partidos={partidos} votos={votos} totalVotos={totalVotos} visitantes={visitantes} onVotar={handleVotar} onNavigate={handleNavigate} config={config} onRefresh={cargarDatos} />;
       case 'stats':      return <PantallaEstadisticas partidos={partidos} votos={votos} totalVotos={totalVotos} visitantes={visitantes} />;
       case 'forum':      return <PantallaForo />;
       case 'proposals':  return <PantallaPropuestas />;
@@ -2293,6 +2515,114 @@ const styles = StyleSheet.create({
     padding: 14, borderWidth: 1, borderColor: C.accent, alignItems: 'center',
   },
   adminBtnGuardarText: { fontSize: F.md },
+
+  // ── TICKER ────────────────────────────────────────────────────────────────
+  tickerContainer: {
+    backgroundColor: C.accentGold,
+    paddingVertical: 8,
+    overflow: 'hidden',
+  },
+  tickerText: {
+    fontSize: F.sm,
+    fontWeight: '900',
+    color: C.bg,
+    letterSpacing: 1,
+    whiteSpace: 'nowrap',
+  } as any,
+
+  // ── CARRUSEL ──────────────────────────────────────────────────────────────
+  carruselContainer: {
+    marginHorizontal: 16, marginTop: 14, marginBottom: 4,
+    borderRadius: 20, overflow: 'hidden',
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2, shadowRadius: 12, elevation: 8,
+  },
+  carruselImg: {
+    width: '100%', height: 180,
+  },
+  carruselPlaceholder: {
+    width: '100%', height: 160,
+    backgroundColor: C.bgCard,
+    alignItems: 'center', justifyContent: 'center',
+    padding: 20,
+  },
+  carruselPlaceholderText: {
+    fontSize: F.xl, fontWeight: '900', color: C.accentGold,
+    textAlign: 'center', letterSpacing: 2,
+  },
+  carruselOverlay: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    padding: 14,
+  },
+  carruselTitulo: {
+    fontSize: F.md, fontWeight: '900', color: C.white,
+    letterSpacing: 0.5,
+  },
+  carruselDots: {
+    position: 'absolute', bottom: 10, right: 14,
+    flexDirection: 'row', gap: 6,
+  },
+  carruselDot: {
+    width: 7, height: 7, borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  carruselDotActive: {
+    backgroundColor: C.accentGold, width: 18,
+  },
+
+  // ── COUNTDOWN ─────────────────────────────────────────────────────────────
+  countdownWrapper: {
+    marginHorizontal: 16, marginTop: 12, marginBottom: 4,
+  },
+  countdownCard: {
+    backgroundColor: C.bgCard,
+    borderRadius: 20, padding: 18,
+    borderWidth: 1.5, borderColor: C.accent,
+    alignItems: 'center',
+    shadowColor: C.accent,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25, shadowRadius: 10, elevation: 6,
+  },
+  cdTitle: {
+    fontSize: F.sm, fontWeight: '900', color: C.accent,
+    letterSpacing: 2, marginBottom: 12, textAlign: 'center',
+  },
+  cdRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+  },
+  cdBloque: {
+    backgroundColor: 'rgba(0,212,255,0.1)',
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10,
+    alignItems: 'center', minWidth: 56,
+    borderWidth: 1, borderColor: C.border,
+  },
+  cdNum: {
+    fontSize: F.xl, fontWeight: '900', color: C.white,
+    fontVariant: ['tabular-nums'] as any,
+  },
+  cdLbl: {
+    fontSize: 10, color: C.textMuted, fontWeight: '700',
+    marginTop: 2, letterSpacing: 1,
+  },
+  cdSep: {
+    fontSize: F.xl, fontWeight: '900', color: C.accent,
+    marginBottom: 14,
+  },
+
+  // ── HERO LÍDER ────────────────────────────────────────────────────────────
+  heroLiderBanner: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderRadius: 16, padding: 14,
+    borderWidth: 1.5, marginBottom: 16, gap: 12,
+  },
+  heroLiderEmoji: { fontSize: 34 },
+  heroLiderLabel: { fontSize: F.xs, color: C.textMuted, fontWeight: '700', letterSpacing: 1 },
+  heroLiderNombre: { fontSize: F.lg, fontWeight: '900', letterSpacing: 1 },
+  heroLiderPct: { fontSize: F.xxl, fontWeight: '900' },
 
   // ── TAB BAR INFERIOR ──────────────────────────────────────────────────────
   tabBar: {
