@@ -920,8 +920,7 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
           <motion.button whileTap={{scale:0.93}} onClick={()=>window.open("https://pesoapeso.silao360.com.mx","_blank")}
             style={{background:"linear-gradient(135deg,#831843,#db2777)",border:"2px solid rgba(255,255,255,0.18)",borderRadius:12,aspectRatio:"1/1",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,padding:"6px 2px",boxShadow:"0 4px 14px rgba(219,39,119,0.5)"}}>
             <span style={{fontSize:"clamp(16px,4.5vw,24px)",lineHeight:1}}>💰</span>
-            <span style={{fontSize:"clamp(7px,1.8vw,10px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1}}>PESO{"
-"}A PESO</span>
+            <span style={{fontSize:"clamp(7px,1.8vw,10px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1}}>PESO<br/>A PESO</span>
           </motion.button>
           {/* 4 COMUNÍCATE */}
           <motion.button whileTap={{scale:0.93}} onClick={()=>window.open("https://wa.me/524771000000?text="+encodeURIComponent("Hola, me comunico desde Encuesta Silao"),"_blank")}
