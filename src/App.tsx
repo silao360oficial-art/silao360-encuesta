@@ -612,9 +612,13 @@ function Header({total,user,onLoginClick,onLogoClick,onLogout,siteLogo}){
 
           {/* RIGHT: nickname o slogan */}
           {user?(
-            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
               <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:16,fontWeight:900,color:"#111",letterSpacing:1,lineHeight:1}}>🎭 {user.nickname}</span>
-              <button onClick={onLogout} style={{background:"none",border:"none",fontSize:14,color:"#111",fontWeight:800,cursor:"pointer",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",padding:0}}>✕ SALIR</button>
+              <div style={{position:"relative",display:"inline-block"}}>
+                {/* LED exterior giratorio */}
+                <div style={{position:"absolute",inset:-3,borderRadius:10,background:"conic-gradient(from 0deg,#22c55e,#4ade80,transparent,#16a34a,transparent,#22c55e)",animation:"ledSpin 1.8s linear infinite",zIndex:0,opacity:0.9}}/>
+                <button onClick={onLogout} style={{position:"relative",zIndex:1,background:"linear-gradient(135deg,#16a34a,#15803d)",border:"2px solid #4ade80",borderRadius:8,fontSize:13,color:"#fff",fontWeight:900,cursor:"pointer",letterSpacing:1.5,fontFamily:"Barlow Condensed,sans-serif",padding:"4px 12px",boxShadow:"0 0 14px rgba(34,197,94,0.6),0 0 28px rgba(34,197,94,0.3)"}}>✕ SALIR</button>
+              </div>
             </div>
           ):(
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end"}}>
@@ -910,18 +914,54 @@ function HeroModals({total,votes}:{total:number,votes:Record<string,number>}){
   const[ctFeedback,setCtFeedback]=useState("");
   const[sbVisitas,setSbVisitas]=useState<number|null>(null);
   const[sbHoy,setSbHoy]=useState<number|null>(null);
+  const[sbActivos,setSbActivos]=useState<number|null>(null);
+  const[sbEncuesta,setSbEncuesta]=useState<number|null>(null);
+  const[sbTrivia,setSbTrivia]=useState<number|null>(null);
+  const[sbPesoPeso,setSbPesoPeso]=useState<number|null>(null);
+  const[sbEscribeme,setSbEscribeme]=useState<number|null>(null);
+  const[sbMensajes,setSbMensajes]=useState<number|null>(null);
+  const[sbGrafica,setSbGrafica]=useState<{ts:string,count:number}[]>([]);
+  const[pulsoLoading,setPulsoLoading]=useState(false);
+
+  const cargarPulso=async()=>{
+    setPulsoLoading(true);
+    try{
+      // Visitas totales y hoy
+      const visRows:any[]=await sb.from("visitas").select("id,ts,seccion");
+      if(Array.isArray(visRows)){
+        setSbVisitas(visRows.length);
+        const hoy=new Date().toISOString().slice(0,10);
+        const visHoy=visRows.filter((r:any)=>r.ts&&r.ts.slice(0,10)===hoy);
+        setSbHoy(visHoy.length);
+        // Activos: visitas en últimos 5 min
+        const hace5=Date.now()-5*60*1000;
+        setSbActivos(visRows.filter((r:any)=>r.ts&&new Date(r.ts).getTime()>hace5).length);
+        // Entradas por sección
+        setSbEncuesta(visRows.filter((r:any)=>r.seccion==="encuesta").length);
+        setSbTrivia(visRows.filter((r:any)=>r.seccion==="trivia").length);
+        setSbPesoPeso(visRows.filter((r:any)=>r.seccion==="pesopeso").length);
+        setSbEscribeme(visRows.filter((r:any)=>r.seccion==="escribeme").length);
+        // Gráfica: últimas 10 lecturas agrupadas por hora
+        const porHora:{[k:string]:number}={};
+        visRows.slice(-200).forEach((r:any)=>{
+          if(r.ts){const h=r.ts.slice(0,13);porHora[h]=(porHora[h]||0)+1;}
+        });
+        const gData=Object.entries(porHora).sort((a,b)=>a[0]<b[0]?-1:1).slice(-10).map(([ts,count])=>({ts:ts.slice(8,13).replace("T"," "),count}));
+        setSbGrafica(gData);
+      }
+      // Mensajes directos (comentarios)
+      const comRows:any[]=await sb.from("comentarios").select("id");
+      if(Array.isArray(comRows)) setSbMensajes(comRows.length);
+    }catch(e){}
+    setPulsoLoading(false);
+  };
 
   // Exponer funciones globales para que los botones puedan abrirlos
   useEffect(()=>{
     (window as any).__abrirInstalar=()=>setShowInstalar(true);
     (window as any).__abrirPulso=()=>{
       setShowPulso(true);
-      sb.from("visitas").select("id,ts").then(rows=>{
-        if(!Array.isArray(rows))return;
-        setSbVisitas(rows.length);
-        const hoy=new Date().toISOString().slice(0,10);
-        setSbHoy(rows.filter((r:any)=>r.ts&&r.ts.slice(0,10)===hoy).length);
-      }).catch(()=>{});
+      cargarPulso();
     };
     (window as any).__abrirContacto=()=>setShowContacto(true);
     return()=>{
@@ -1025,20 +1065,62 @@ function HeroModals({total,votes}:{total:number,votes:Record<string,number>}){
                 </div>
                 <button onClick={()=>setShowPulso(false)} style={{background:"rgba(255,255,255,0.1)",border:"none",borderRadius:8,padding:"7px 12px",color:"#fff",cursor:"pointer",fontSize:16}}>✕</button>
               </div>
-              <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:"55vh",overflowY:"auto",marginBottom:12}}>
+              {pulsoLoading?(
+                <div style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"40px 0",flexDirection:"column",gap:12}}>
+                  <div style={{width:10,height:10,borderRadius:"50%",background:"#4ade80",animation:"pd 0.8s infinite"}}/>
+                  <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:11,color:"rgba(74,222,128,0.6)",letterSpacing:2}}>CARGANDO DATOS...</span>
+                </div>
+              ):(
+              <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:"60vh",overflowY:"auto",marginBottom:12}}>
+                {/* Sección ACTIVIDAD */}
+                <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:9,fontWeight:900,letterSpacing:3,color:"rgba(74,222,128,0.5)",marginBottom:2}}>ACTIVIDAD</div>
                 {[
-                  {lbl:"VOTOS TOTALES",val:total,color:"#fbbf24",glow:"rgba(251,191,36,0.7)"},
-                  {lbl:"VISITAS TOTALES",val:sbVisitas!==null?sbVisitas:"—",color:"#fff",glow:"rgba(255,255,255,0.3)"},
-                  {lbl:"VISITAS HOY",val:sbHoy!==null?sbHoy:"—",color:"#22d3ee",glow:"rgba(34,211,238,0.7)"},
-                  ...PARTIES.map(p=>({lbl:p.short,val:votes[p.id]||0,color:p.color,glow:p.color+"99"})),
+                  {lbl:"USUARIOS ACTIVOS",val:sbActivos!==null?sbActivos:"—",color:"#4ade80",glow:"rgba(74,222,128,0.8)",icon:"🟢"},
+                  {lbl:"VISITAS HOY",val:sbHoy!==null?sbHoy:"—",color:"#22d3ee",glow:"rgba(34,211,238,0.7)",icon:"📅"},
+                  {lbl:"VISITAS TOTALES",val:sbVisitas!==null?sbVisitas:"—",color:"#fff",glow:"rgba(255,255,255,0.3)",icon:"👁️"},
                 ].map((m,i)=>(
                   <div key={i} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:11,padding:"11px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:11,fontWeight:800,letterSpacing:2,color:"rgba(255,255,255,0.45)"}}>{m.lbl}</span>
-                    <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:900,color:m.color,textShadow:`0 0 12px ${m.glow}`,letterSpacing:1}}>{m.val}</span>
+                    <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:11,fontWeight:800,letterSpacing:2,color:"rgba(255,255,255,0.45)",display:"flex",alignItems:"center",gap:6}}><span>{m.icon}</span>{m.lbl}</span>
+                    <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:26,fontWeight:900,color:m.color,textShadow:`0 0 14px ${m.glow}`,letterSpacing:1}}>{m.val}</span>
                   </div>
                 ))}
+                {/* Sección ENTRADAS POR SECCIÓN */}
+                <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:9,fontWeight:900,letterSpacing:3,color:"rgba(74,222,128,0.5)",marginTop:8,marginBottom:2}}>📲 ENTRADAS POR SECCIÓN</div>
+                {[
+                  {lbl:"ENTRADAS A ENCUESTA",val:sbEncuesta!==null?sbEncuesta:"—",color:"#fbbf24",icon:"🗳️"},
+                  {lbl:"ENTRADAS A TRIVIA",val:sbTrivia!==null?sbTrivia:"—",color:"#c084fc",icon:"🎯"},
+                  {lbl:"ENTRADAS A PESO A PESO",val:sbPesoPeso!==null?sbPesoPeso:"—",color:"#fb923c",icon:"💰"},
+                  {lbl:"CLICS EN ESCRÍBEME",val:sbEscribeme!==null?sbEscribeme:"—",color:"#34d399",icon:"✉️"},
+                  {lbl:"MENSAJES DIRECTOS",val:sbMensajes!==null?sbMensajes:"—",color:"#60a5fa",icon:"💬"},
+                ].map((m,i)=>(
+                  <div key={i} style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:10,padding:"9px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:10,fontWeight:800,letterSpacing:1.5,color:"rgba(255,255,255,0.4)",display:"flex",alignItems:"center",gap:6}}><span>{m.icon}</span>{m.lbl}</span>
+                    <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:900,color:m.color,letterSpacing:1}}>{m.val}</span>
+                  </div>
+                ))}
+                {/* Gráfica de visitas */}
+                {sbGrafica.length>0&&(<>
+                  <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:9,fontWeight:900,letterSpacing:3,color:"rgba(74,222,128,0.5)",marginTop:8,marginBottom:6}}>📈 GRÁFICA — VISITAS (últimas 10 lecturas)</div>
+                  <div style={{background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"12px 10px"}}>
+                    {(()=>{const maxV=Math.max(...sbGrafica.map(g=>g.count),1);return(
+                      <div style={{display:"flex",alignItems:"flex-end",gap:4,height:60}}>
+                        {sbGrafica.map((g,i)=>(
+                          <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                            <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:8,color:"#4ade80",fontWeight:900}}>{g.count}</span>
+                            <div style={{width:"100%",height:`${Math.max((g.count/maxV)*44,3)}px`,background:`linear-gradient(180deg,#4ade80,#16a34a)`,borderRadius:"3px 3px 0 0",boxShadow:"0 0 6px rgba(74,222,128,0.5)"}}/>
+                            <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:7,color:"rgba(255,255,255,0.3)",whiteSpace:"nowrap"}}>{g.ts}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );})()}
+                  </div>
+                </>)}
               </div>
-              <button onClick={()=>setShowPulso(false)} style={{width:"100%",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"12px",color:"rgba(255,255,255,0.4)",fontFamily:"Barlow Condensed,sans-serif",fontSize:13,fontWeight:800,letterSpacing:2,cursor:"pointer"}}>CERRAR</button>
+              )}
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={cargarPulso} style={{flex:1,background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.3)",borderRadius:10,padding:"12px",color:"#4ade80",fontFamily:"Barlow Condensed,sans-serif",fontSize:11,fontWeight:800,letterSpacing:2,cursor:"pointer"}}>🔄 ACTUALIZAR</button>
+                <button onClick={()=>setShowPulso(false)} style={{flex:1,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"12px",color:"rgba(255,255,255,0.4)",fontFamily:"Barlow Condensed,sans-serif",fontSize:13,fontWeight:800,letterSpacing:2,cursor:"pointer"}}>CERRAR</button>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -1094,6 +1176,166 @@ function HeroModals({total,votes}:{total:number,votes:Record<string,number>}){
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+// ── SUB-COMPONENTE: Tarjeta individual de partido en resultados ──
+function PartyResultCard({p,rank,votes,pct,myVote,bars}){
+  const count=votes[p.id]||0,pc=pct(p.id),isMe=myVote===p.id,isTop=rank===0&&count>0;
+  const[open,setOpen]=useState(false);
+  return(
+    <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:rank*0.05}}>
+      <motion.button whileTap={{scale:0.98}} onClick={()=>{playSound("click");setOpen(o=>!o);}}
+        style={{width:"100%",background:isTop?"linear-gradient(135deg,#fffbeb,#fff)":isMe?`${p.color}06`:"#fff",
+          border:`2.5px solid ${isTop?"#f59e0b":isMe?p.color:"#e5e7eb"}`,
+          borderRadius:open?"16px 16px 0 0":"16px",padding:"14px 16px",cursor:"pointer",
+          boxShadow:isTop?"0 6px 24px rgba(245,158,11,0.2)":isMe?`0 4px 16px ${p.color}25`:"0 2px 8px rgba(0,0,0,0.06)",
+          position:"relative",overflow:"hidden",display:"block",textAlign:"left",transition:"border-radius .2s"}}>
+        <div style={{position:"absolute",left:0,top:0,bottom:0,width:bars?`${pc}%`:"0%",background:`${p.color}09`,transition:"width 1.6s cubic-bezier(.16,1,.3,1)",pointerEvents:"none"}}/>
+        <div style={{display:"flex",alignItems:"center",gap:12,position:"relative"}}>
+          <div style={{width:28,height:28,borderRadius:"50%",background:isTop?"#fef3c7":`${p.color}15`,border:`2px solid ${isTop?"#f59e0b":p.color+"40"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:isTop?"#d97706":p.color,flexShrink:0}}>
+            {isTop&&count>0?"\ud83c\udfc6":rank+1}
+          </div>
+          <div style={{width:56,height:56,borderRadius:12,overflow:"hidden",flexShrink:0,background:`${p.color}12`,border:`2.5px solid ${p.color}50`,boxShadow:`0 3px 10px ${p.color}35`}}>
+            {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:28,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:16,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+              {p.short}
+              {isMe&&<span style={{fontSize:8,color:"#1877f2",background:"#dbeafe",padding:"2px 6px",borderRadius:4,fontWeight:800,letterSpacing:1}}>\u2713 TU VOTO</span>}
+              {isTop&&count>0&&<span style={{fontSize:8,color:"#d97706",background:"#fef3c7",padding:"2px 6px",borderRadius:4,fontWeight:800}}>L\u00cdDER</span>}
+            </div>
+            <div style={{fontSize:11,color:"#6b7280",fontFamily:"Barlow Condensed,sans-serif",marginBottom:4}}>{p.spectrumLabel}</div>
+            <div style={{height:7,background:"#f3f4f6",borderRadius:6,overflow:"hidden"}}>
+              <motion.div initial={{width:0}} animate={{width:bars?`${pc}%`:"0%"}} transition={{duration:1.4,ease:[.16,1,.3,1]}}
+                style={{height:"100%",borderRadius:6,background:isTop?`linear-gradient(90deg,${p.color},#f59e0b)`:p.color,boxShadow:`0 0 8px ${p.color}60`}}/>
+            </div>
+          </div>
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{fontSize:30,fontWeight:900,color:isTop&&count>0?"#d97706":p.color,lineHeight:1,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:-1}}>{pc.toFixed(1)}<span style={{fontSize:14}}>%</span></div>
+            <div style={{fontSize:13,fontWeight:800,color:"#374151",fontFamily:"Barlow Condensed,sans-serif"}}>{count} votos</div>
+            <div style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{open?"\u25b2 CERRAR":"\u25bc VER M\u00c1S"}</div>
+          </div>
+        </div>
+      </motion.button>
+      <AnimatePresence>
+        {open&&(
+          <motion.div initial={{height:0,opacity:0}} animate={{height:"auto",opacity:1}} exit={{height:0,opacity:0}} transition={{duration:0.3}}
+            style={{background:`linear-gradient(135deg,${p.color}08,${p.color}03)`,border:`2.5px solid ${isTop?"#f59e0b":p.color}`,borderTop:"none",borderRadius:"0 0 16px 16px",overflow:"hidden"}}>
+            <div style={{padding:"16px 16px 20px"}}>
+              <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+                {[{l:"POSICI\u00d3N",v:`#${rank+1}`,c:p.color},{l:"VOTOS",v:count,c:"#374151"},{l:"PORCENTAJE",v:`${pc.toFixed(1)}%`,c:p.color},{l:"ESPECTRO",v:p.spectrumLabel,c:"#6b7280"}].map(({l,v,c})=>(
+                  <div key={l} style={{background:"rgba(255,255,255,0.8)",border:`1px solid ${p.color}30`,borderRadius:10,padding:"8px 12px",flex:1,minWidth:70,textAlign:"center"}}>
+                    <div style={{fontSize:14,color:"#111",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",marginBottom:3}}>{l}</div>
+                    <div style={{fontSize:15,fontWeight:900,color:c,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{background:"rgba(255,255,255,0.85)",borderRadius:12,padding:"14px",marginBottom:12,border:`1px solid ${p.color}25`}}>
+                <div style={{fontSize:9,color:p.color,letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>\ud83d\udccb DESCRIPCI\u00d3N DEL PARTIDO</div>
+                <div style={{fontSize:14,color:"#1a1a1a",lineHeight:1.8,fontFamily:"Barlow Condensed,sans-serif",fontWeight:600}}>{p.descripcion}</div>
+              </div>
+              <div style={{background:`${p.color}12`,borderRadius:12,padding:"14px",marginBottom:12,border:`1px solid ${p.color}30`}}>
+                <div style={{fontSize:9,color:p.color,letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>\ud83d\udca1 DATO CURIOSO</div>
+                <div style={{fontSize:14,color:"#1a1a1a",lineHeight:1.8,fontFamily:"Barlow Condensed,sans-serif",fontWeight:600}}>{p.curioso}</div>
+              </div>
+              <div style={{background:"rgba(0,0,0,0.03)",borderRadius:12,padding:"12px",border:"1px solid rgba(0,0,0,0.06)"}}>
+                <div style={{fontSize:16,color:"#111",fontWeight:900,letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>\ud83d\uddc2\ufe0f FICHA T\u00c9CNICA</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                  {[{l:"Fundado",v:p.fundado},{l:"Fundador",v:p.fundador},{l:"Dirigente",v:p.dirigente},{l:"Militantes",v:p.militantes}].map(({l,v})=>(
+                    <div key={l} style={{background:"rgba(255,255,255,0.7)",borderRadius:8,padding:"7px 10px"}}>
+                      <div style={{fontSize:14,color:"#111",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",marginBottom:2}}>{l.toUpperCase()}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:"#374151",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.3}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:12}}>
+                {p.ideologyTags.map(tag=>{const ideo=IDEOLOGIES.find(i=>i.id===tag);return ideo?(<div key={tag} style={{background:ideo.bg,color:ideo.color,padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>{ideo.label}</div>):null;})}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ── SUB-COMPONENTE: Sección estadísticas en ResultsScreen ──
+function ResultsStatsSection({votes,total}){
+  const[activeStat,setActiveStat]=useState(null);
+  const[sbTotal,setSbTotal]=useState(null);
+  const[sbVisitas,setSbVisitas]=useState(null);
+  useEffect(()=>{
+    sb.from("votos").select("partido_id").then(rows=>{
+      if(Array.isArray(rows)) setSbTotal(rows.length);
+    }).catch(()=>{});
+    sb.from("visitas").select("id").then(rows=>{
+      if(Array.isArray(rows)) setSbVisitas(rows.length);
+    }).catch(()=>{});
+  },[]);
+  const realTotal=sbTotal!==null?sbTotal:total;
+  const vv=PARTIES.map(p=>votes[p.id]||0);
+  const mean=realTotal>0?realTotal/PARTIES.length:0;
+  const sorted_vv=[...vv].sort((a,b)=>a-b);
+  const median=sorted_vv.length%2===0?(sorted_vv[sorted_vv.length/2-1]+sorted_vv[sorted_vv.length/2])/2:sorted_vv[Math.floor(sorted_vv.length/2)];
+  const variance=vv.reduce((a,v)=>a+Math.pow(v-mean,2),0)/vv.length;
+  const sigma=Math.sqrt(variance);
+  const leader=[...PARTIES].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0))[0];
+  const leaderPct=realTotal>0?(votes[leader.id]||0)/realTotal:0;
+  const me=realTotal>1?1.96*Math.sqrt(leaderPct*(1-leaderPct)/realTotal)*100:0;
+  const STATS=[
+    {id:"pct",sym:"%",label:"PORCENTAJE",color:"#e01010",val:`${(leaderPct*100).toFixed(1)}%`,sub:`L\u00edder: ${leader.short}`,exp:"El porcentaje muestra qu\u00e9 parte del total de votos tiene el l\u00edder."},
+    {id:"mean",sym:"x\u0304",label:"PROMEDIO",color:"#7c3aed",val:mean.toFixed(1),sub:"votos por partido",exp:`${realTotal} votos \u00f7 ${PARTIES.length} partidos = ${mean.toFixed(2)} votos promedio.`},
+    {id:"med",sym:"Md",label:"MEDIANA",color:"#0891b2",val:median.toFixed(0),sub:"valor central",exp:`Valor central de votos ordenados: ${median.toFixed(0)}.`},
+    {id:"std",sym:"\u03c3",label:"DISPERSI\u00d3N",color:"#ca8a04",val:sigma.toFixed(1),sub:"desviaci\u00f3n std",exp:`\u03c3=${sigma.toFixed(2)}. Mayor \u03c3 = un partido dominante.`},
+    {id:"me",sym:"\u00b1",label:"MARGEN ERR.",color:"#059669",val:realTotal>9?`\u00b1${me.toFixed(1)}%`:"n<10",sub:"95% confianza",exp:realTotal>9?`Rango real: ${Math.max(0,leaderPct*100-me).toFixed(1)}% \u2014 ${Math.min(100,leaderPct*100+me).toFixed(1)}%`:"Necesitas al menos 10 votos."},
+    {id:"n",sym:"n",label:"MUESTRA",color:"#1d4ed8",val:String(realTotal),sub:sbTotal!==null?"\ud83d\udfe2 Supabase":"\ud83d\udcf1 Local",exp:`${realTotal<30?"\u26a0\ufe0f Muestra peque\u00f1a.":realTotal<100?"\ud83d\udcc8 Muestra creciendo.":"\u2705 Muestra representativa."}`},
+  ];
+  return(
+    <div style={{marginBottom:16}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <div style={{fontSize:10,color:"#6b7280",letterSpacing:3,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>\u25cb ESTAD\u00cdSTICAS EN VIVO</div>
+        {sbTotal!==null&&<div style={{display:"flex",alignItems:"center",gap:5,background:"#f0fdf4",border:"1px solid #86efac",borderRadius:20,padding:"3px 10px"}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",animation:"pd 1.5s infinite"}}/>
+          <span style={{fontSize:9,color:"#16a34a",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>SUPABASE</span>
+        </div>}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:activeStat?0:8}}>
+        {STATS.map(s=>{
+          const isAct=activeStat===s.id;
+          return(
+            <motion.button key={s.id} whileTap={{scale:0.93}}
+              onClick={()=>{playSound("click");setActiveStat(isAct?null:s.id);}}
+              style={{background:isAct?s.color:"#fff",border:`2.5px solid ${isAct?s.color:s.color+"66"}`,
+                borderRadius:16,padding:"18px 8px",cursor:"pointer",
+                boxShadow:isAct?`0 8px 24px ${s.color}55`:"0 2px 10px rgba(0,0,0,0.07)",
+                transition:"all .2s",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+              <div style={{fontSize:26,fontWeight:900,color:isAct?"#fff":s.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{s.sym}</div>
+              <div style={{fontSize:22,fontWeight:900,color:isAct?"#fff":s.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{s.val}</div>
+              <div style={{fontSize:8,color:isAct?"rgba(255,255,255,0.8)":"#9ca3af",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.3}}>{s.label}</div>
+              <div style={{fontSize:7,color:isAct?"rgba(255,255,255,0.6)":s.color+"99",fontFamily:"Barlow Condensed,sans-serif",textAlign:"center"}}>{s.sub}</div>
+            </motion.button>
+          );
+        })}
+      </div>
+      <AnimatePresence>
+        {activeStat&&(()=>{const s=STATS.find(x=>x.id===activeStat);return s?(
+          <motion.div initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}}
+            style={{background:`${s.color}0e`,border:`2px solid ${s.color}40`,borderRadius:16,padding:"18px",marginTop:10,marginBottom:8}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+              <div style={{width:52,height:52,borderRadius:14,background:s.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",flexShrink:0}}>{s.sym}</div>
+              <div>
+                <div style={{fontSize:10,fontWeight:900,color:s.color,letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif"}}>{s.label}</div>
+                <div style={{fontSize:30,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{s.val}</div>
+                <div style={{fontSize:10,color:"#9ca3af",fontFamily:"Barlow Condensed,sans-serif"}}>{s.sub}</div>
+              </div>
+            </div>
+            <div style={{fontSize:13,color:"#374151",fontFamily:"Barlow Condensed,sans-serif",fontWeight:600,lineHeight:1.8}}>{s.exp}</div>
+          </motion.div>
+        ):null;})()}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -1245,202 +1487,13 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
           <div style={{fontSize:44,marginBottom:8}}>🗳️</div><div style={{fontSize:13,fontWeight:900,color:"#d1d5db",letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:4}}>SIN VOTOS AÚN</div><div style={{fontSize:10,color:"#9ca3af"}}>Sé el primero en participar</div>
         </motion.div>)}
         {/* ── BOTONES ESTADÍSTICAS — SUPABASE LIVE ── */}
-        {(()=>{
-          const[activeStat,setActiveStat]=useState(null);
-          const[sbTotal,setSbTotal]=useState(null);
-          const[sbVisitas,setSbVisitas]=useState(null);
-          useEffect(()=>{
-            // Cargar total real desde Supabase
-            sb.from("votos").select("partido_id").then(rows=>{
-              if(Array.isArray(rows)) setSbTotal(rows.length);
-            }).catch(()=>{});
-            sb.from("visitas").select("id").then(rows=>{
-              if(Array.isArray(rows)) setSbVisitas(rows.length);
-            }).catch(()=>{});
-          },[]);
-          const realTotal=sbTotal!==null?sbTotal:total;
-          const vv=PARTIES.map(p=>votes[p.id]||0);
-          const mean=realTotal>0?realTotal/PARTIES.length:0;
-          const sorted_vv=[...vv].sort((a,b)=>a-b);
-          const median=sorted_vv.length%2===0?(sorted_vv[sorted_vv.length/2-1]+sorted_vv[sorted_vv.length/2])/2:sorted_vv[Math.floor(sorted_vv.length/2)];
-          const variance=vv.reduce((a,v)=>a+Math.pow(v-mean,2),0)/vv.length;
-          const sigma=Math.sqrt(variance);
-          const leader=[...PARTIES].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0))[0];
-          const leaderPct=realTotal>0?(votes[leader.id]||0)/realTotal:0;
-          const me=realTotal>1?1.96*Math.sqrt(leaderPct*(1-leaderPct)/realTotal)*100:0;
-          const STATS=[
-            {id:"pct",  sym:"%",  label:"PORCENTAJE", color:"#e01010",
-              val:`${(leaderPct*100).toFixed(1)}%`, sub:`Líder: ${leader.short}`,
-              exp:`📊 ¿QUÉ SIGNIFICA?\n\nEl porcentaje muestra qué parte del total de votos tiene cada partido.\n\n🏆 ${leader.short} lleva ${(leaderPct*100).toFixed(1)}% con ${votes[leader.id]||0} votos de un total de ${realTotal}.\n\nFórmula: (votos del partido ÷ total) × 100`},
-            {id:"mean", sym:"x̄",  label:"PROMEDIO",   color:"#7c3aed",
-              val:mean.toFixed(1), sub:"votos por partido",
-              exp:`📊 ¿QUÉ SIGNIFICA?\n\nEl promedio muestra cuántos votos le tocarían a cada partido si todos tuvieran los mismos.\n\n${realTotal} votos totales ÷ ${PARTIES.length} partidos = ${mean.toFixed(2)} votos promedio.\n\nSi un partido supera mucho el promedio, domina la encuesta.`},
-            {id:"med",  sym:"Md", label:"MEDIANA",    color:"#0891b2",
-              val:median.toFixed(0), sub:"valor central",
-              exp:`📊 ¿QUÉ SIGNIFICA?\n\nLa mediana es el valor del centro cuando ordenas todos los votos de menor a mayor.\n\nVotos ordenados: [${sorted_vv.join(", ")}]\nValor central: ${median.toFixed(0)} votos.\n\nSi la mediana es muy diferente al promedio, hay partidos muy concentrados.`},
-            {id:"std",  sym:"σ",  label:"DISPERSIÓN", color:"#ca8a04",
-              val:sigma.toFixed(1), sub:"desviación std",
-              exp:`📊 ¿QUÉ SIGNIFICA?\n\nLa desviación estándar (σ) mide qué tan diferentes son los votos entre partidos.\n\nσ = ${sigma.toFixed(2)}\n\n📉 σ baja = votos muy parejos entre partidos.\n📈 σ alta = hay un partido dominante muy por encima del resto.`},
-            {id:"me",   sym:"±",  label:"MARGEN ERR.", color:"#059669",
-              val:realTotal>9?`±${me.toFixed(1)}%`:"n<10", sub:"95% confianza",
-              exp:realTotal>9?`📊 ¿QUÉ SIGNIFICA?\n\nEl margen de error indica el rango real del resultado con 95% de confianza.\n\n${leader.short} tiene ${(leaderPct*100).toFixed(1)}%\nRango real: ${Math.max(0,leaderPct*100-me).toFixed(1)}% — ${Math.min(100,leaderPct*100+me).toFixed(1)}%\n\nA mayor muestra (n), menor margen de error.`:`⚠️ Se necesitan al menos 10 votos para calcular el margen de error.\n\nActualmente: ${realTotal} voto(s).`},
-            {id:"n",    sym:"n",  label:"MUESTRA",    color:"#1d4ed8",
-              val:String(realTotal), sub:sbTotal!==null?"🟢 Supabase":"📱 Local",
-              exp:`📊 ¿QUÉ SIGNIFICA?\n\nLa muestra es el total de personas que han votado.\n\nn = ${realTotal} votos${sbTotal!==null?" (dato en tiempo real de Supabase)":""}\nVisitas registradas: ${sbVisitas!==null?sbVisitas:"..."}\n\n${realTotal<30?"⚠️ Muestra pequeña — resultados preliminares.":realTotal<100?"📈 Muestra creciendo — resultados orientativos.":"✅ Muestra representativa."}`},
-          ];
-          return(
-            <div style={{marginBottom:16}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                <div style={{fontSize:10,color:"#6b7280",letterSpacing:3,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>◉ ESTADÍSTICAS EN VIVO</div>
-                {sbTotal!==null&&<div style={{display:"flex",alignItems:"center",gap:5,background:"#f0fdf4",border:"1px solid #86efac",borderRadius:20,padding:"3px 10px"}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",animation:"blk 1.5s infinite"}}/>
-                  <span style={{fontSize:9,color:"#16a34a",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>SUPABASE</span>
-                </div>}
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:activeStat?0:8}}>
-                {STATS.map(s=>{
-                  const isAct=activeStat===s.id;
-                  return(
-                    <motion.button key={s.id} whileTap={{scale:0.93}}
-                      onClick={()=>{playSound("click");setActiveStat(isAct?null:s.id);}}
-                      style={{
-                        background:isAct?s.color:"#fff",
-                        border:`2.5px solid ${isAct?s.color:s.color+"66"}`,
-                        borderRadius:16,padding:"18px 8px",cursor:"pointer",
-                        boxShadow:isAct?`0 8px 24px ${s.color}55`:"0 2px 10px rgba(0,0,0,0.07)",
-                        transition:"all .2s",
-                        display:"flex",flexDirection:"column",alignItems:"center",gap:4,
-                      }}>
-                      <div style={{fontSize:26,fontWeight:900,color:isAct?"#fff":s.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{s.sym}</div>
-                      <div style={{fontSize:22,fontWeight:900,color:isAct?"#fff":s.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{s.val}</div>
-                      <div style={{fontSize:8,color:isAct?"rgba(255,255,255,0.8)":"#9ca3af",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.3}}>{s.label}</div>
-                      <div style={{fontSize:7,color:isAct?"rgba(255,255,255,0.6)":s.color+"99",fontFamily:"Barlow Condensed,sans-serif",textAlign:"center"}}>{s.sub}</div>
-                    </motion.button>
-                  );
-                })}
-              </div>
-              <AnimatePresence>
-                {activeStat&&(()=>{
-                  const s=STATS.find(x=>x.id===activeStat);
-                  return s?(
-                    <motion.div initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}}
-                      style={{background:`${s.color}0e`,border:`2px solid ${s.color}40`,borderRadius:16,padding:"18px",marginTop:10,marginBottom:8}}>
-                      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-                        <div style={{width:52,height:52,borderRadius:14,background:s.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",flexShrink:0,boxShadow:`0 4px 16px ${s.color}55`}}>{s.sym}</div>
-                        <div>
-                          <div style={{fontSize:10,fontWeight:900,color:s.color,letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif"}}>{s.label}</div>
-                          <div style={{fontSize:30,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{s.val}</div>
-                          <div style={{fontSize:10,color:"#9ca3af",fontFamily:"Barlow Condensed,sans-serif"}}>{s.sub}</div>
-                        </div>
-                      </div>
-                      {s.exp.split("\n").map((line,i)=>(
-                        <div key={i} style={{fontSize:line.startsWith("📊")||line.startsWith("⚠️")||line.startsWith("✅")?12:13,color:line.startsWith("📊")||line.startsWith("⚠️")?s.color:"#374151",fontFamily:"Barlow Condensed,sans-serif",fontWeight:line.startsWith("📊")?900:600,lineHeight:1.8,marginBottom:line===""?6:0}}>{line||"\u00A0"}</div>
-                      ))}
-                    </motion.div>
-                  ):null;
-                })()}
-              </AnimatePresence>
-            </div>
-          );
-        })()}
+        <ResultsStatsSection votes={votes} total={total} myVote={myVote}/>
+
 
         <div style={{fontSize:9,color:"#6b7280",letterSpacing:3,textAlign:"center",marginBottom:10,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>▼ RESULTADOS POR PARTIDO</div>
         {/* BOTONES GRANDES DE PARTIDOS */}
         <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:16}}> 
-          {sorted.map((p,rank)=>{
-            const count=votes[p.id]||0,pc=pct(p.id),isMe=myVote===p.id,isTop=rank===0&&count>0;
-            const[open,setOpen]=useState(false);
-            const cand=null; // candidates no está en scope aquí, se mostrará info del partido
-            return(
-            <motion.div key={p.id} initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:rank*0.05}}>
-              {/* BOTÓN PRINCIPAL */}
-              <motion.button whileTap={{scale:0.98}} onClick={()=>{playSound("click");setOpen(o=>!o);}}
-                style={{width:"100%",background:isTop?"linear-gradient(135deg,#fffbeb,#fff)":isMe?`${p.color}06`:"#fff",
-                  border:`2.5px solid ${isTop?"#f59e0b":isMe?p.color:"#e5e7eb"}`,
-                  borderRadius:open?"16px 16px 0 0":"16px",padding:"14px 16px",cursor:"pointer",
-                  boxShadow:isTop?"0 6px 24px rgba(245,158,11,0.2)":isMe?`0 4px 16px ${p.color}25`:"0 2px 8px rgba(0,0,0,0.06)",
-                  position:"relative",overflow:"hidden",display:"block",textAlign:"left",transition:"border-radius .2s"}}>
-                {/* Fondo fill */}
-                <div style={{position:"absolute",left:0,top:0,bottom:0,width:bars?`${pc}%`:"0%",background:`${p.color}09`,transition:"width 1.6s cubic-bezier(.16,1,.3,1)",pointerEvents:"none"}}/>
-                <div style={{display:"flex",alignItems:"center",gap:12,position:"relative"}}>
-                  {/* Rank */}
-                  <div style={{width:28,height:28,borderRadius:"50%",background:isTop?"#fef3c7":`${p.color}15`,border:`2px solid ${isTop?"#f59e0b":p.color+"40"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:isTop?"#d97706":p.color,flexShrink:0}}>
-                    {isTop&&count>0?"🏆":rank+1}
-                  </div>
-                  {/* Logo */}
-                  <div style={{width:56,height:56,borderRadius:12,overflow:"hidden",flexShrink:0,background:`${p.color}12`,border:`2.5px solid ${p.color}50`,boxShadow:`0 3px 10px ${p.color}35`}}>
-                    {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:28,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
-                  </div>
-                  {/* Info */}
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:16,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                      {p.short}
-                      {isMe&&<span style={{fontSize:8,color:"#1877f2",background:"#dbeafe",padding:"2px 6px",borderRadius:4,fontWeight:800,letterSpacing:1}}>✓ TU VOTO</span>}
-                      {isTop&&count>0&&<span style={{fontSize:8,color:"#d97706",background:"#fef3c7",padding:"2px 6px",borderRadius:4,fontWeight:800}}>LÍDER</span>}
-                    </div>
-                    <div style={{fontSize:11,color:"#6b7280",fontFamily:"Barlow Condensed,sans-serif",marginBottom:4}}>{p.spectrumLabel}</div>
-                    {/* Barra */}
-                    <div style={{height:7,background:"#f3f4f6",borderRadius:6,overflow:"hidden"}}>
-                      <motion.div initial={{width:0}} animate={{width:bars?`${pc}%`:"0%"}} transition={{duration:1.4,ease:[.16,1,.3,1]}}
-                        style={{height:"100%",borderRadius:6,background:isTop?`linear-gradient(90deg,${p.color},#f59e0b)`:p.color,boxShadow:`0 0 8px ${p.color}60`}}/>
-                    </div>
-                  </div>
-                  {/* % grande */}
-                  <div style={{textAlign:"right",flexShrink:0}}>
-                    <div style={{fontSize:30,fontWeight:900,color:isTop&&count>0?"#d97706":p.color,lineHeight:1,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:-1}}>{pc.toFixed(1)}<span style={{fontSize:14}}>%</span></div>
-                    <div style={{fontSize:13,fontWeight:800,color:"#374151",fontFamily:"Barlow Condensed,sans-serif"}}>{count} votos</div>
-                    <div style={{fontSize:10,color:"#9ca3af",marginTop:2}}>{open?"▲ CERRAR":"▼ VER MÁS"}</div>
-                  </div>
-                </div>
-              </motion.button>
-
-              {/* PANEL EXPANDIDO — explicación 5× más grande */}
-              <AnimatePresence>
-                {open&&(
-                  <motion.div initial={{height:0,opacity:0}} animate={{height:"auto",opacity:1}} exit={{height:0,opacity:0}} transition={{duration:0.3}}
-                    style={{background:`linear-gradient(135deg,${p.color}08,${p.color}03)`,border:`2.5px solid ${isTop?"#f59e0b":p.color}`,borderTop:"none",borderRadius:"0 0 16px 16px",overflow:"hidden"}}>
-                    <div style={{padding:"16px 16px 20px"}}>
-                      {/* Estadísticas mini */}
-                      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
-                        {[{l:"POSICIÓN",v:`#${rank+1}`,c:p.color},{l:"VOTOS",v:count,c:"#374151"},{l:"PORCENTAJE",v:`${pc.toFixed(1)}%`,c:p.color},{l:"ESPECTRO",v:p.spectrumLabel,c:"#6b7280"}].map(({l,v,c})=>(
-                          <div key={l} style={{background:"rgba(255,255,255,0.8)",border:`1px solid ${p.color}30`,borderRadius:10,padding:"8px 12px",flex:1,minWidth:70,textAlign:"center"}}>
-                            <div style={{fontSize:14,color:"#111",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",marginBottom:3}}>{l}</div>
-                            <div style={{fontSize:15,fontWeight:900,color:c,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{v}</div>
-                          </div>
-                        ))}
-                      </div>
-                      {/* DESCRIPCIÓN GRANDE */}
-                      <div style={{background:"rgba(255,255,255,0.85)",borderRadius:12,padding:"14px",marginBottom:12,border:`1px solid ${p.color}25`}}>
-                        <div style={{fontSize:9,color:p.color,letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>📋 DESCRIPCIÓN DEL PARTIDO</div>
-                        <div style={{fontSize:14,color:"#1a1a1a",lineHeight:1.8,fontFamily:"Barlow Condensed,sans-serif",fontWeight:600}}>{p.descripcion}</div>
-                      </div>
-                      {/* DATO CURIOSO */}
-                      <div style={{background:`${p.color}12`,borderRadius:12,padding:"14px",marginBottom:12,border:`1px solid ${p.color}30`}}>
-                        <div style={{fontSize:9,color:p.color,letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>💡 DATO CURIOSO</div>
-                        <div style={{fontSize:14,color:"#1a1a1a",lineHeight:1.8,fontFamily:"Barlow Condensed,sans-serif",fontWeight:600}}>{p.curioso}</div>
-                      </div>
-                      {/* FICHA TÉCNICA */}
-                      <div style={{background:"rgba(0,0,0,0.03)",borderRadius:12,padding:"12px",border:"1px solid rgba(0,0,0,0.06)"}}>
-                        <div style={{fontSize:16,color:"#111",fontWeight:800,letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>🗂️ FICHA TÉCNICA</div>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                          {[{l:"Fundado",v:p.fundado},{l:"Fundador",v:p.fundador},{l:"Dirigente",v:p.dirigente},{l:"Militantes",v:p.militantes}].map(({l,v})=>(
-                            <div key={l} style={{background:"rgba(255,255,255,0.7)",borderRadius:8,padding:"7px 10px"}}>
-                              <div style={{fontSize:14,color:"#111",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",marginBottom:2}}>{l.toUpperCase()}</div>
-                              <div style={{fontSize:12,fontWeight:700,color:"#374151",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.3}}>{v}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      {/* Tags ideología */}
-                      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:12}}>
-                        {p.ideologyTags.map(tag=>{const ideo=IDEOLOGIES.find(i=>i.id===tag);return ideo?(<div key={tag} style={{background:ideo.bg,color:ideo.color,padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>{ideo.label}</div>):null;})}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          );})}
+          {sorted.map((p,rank)=>(<PartyResultCard key={p.id} p={p} rank={rank} votes={votes} pct={pct} myVote={myVote} bars={bars}/>))}
         </div>
       </div>
     </div>
@@ -1722,7 +1775,7 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals
       )}</AnimatePresence>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
         <div style={{padding:"12px 2px 10px",borderBottom:"2px solid #7c3aed",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><div style={{fontSize:30,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,textShadow:"0 2px 10px rgba(0,0,0,0.25)",lineHeight:1}}>💡 PROPUESTAS</div><div style={{fontSize:13,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>CIUDADANAS</div><div style={{fontSize:9,color:"rgba(0,0,0,0.4)",marginTop:2}}>Vota qué quieres que haga el próximo gobierno</div></div>
+          <div><div style={{fontSize:36,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,textShadow:"0 2px 10px rgba(0,0,0,0.25)",lineHeight:1}}>💡 PROPUESTAS</div><div style={{fontSize:18,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>CIUDADANAS</div><div style={{fontSize:13,color:"rgba(0,0,0,0.6)",marginTop:2}}>Vota qué quieres que haga el próximo gobierno</div></div>
           {user&&<motion.button whileTap={{scale:0.95}} onClick={()=>{playSound("click");setShowForm(s=>!s);}} style={{background:"linear-gradient(135deg,#7c3aed,#5b21b6)",border:"none",borderRadius:9,padding:"8px 12px",color:"#fff",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:.5}}>+ PROPONER</motion.button>}
         </div>
         <AnimatePresence>{showForm&&(
@@ -1758,12 +1811,12 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals
             <motion.div key={p.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*0.05}}
               style={{background:t.bg,border:`1.5px solid ${t.border}40`,borderRadius:18,padding:"16px",boxShadow:`0 4px 24px ${t.glow}`}}>
               <div style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
-                <div style={{fontSize:28,flexShrink:0}}>{p.emoji}</div>
-                <div style={{flex:1}}><div style={{fontSize:22,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.3,marginBottom:3}}>{p.titulo}</div><div style={{fontSize:16,color:"rgba(255,255,255,0.5)",lineHeight:1.5}}>{p.desc}</div>{p.autor&&<div style={{fontSize:8,color:"rgba(255,255,255,0.3)",marginTop:3,fontFamily:"Barlow Condensed,sans-serif"}}>por {p.autor}</div>}</div>
+                <div style={{fontSize:38,flexShrink:0}}>{p.emoji}</div>
+                <div style={{flex:1}}><div style={{fontSize:28,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.3,marginBottom:4}}>{p.titulo}</div><div style={{fontSize:20,color:"rgba(255,255,255,0.8)",lineHeight:1.5}}>{p.desc}</div>{p.autor&&<div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginTop:4,fontFamily:"Barlow Condensed,sans-serif"}}>por {p.autor}</div>}</div>
                 {isAdmin&&<button onClick={()=>deleteProp(p.id)} style={{background:"rgba(220,38,38,0.3)",border:"none",borderRadius:6,padding:"3px 7px",color:"#f87171",fontSize:9,cursor:"pointer",flexShrink:0}}>🗑</button>}
               </div>
               <div style={{height:5,background:"rgba(255,255,255,0.08)",borderRadius:5,marginBottom:8,overflow:"hidden"}}><div style={{height:"100%",width:`${siPct}%`,background:`linear-gradient(90deg,${t.border},${t.border}bb)`,borderRadius:5,transition:"width .8s"}}/></div>
-              <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><div style={{fontSize:10,color:t.border,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>{siPct}% A FAVOR</div><div style={{fontSize:9,color:"rgba(255,255,255,0.35)",fontFamily:"Barlow Condensed,sans-serif"}}>{p.si+p.no} votos</div></div>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><div style={{fontSize:16,color:t.border,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>{siPct}% A FAVOR</div><div style={{fontSize:14,color:"rgba(255,255,255,0.6)",fontFamily:"Barlow Condensed,sans-serif"}}>{p.si+p.no} votos</div></div>
               <div style={{display:"flex",gap:7}}>
                 <motion.button whileTap={{scale:0.96}} onClick={()=>doVote(p.id,"si")} style={{flex:1,background:p.miVoto==="si"?"#16a34a":"rgba(22,163,74,0.15)",border:`1.5px solid ${p.miVoto==="si"?"#4ade80":"rgba(74,222,128,0.3)"}`,borderRadius:10,padding:"9px",color:p.miVoto==="si"?"#fff":"#4ade80",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>👍 A FAVOR <span style={{fontSize:10,opacity:.7}}>{p.si}</span></motion.button>
                 <motion.button whileTap={{scale:0.96}} onClick={()=>doVote(p.id,"no")} style={{flex:1,background:p.miVoto==="no"?"#dc2626":"rgba(220,38,38,0.15)",border:`1.5px solid ${p.miVoto==="no"?"#f87171":"rgba(248,113,113,0.3)"}`,borderRadius:10,padding:"9px",color:p.miVoto==="no"?"#fff":"#f87171",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>👎 EN CONTRA <span style={{fontSize:10,opacity:.7}}>{p.no}</span></motion.button>
@@ -2086,7 +2139,7 @@ function CommentsScreen({user,onLoginClick,total,onLogoClick,onLogout,isAdmin,co
       <div style={{position:"relative",zIndex:1}}>
       <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
-        <div style={{padding:"12px 2px 10px",borderBottom:"2px solid #7c3aed",marginBottom:12}}><div style={{fontSize:32,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,textShadow:"0 2px 10px rgba(0,0,0,0.3)",lineHeight:1}}>💬 FORO CIUDADANO</div><div style={{fontSize:11,color:"#9ca3af",marginTop:3,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>de Silao</div></div>
+        <div style={{padding:"12px 2px 10px",borderBottom:"2px solid #7c3aed",marginBottom:12}}><div style={{fontSize:36,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2,textShadow:"0 2px 10px rgba(0,0,0,0.3)",lineHeight:1}}>💬 FORO CIUDADANO</div><div style={{fontSize:15,color:"#555",marginTop:3,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,fontWeight:800}}>de Silao</div></div>
         {user?(<div style={{background:"linear-gradient(135deg,#1a0a2e,#2d1b69)",border:"2px solid #7c3aed",borderRadius:14,padding:"12px",marginBottom:12}}>
           <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}><div style={{width:26,height:26,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>🎭</div><span style={{fontSize:11,fontWeight:800,color:"#c4b5fd",fontFamily:"Barlow Condensed,sans-serif"}}>{user.nickname}</span></div>
           {/* Selector de tema */}
@@ -2117,14 +2170,14 @@ function CommentsScreen({user,onLoginClick,total,onLogoClick,onLogout,isAdmin,co
             <motion.div key={c.id} initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} transition={{delay:i*0.05}}
               style={{background:"linear-gradient(135deg,#1a0a2e,#2d1b69)",border:"1.5px solid rgba(124,58,237,0.4)",borderRadius:14,padding:"12px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
-                <div style={{display:"flex",alignItems:"center",gap:7}}><div style={{width:24,height:24,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11}}>🎭</div><span style={{fontSize:11,fontWeight:800,color:"#c4b5fd",fontFamily:"Barlow Condensed,sans-serif"}}>{c.nick}</span></div>
-                <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:8,color:"rgba(196,181,253,0.5)",fontFamily:"Barlow Condensed,sans-serif"}}>{timeAgo(c.ts)}</span>{isAdmin&&<button onClick={()=>deleteC(c.id)} style={{background:"rgba(107,114,128,0.5)",border:"none",borderRadius:5,padding:"2px 6px",color:"#fff",fontSize:9,cursor:"pointer"}}>🗑</button>}</div>
+                <div style={{display:"flex",alignItems:"center",gap:7}}><div style={{width:24,height:24,borderRadius:"50%",background:"linear-gradient(135deg,#7c3aed,#5b21b6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11}}>🎭</div><span style={{fontSize:14,fontWeight:900,color:"#c4b5fd",fontFamily:"Barlow Condensed,sans-serif"}}>{c.nick}</span></div>
+                <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:11,color:"rgba(196,181,253,0.7)",fontFamily:"Barlow Condensed,sans-serif"}}>{timeAgo(c.ts)}</span>{isAdmin&&<button onClick={()=>deleteC(c.id)} style={{background:"rgba(107,114,128,0.5)",border:"none",borderRadius:5,padding:"2px 6px",color:"#fff",fontSize:9,cursor:"pointer"}}>🗑</button>}</div>
               </div>
-              <div style={{fontSize:20,color:"rgba(255,255,255,0.85)",lineHeight:1.6,marginBottom:8}}>{c.txt}</div>
+              <div style={{fontSize:22,color:"rgba(255,255,255,0.95)",lineHeight:1.6,marginBottom:8}}>{c.txt}</div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:7}}>{REACTION_MAP.map(({k,e})=><ReactionBtn key={k} emoji={e} count={c.reactions[k]||0} reacted={!!c.myReacted[k]} onReact={()=>react(c.id,k)}/>)}</div>
               <button onClick={()=>setReplyOpen(r=>({...r,[c.id]:!r[c.id]}))} style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(124,58,237,0.3)",borderRadius:7,padding:"4px 9px",color:"rgba(196,181,253,0.6)",fontSize:8,cursor:"pointer",fontWeight:700}}>💬 {(c.replies||[]).length>0?`${(c.replies||[]).length} réplicas`:"RESPONDER"}</button>
               {replyOpen[c.id]&&(<div style={{marginTop:7,paddingLeft:9,borderLeft:"2px solid rgba(124,58,237,0.3)"}}>
-                {(c.replies||[]).map((r,i)=>(<div key={i} style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"6px 9px",marginBottom:4}}><div style={{fontSize:8,color:"rgba(196,181,253,0.5)",marginBottom:2}}>🎭 {r.nick} · {timeAgo(r.ts)}</div><div style={{fontSize:18,color:"rgba(255,255,255,0.75)"}}>{r.txt}</div></div>))}
+                {(c.replies||[]).map((r,i)=>(<div key={i} style={{background:"rgba(255,255,255,0.04)",borderRadius:7,padding:"6px 9px",marginBottom:4}}><div style={{fontSize:11,color:"rgba(196,181,253,0.6)",marginBottom:2}}>🎭 {r.nick} · {timeAgo(r.ts)}</div><div style={{fontSize:18,color:"rgba(255,255,255,0.9)"}}>{r.txt}</div></div>))}
                 {user?(<div style={{display:"flex",gap:5,marginTop:5}}><input value={replyText[c.id]||""} onChange={e=>setReplyText(r=>({...r,[c.id]:e.target.value.slice(0,150)}))} onKeyDown={e=>e.key==="Enter"&&postReply(c.id)} placeholder="Tu réplica..." style={{flex:1,background:"rgba(255,255,255,0.06)",border:"1px solid rgba(124,58,237,0.3)",borderRadius:7,padding:"6px 9px",color:"#fff",fontSize:11,outline:"none"}}/><button onClick={()=>postReply(c.id)} disabled={!replyText[c.id]?.trim()} style={{background:replyText[c.id]?.trim()?"#7c3aed":"rgba(255,255,255,0.05)",border:"none",borderRadius:7,padding:"6px 11px",color:"#fff",fontSize:10,fontWeight:800,cursor:replyText[c.id]?.trim()?"pointer":"default"}}>↑</button></div>):(<button onClick={()=>{playSound("click");onLoginClick();}} style={{width:"100%",background:"rgba(255,255,255,0.04)",border:"1px dashed rgba(124,58,237,0.3)",borderRadius:7,padding:"6px",color:"rgba(196,181,253,0.4)",fontSize:9,cursor:"pointer",marginTop:5}}>Entra para responder</button>)}
               </div>)}
             </motion.div>
@@ -2152,6 +2205,178 @@ function AdminLogin({onSuccess,onCancel}){
         <button onClick={onCancel} style={{width:"100%",background:"transparent",border:"none",color:"rgba(255,255,255,0.3)",fontSize:10,cursor:"pointer"}}>CANCELAR</button>
       </motion.div>
     </motion.div>
+  );
+}
+
+// ── SUB-COMPONENTE: Tab Stats (necesita useState propio) ──
+function AdminStatsTab({votes,comments,candidates,visitCount,uploadLogo}){
+  const total=Object.values(votes).reduce((a,b)=>a+b,0);
+  const leader=[...PARTIES].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0))[0];
+  const vv=PARTIES.map(p=>votes[p.id]||0);
+  const mean=total>0?total/PARTIES.length:0;
+  const sorted_vv=[...vv].sort((a,b)=>a-b);
+  const median=sorted_vv.length%2===0?(sorted_vv[sorted_vv.length/2-1]+sorted_vv[sorted_vv.length/2])/2:sorted_vv[Math.floor(sorted_vv.length/2)];
+  const variance=vv.reduce((a,v)=>a+Math.pow(v-mean,2),0)/vv.length;
+  const sigma=Math.sqrt(variance);
+  const leaderPct=total>0?(votes[leader.id]||0)/total:0;
+  const me=total>1?1.96*Math.sqrt(leaderPct*(1-leaderPct)/total)*100:0;
+  const[activeStat,setActiveStat]=useState(null);
+  const STATS=[
+    {id:"pct",sym:"%",label:"PORCENTAJE",color:"#e01010",val:`${(leaderPct*100).toFixed(1)}%`,sub:`Líder: ${leader.short}`,exp:`Del total de ${total} votos, ${leader.short} tiene ${(leaderPct*100).toFixed(1)}%. Se calcula dividiendo sus votos entre el total × 100.`},
+    {id:"mean",sym:"x̄",label:"PROMEDIO",color:"#7c3aed",val:mean.toFixed(1),sub:"votos/partido",exp:`Promedio de votos por partido: ${total} ÷ ${PARTIES.length} partidos = ${mean.toFixed(2)} votos en promedio.`},
+    {id:"med",sym:"Md",label:"MEDIANA",color:"#0891b2",val:median.toFixed(0),sub:"valor central",exp:`Ordenando los votos: [${sorted_vv.join(", ")}]. El valor central es ${median.toFixed(0)}.`},
+    {id:"std",sym:"σ",label:"DESV. ESTÁNDAR",color:"#ca8a04",val:sigma.toFixed(1),sub:"dispersión",exp:`σ=${sigma.toFixed(2)} indica qué tan disparejos están los votos. Mayor σ = más concentración en un partido.`},
+    {id:"me",sym:"±",label:"MARGEN ERROR",color:"#059669",val:total>9?`±${me.toFixed(2)}%`:"n<10",sub:"95% confianza",exp:total>9?`Con n=${total} votos, el líder tiene IC 95% de [${Math.max(0,leaderPct*100-me).toFixed(1)}% – ${Math.min(100,leaderPct*100+me).toFixed(1)}%].`:"Necesitas al menos 10 votos para calcular el margen de error."},
+    {id:"n",sym:"n",label:"MUESTRA",color:"#1d4ed8",val:String(total),sub:"votos totales",exp:total<30?"⚠️ Muestra muy pequeña — resultados preliminares.":total<100?"📈 Muestra en crecimiento.":"✅ Muestra estadísticamente relevante."},
+  ];
+  return(
+  <div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+      {[{icon:"🗳️",val:total,label:"TOTAL VOTOS",color:"#e01010",sub:`Líder: ${leader.short}`},{icon:"💬",val:comments?.length||0,label:"COMENTARIOS",color:"#7c3aed",sub:"En el foro"},{icon:"👁️",val:visitCount!==null?visitCount:"...",label:"ENTRADAS",color:"#0891b2",sub:"Visitas reales"},{icon:"🏆",val:total>0?`${(leaderPct*100).toFixed(1)}%`:"—",label:"LÍDER",color:"#f59e0b",sub:leader.short}].map(({icon,val,label,color,sub})=>(
+        <div key={label} style={{background:`linear-gradient(135deg,${color}15,${color}05)`,border:`1.5px solid ${color}35`,borderRadius:14,padding:"14px 12px",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-6,right:-6,fontSize:44,opacity:0.06}}>{icon}</div>
+          <div style={{fontSize:24,marginBottom:2}}>{icon}</div>
+          <div style={{fontSize:28,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{typeof val==="number"?val.toLocaleString("es-MX"):val}</div>
+          <div style={{fontSize:7,color,letterSpacing:2,marginTop:3,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>{label}</div>
+          <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",fontFamily:"Barlow Condensed,sans-serif"}}>{sub}</div>
+        </div>
+      ))}
+    </div>
+    <div style={{fontSize:9,color:"rgba(167,139,250,0.6)",letterSpacing:3,marginBottom:10,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>◉ PARTIDOS — FOTOS Y POSICIONES</div>
+    <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",marginBottom:16}}>
+      <div style={{display:"flex",gap:10,width:"max-content",padding:"4px 2px 8px"}}>
+        {[...PARTIES].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0)).map((p,i)=>{
+          const cnt=votes[p.id]||0;
+          const pc=total>0?cnt/total*100:0;
+          const isTop=i===0&&cnt>0;
+          return(
+            <div key={p.id} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,minWidth:110}}>
+              <div style={{position:"relative",width:110,height:110,borderRadius:18,overflow:"hidden",
+                border:`3px solid ${isTop?"#f59e0b":p.color+"66"}`,
+                background:`${p.color}12`,
+                boxShadow:isTop?`0 0 22px ${p.color}66,0 6px 20px rgba(0,0,0,0.4)`:`0 3px 10px rgba(0,0,0,0.3)`,
+                flexShrink:0}}>
+                {PARTY_LOGOS[p.id]
+                  ?<img src={PARTY_LOGOS[p.id]} alt={p.short} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                  :<div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}>
+                    <span style={{fontSize:42}}>{p.emoji}</span>
+                    <span style={{fontSize:9,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{p.short}</span>
+                  </div>}
+                {isTop&&<div style={{position:"absolute",top:5,right:5,fontSize:18}}>🏆</div>}
+                <div style={{position:"absolute",bottom:0,left:0,right:0,height:6,background:"rgba(0,0,0,0.2)"}}>
+                  <motion.div initial={{width:"0%"}} animate={{width:`${pc}%`}} transition={{duration:1.4,ease:"easeOut"}}
+                    style={{height:"100%",background:isTop?"#f59e0b":p.color}}/>
+                </div>
+              </div>
+              <div style={{fontSize:9,fontWeight:900,color:isTop?"#f59e0b":p.color,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{p.short}</div>
+              <div style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{pc.toFixed(1)}<span style={{fontSize:9,opacity:.6}}>%</span></div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",fontFamily:"Barlow Condensed,sans-serif"}}>{cnt} votos</div>
+              <label style={{background:`${p.color}20`,border:`1px solid ${p.color}60`,borderRadius:8,padding:"5px 10px",color:p.color,fontSize:8,cursor:"pointer",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>
+                📷 LOGO<input type="file" accept="image/*" onChange={(e)=>uploadLogo(p.id,e)} style={{display:"none"}}/>
+              </label>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+    <div style={{fontSize:9,color:"rgba(167,139,250,0.6)",letterSpacing:3,marginBottom:10,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>◉ ESTADÍSTICAS AVANZADAS</div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:activeStat?12:0}}>
+      {STATS.map(s=>{
+        const isAct=activeStat===s.id;
+        return(
+          <motion.button key={s.id} whileTap={{scale:0.93}}
+            onClick={()=>{playSound("click");setActiveStat(isAct?null:s.id);}}
+            style={{background:isAct?s.color:"rgba(255,255,255,0.05)",
+              border:`1.5px solid ${isAct?s.color:s.color+"44"}`,
+              borderRadius:12,padding:"12px 8px",cursor:"pointer",
+              boxShadow:isAct?`0 4px 16px ${s.color}44`:"none",transition:"all .15s"}}>
+            <div style={{fontSize:18,fontWeight:900,color:isAct?"#fff":s.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1,marginBottom:4}}>{s.sym}</div>
+            <div style={{fontSize:15,fontWeight:900,color:isAct?"#fff":s.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1,marginBottom:2}}>{s.val}</div>
+            <div style={{fontSize:7,color:isAct?"rgba(255,255,255,0.65)":"rgba(255,255,255,0.3)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{s.label}</div>
+          </motion.button>
+        );
+      })}
+    </div>
+    <AnimatePresence>
+      {activeStat&&(()=>{const s=STATS.find(x=>x.id===activeStat);return s?(
+        <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}}
+          style={{background:`${s.color}14`,border:`1.5px solid ${s.color}44`,borderRadius:14,padding:"14px",overflow:"hidden",marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+            <div style={{width:38,height:38,borderRadius:10,background:s.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",flexShrink:0}}>{s.sym}</div>
+            <div>
+              <div style={{fontSize:11,fontWeight:900,color:s.color,letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif"}}>{s.label}</div>
+              <div style={{fontSize:22,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{s.val} <span style={{fontSize:10,opacity:.5}}>{s.sub}</span></div>
+            </div>
+          </div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.75)",lineHeight:1.7,fontFamily:"Barlow Condensed,sans-serif"}}>{s.exp}</div>
+        </motion.div>
+      ):null;})()}
+    </AnimatePresence>
+  </div>
+  );
+}
+
+// ── SUB-COMPONENTE: Tab Sugerencias (necesita useState/useEffect propios) ──
+function AdminSugerenciasTab({preguntaDestacada,setPreguntaDestacada}){
+  const[sugs,setSugs]=useState([]);
+  const[loading,setLoading]=useState(true);
+  useEffect(()=>{
+    sb.from("sugerencias_preguntas").select("*").order("ts",{ascending:false})
+      .then(res=>{setSugs(Array.isArray(res)?res:(res?.data||[]));setLoading(false);})
+      .catch(()=>{setSugs([]);setLoading(false);});
+  },[]);
+  const deleteSug=async(id)=>{
+    await sb.from("sugerencias_preguntas").delete().eq("id",id).catch(()=>{});
+    setSugs(s=>s.filter(x=>x.id!==id));
+  };
+  const cats=Object.keys(PREGUNTAS);
+  const destCat=preguntaDestacada?.cat||cats[0];
+  const destIdx=preguntaDestacada?.idx||0;
+  const destQ=PREGUNTAS[destCat]?.[destIdx]||"";
+  return(
+    <div>
+      <div style={{background:"linear-gradient(135deg,rgba(224,16,16,0.15),rgba(124,58,237,0.15))",border:"2px solid #e01010",borderRadius:14,padding:"16px",marginBottom:18}}>
+        <div style={{fontSize:10,color:"#f87171",letterSpacing:2,marginBottom:12,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>🎯 PREGUNTA DESTACADA — LA QUE VEN LOS CANDIDATOS</div>
+        <div style={{background:"rgba(0,0,0,0.3)",borderRadius:10,padding:"12px 14px",marginBottom:12,border:"1px solid rgba(255,255,255,0.1)"}}>
+          <div style={{fontSize:9,color:"rgba(255,255,255,0.4)",marginBottom:4,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{destCat} · Pregunta #{destIdx+1}</div>
+          <div style={{fontSize:14,color:"#fff",fontWeight:800,lineHeight:1.5,fontFamily:"Barlow Condensed,sans-serif"}}>"{destQ}"</div>
+        </div>
+        <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+          {cats.map(c=>(
+            <motion.button key={c} whileTap={{scale:0.95}} onClick={()=>setPreguntaDestacada({cat:c,idx:0})}
+              style={{background:destCat===c?"linear-gradient(135deg,#e01010,#7c3aed)":"rgba(255,255,255,0.07)",border:`1.5px solid ${destCat===c?"#e01010":"rgba(255,255,255,0.15)"}`,borderRadius:20,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",whiteSpace:"nowrap"}}>
+              {c}
+            </motion.button>
+          ))}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+          {(PREGUNTAS[destCat]||[]).map((q,i)=>(
+            <motion.button key={i} whileTap={{scale:0.97}} onClick={()=>setPreguntaDestacada({cat:destCat,idx:i})}
+              style={{background:destIdx===i?"rgba(224,16,16,0.25)":"rgba(255,255,255,0.04)",border:`1.5px solid ${destIdx===i?"#e01010":"rgba(255,255,255,0.1)"}`,borderRadius:10,padding:"9px 10px",color:destIdx===i?"#fff":"rgba(255,255,255,0.6)",fontSize:11,fontWeight:destIdx===i?800:500,cursor:"pointer",textAlign:"left",lineHeight:1.4,fontFamily:"Barlow Condensed,sans-serif"}}>
+              <span style={{fontSize:9,color:destIdx===i?"#f87171":"rgba(255,255,255,0.3)",display:"block",marginBottom:2}}>#{i+1}</span>
+              {q.slice(0,55)}{q.length>55?"...":""}
+            </motion.button>
+          ))}
+        </div>
+      </div>
+      <div style={{fontSize:10,color:"#a78bfa",letterSpacing:2,marginBottom:14,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>❓ PREGUNTAS SUGERIDAS POR CIUDADANOS</div>
+      {loading&&<div style={{color:"rgba(255,255,255,0.4)",textAlign:"center",padding:20}}>Cargando...</div>}
+      {!loading&&sugs.length===0&&<div style={{color:"rgba(255,255,255,0.3)",textAlign:"center",padding:20,fontSize:13,fontFamily:"Barlow Condensed,sans-serif"}}>Ninguna sugerencia aún.</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {sugs.map(s=>(
+          <div key={s.id} style={{background:"rgba(255,255,255,0.05)",border:"1.5px solid rgba(167,139,250,0.3)",borderRadius:12,padding:"14px 16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:9,color:"#a78bfa",letterSpacing:2,marginBottom:4,fontFamily:"Barlow Condensed,sans-serif",fontWeight:800}}>{s.partido||"SIN PARTIDO"} · {s.nick||"Anónimo"}</div>
+                <div style={{fontSize:14,color:"#f1f5f9",fontFamily:"Barlow Condensed,sans-serif",fontWeight:700,lineHeight:1.5}}>{s.pregunta}</div>
+                <div style={{fontSize:8,color:"rgba(255,255,255,0.25)",marginTop:4,fontFamily:"Barlow Condensed,sans-serif"}}>{s.ts?new Date(s.ts).toLocaleString("es-MX"):""}</div>
+              </div>
+              <button onClick={()=>deleteSug(s.id)} style={{background:"rgba(220,38,38,0.2)",border:"1px solid #dc2626",borderRadius:8,padding:"6px 10px",color:"#f87171",fontSize:10,cursor:"pointer",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",flexShrink:0}}>🗑</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -2216,119 +2441,7 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,heroImages,se
         <div style={{padding:"14px 16px"}}>
 
         {/* ── STATS ── */}
-        {tab==="stats"&&(()=>{
-          const leader=[...PARTIES].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0))[0];
-          const vv=PARTIES.map(p=>votes[p.id]||0);
-          const mean=total>0?total/PARTIES.length:0;
-          const sorted_vv=[...vv].sort((a,b)=>a-b);
-          const median=sorted_vv.length%2===0?(sorted_vv[sorted_vv.length/2-1]+sorted_vv[sorted_vv.length/2])/2:sorted_vv[Math.floor(sorted_vv.length/2)];
-          const variance=vv.reduce((a,v)=>a+Math.pow(v-mean,2),0)/vv.length;
-          const sigma=Math.sqrt(variance);
-          const leaderPct=total>0?(votes[leader.id]||0)/total:0;
-          const me=total>1?1.96*Math.sqrt(leaderPct*(1-leaderPct)/total)*100:0;
-          const[activeStat,setActiveStat]=useState(null);
-          const STATS=[
-            {id:"pct",sym:"%",label:"PORCENTAJE",color:"#e01010",val:`${(leaderPct*100).toFixed(1)}%`,sub:`Líder: ${leader.short}`,exp:`Del total de ${total} votos, ${leader.short} tiene ${(leaderPct*100).toFixed(1)}%. Se calcula dividiendo sus votos entre el total × 100.`},
-            {id:"mean",sym:"x̄",label:"PROMEDIO",color:"#7c3aed",val:mean.toFixed(1),sub:"votos/partido",exp:`Promedio de votos por partido: ${total} ÷ ${PARTIES.length} partidos = ${mean.toFixed(2)} votos en promedio.`},
-            {id:"med",sym:"Md",label:"MEDIANA",color:"#0891b2",val:median.toFixed(0),sub:"valor central",exp:`Ordenando los votos: [${sorted_vv.join(", ")}]. El valor central es ${median.toFixed(0)}.`},
-            {id:"std",sym:"σ",label:"DESV. ESTÁNDAR",color:"#ca8a04",val:sigma.toFixed(1),sub:"dispersión",exp:`σ=${sigma.toFixed(2)} indica qué tan disparejos están los votos. Mayor σ = más concentración en un partido.`},
-            {id:"me",sym:"±",label:"MARGEN ERROR",color:"#059669",val:total>9?`±${me.toFixed(2)}%`:"n<10",sub:"95% confianza",exp:total>9?`Con n=${total} votos, el líder tiene IC 95% de [${Math.max(0,leaderPct*100-me).toFixed(1)}% – ${Math.min(100,leaderPct*100+me).toFixed(1)}%].`:"Necesitas al menos 10 votos para calcular el margen de error."},
-            {id:"n",sym:"n",label:"MUESTRA",color:"#1d4ed8",val:String(total),sub:"votos totales",exp:total<30?"⚠️ Muestra muy pequeña — resultados preliminares.":total<100?"📈 Muestra en crecimiento.":"✅ Muestra estadísticamente relevante."},
-          ];
-          return(
-          <div>
-            {/* KPI cards */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
-              {[{icon:"🗳️",val:total,label:"TOTAL VOTOS",color:"#e01010",sub:`Líder: ${leader.short}`},{icon:"💬",val:comments?.length||0,label:"COMENTARIOS",color:"#7c3aed",sub:"En el foro"},{icon:"👁️",val:visitCount!==null?visitCount:"...",label:"ENTRADAS",color:"#0891b2",sub:"Visitas reales"},{icon:"🏆",val:total>0?`${(leaderPct*100).toFixed(1)}%`:"—",label:"LÍDER",color:"#f59e0b",sub:leader.short}].map(({icon,val,label,color,sub})=>(
-                <div key={label} style={{background:`linear-gradient(135deg,${color}15,${color}05)`,border:`1.5px solid ${color}35`,borderRadius:14,padding:"14px 12px",position:"relative",overflow:"hidden"}}>
-                  <div style={{position:"absolute",top:-6,right:-6,fontSize:44,opacity:0.06}}>{icon}</div>
-                  <div style={{fontSize:24,marginBottom:2}}>{icon}</div>
-                  <div style={{fontSize:28,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{typeof val==="number"?val.toLocaleString("es-MX"):val}</div>
-                  <div style={{fontSize:7,color,letterSpacing:2,marginTop:3,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>{label}</div>
-                  <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",fontFamily:"Barlow Condensed,sans-serif"}}>{sub}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* ── LOGOS GRANDES 5× ── */}
-            <div style={{fontSize:9,color:"rgba(167,139,250,0.6)",letterSpacing:3,marginBottom:10,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>◉ PARTIDOS — FOTOS Y POSICIONES</div>
-            <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",marginBottom:16}}>
-              <div style={{display:"flex",gap:10,width:"max-content",padding:"4px 2px 8px"}}>
-                {[...PARTIES].sort((a,b)=>(votes[b.id]||0)-(votes[a.id]||0)).map((p,i)=>{
-                  const cnt=votes[p.id]||0;
-                  const pc=total>0?cnt/total*100:0;
-                  const isTop=i===0&&cnt>0;
-                  return(
-                    <div key={p.id} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:5,minWidth:110}}>
-                      {/* Logo 110px = 5× de 22px */}
-                      <div style={{position:"relative",width:110,height:110,borderRadius:18,overflow:"hidden",
-                        border:`3px solid ${isTop?"#f59e0b":p.color+"66"}`,
-                        background:`${p.color}12`,
-                        boxShadow:isTop?`0 0 22px ${p.color}66,0 6px 20px rgba(0,0,0,0.4)`:`0 3px 10px rgba(0,0,0,0.3)`,
-                        flexShrink:0}}>
-                        {PARTY_LOGOS[p.id]
-                          ?<img src={PARTY_LOGOS[p.id]} alt={p.short} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                          :<div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}>
-                            <span style={{fontSize:42}}>{p.emoji}</span>
-                            <span style={{fontSize:9,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{p.short}</span>
-                          </div>}
-                        {isTop&&<div style={{position:"absolute",top:5,right:5,fontSize:18}}>🏆</div>}
-                        {/* barra % animada */}
-                        <div style={{position:"absolute",bottom:0,left:0,right:0,height:6,background:"rgba(0,0,0,0.2)"}}>
-                          <motion.div initial={{width:"0%"}} animate={{width:`${pc}%`}} transition={{duration:1.4,ease:"easeOut"}}
-                            style={{height:"100%",background:isTop?"#f59e0b":p.color}}/>
-                        </div>
-                      </div>
-                      <div style={{fontSize:9,fontWeight:900,color:isTop?"#f59e0b":p.color,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{p.short}</div>
-                      <div style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{pc.toFixed(1)}<span style={{fontSize:9,opacity:.6}}>%</span></div>
-                      <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",fontFamily:"Barlow Condensed,sans-serif"}}>{cnt} votos</div>
-                      {/* subir logo desde aquí */}
-                      <label style={{background:`${p.color}20`,border:`1px solid ${p.color}60`,borderRadius:8,padding:"5px 10px",color:p.color,fontSize:8,cursor:"pointer",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>
-                        📷 LOGO<input type="file" accept="image/*" onChange={(e)=>uploadLogo(p.id,e)} style={{display:"none"}}/>
-                      </label>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* ── BOTONES ESTADÍSTICAS ── */}
-            <div style={{fontSize:9,color:"rgba(167,139,250,0.6)",letterSpacing:3,marginBottom:10,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>◉ ESTADÍSTICAS AVANZADAS</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginBottom:activeStat?12:0}}>
-              {STATS.map(s=>{
-                const isAct=activeStat===s.id;
-                return(
-                  <motion.button key={s.id} whileTap={{scale:0.93}}
-                    onClick={()=>{playSound("click");setActiveStat(isAct?null:s.id);}}
-                    style={{background:isAct?s.color:"rgba(255,255,255,0.05)",
-                      border:`1.5px solid ${isAct?s.color:s.color+"44"}`,
-                      borderRadius:12,padding:"12px 8px",cursor:"pointer",
-                      boxShadow:isAct?`0 4px 16px ${s.color}44`:"none",transition:"all .15s"}}>
-                    <div style={{fontSize:18,fontWeight:900,color:isAct?"#fff":s.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1,marginBottom:4}}>{s.sym}</div>
-                    <div style={{fontSize:15,fontWeight:900,color:isAct?"#fff":s.color,fontFamily:"Barlow Condensed,sans-serif",lineHeight:1,marginBottom:2}}>{s.val}</div>
-                    <div style={{fontSize:7,color:isAct?"rgba(255,255,255,0.65)":"rgba(255,255,255,0.3)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{s.label}</div>
-                  </motion.button>
-                );
-              })}
-            </div>
-            <AnimatePresence>
-              {activeStat&&(()=>{const s=STATS.find(x=>x.id===activeStat);return s?(
-                <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}}
-                  style={{background:`${s.color}14`,border:`1.5px solid ${s.color}44`,borderRadius:14,padding:"14px",overflow:"hidden",marginBottom:14}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                    <div style={{width:38,height:38,borderRadius:10,background:s.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",flexShrink:0}}>{s.sym}</div>
-                    <div>
-                      <div style={{fontSize:11,fontWeight:900,color:s.color,letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif"}}>{s.label}</div>
-                      <div style={{fontSize:22,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1}}>{s.val} <span style={{fontSize:10,opacity:.5}}>{s.sub}</span></div>
-                    </div>
-                  </div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.75)",lineHeight:1.7,fontFamily:"Barlow Condensed,sans-serif"}}>{s.exp}</div>
-                </motion.div>
-              ):null;})()}
-            </AnimatePresence>
-          </div>
-          );
-        })()}
+        {tab==="stats"&&<AdminStatsTab votes={votes} comments={comments} candidates={candidates} visitCount={visitCount} uploadLogo={uploadLogo}/>}
 
         {/* ── ALERTAS ── */}
         {tab==="alertas"&&(<div>
@@ -2522,69 +2635,7 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,heroImages,se
         </div>)}
 
         {/* ── SUGERENCIAS DE PREGUNTAS ── */}
-        {tab==="sugerencias"&&(()=>{
-          const[sugs,setSugs]=useState([]);
-          const[loading,setLoading]=useState(true);
-          useEffect(()=>{
-            sb.from("sugerencias_preguntas").select("*").order("ts",{ascending:false})
-              .then(res=>{setSugs(Array.isArray(res)?res:(res?.data||[]));setLoading(false);})
-              .catch(()=>{setSugs([]);setLoading(false);});
-          },[]);
-          const deleteSug=async(id)=>{
-            await sb.from("sugerencias_preguntas").delete().eq("id",id).catch(()=>{});
-            setSugs(s=>s.filter(x=>x.id!==id));
-          };
-          const cats=Object.keys(PREGUNTAS);
-          const destCat=preguntaDestacada?.cat||cats[0];
-          const destIdx=preguntaDestacada?.idx||0;
-          const destQ=PREGUNTAS[destCat]?.[destIdx]||"";
-          return(
-            <div>
-              {/* ── PREGUNTA DESTACADA PARA CANDIDATOS ── */}
-              <div style={{background:"linear-gradient(135deg,rgba(224,16,16,0.15),rgba(124,58,237,0.15))",border:"2px solid #e01010",borderRadius:14,padding:"16px",marginBottom:18}}>
-                <div style={{fontSize:10,color:"#f87171",letterSpacing:2,marginBottom:12,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>🎯 PREGUNTA DESTACADA — LA QUE VEN LOS CANDIDATOS</div>
-                <div style={{background:"rgba(0,0,0,0.3)",borderRadius:10,padding:"12px 14px",marginBottom:12,border:"1px solid rgba(255,255,255,0.1)"}}>
-                  <div style={{fontSize:9,color:"rgba(255,255,255,0.4)",marginBottom:4,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{destCat} · Pregunta #{destIdx+1}</div>
-                  <div style={{fontSize:14,color:"#fff",fontWeight:800,lineHeight:1.5,fontFamily:"Barlow Condensed,sans-serif"}}>"{destQ}"</div>
-                </div>
-                <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
-                  {cats.map(c=>(
-                    <motion.button key={c} whileTap={{scale:0.95}} onClick={()=>setPreguntaDestacada({cat:c,idx:0})}
-                      style={{background:destCat===c?"linear-gradient(135deg,#e01010,#7c3aed)":"rgba(255,255,255,0.07)",border:`1.5px solid ${destCat===c?"#e01010":"rgba(255,255,255,0.15)"}`,borderRadius:20,padding:"5px 12px",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",whiteSpace:"nowrap"}}>
-                      {c}
-                    </motion.button>
-                  ))}
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                  {(PREGUNTAS[destCat]||[]).map((q,i)=>(
-                    <motion.button key={i} whileTap={{scale:0.97}} onClick={()=>setPreguntaDestacada({cat:destCat,idx:i})}
-                      style={{background:destIdx===i?"rgba(224,16,16,0.25)":"rgba(255,255,255,0.04)",border:`1.5px solid ${destIdx===i?"#e01010":"rgba(255,255,255,0.1)"}`,borderRadius:10,padding:"9px 10px",color:destIdx===i?"#fff":"rgba(255,255,255,0.6)",fontSize:11,fontWeight:destIdx===i?800:500,cursor:"pointer",textAlign:"left",lineHeight:1.4,fontFamily:"Barlow Condensed,sans-serif"}}>
-                      <span style={{fontSize:9,color:destIdx===i?"#f87171":"rgba(255,255,255,0.3)",display:"block",marginBottom:2}}>#{i+1}</span>
-                      {q.slice(0,55)}{q.length>55?"...":""}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-              <div style={{fontSize:10,color:"#a78bfa",letterSpacing:2,marginBottom:14,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>❓ PREGUNTAS SUGERIDAS POR CIUDADANOS</div>
-              {loading&&<div style={{color:"rgba(255,255,255,0.4)",textAlign:"center",padding:20}}>Cargando...</div>}
-              {!loading&&sugs.length===0&&<div style={{color:"rgba(255,255,255,0.3)",textAlign:"center",padding:20,fontSize:13,fontFamily:"Barlow Condensed,sans-serif"}}>Ninguna sugerencia aún.</div>}
-              <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {sugs.map(s=>(
-                  <div key={s.id} style={{background:"rgba(255,255,255,0.05)",border:"1.5px solid rgba(167,139,250,0.3)",borderRadius:12,padding:"14px 16px"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:9,color:"#a78bfa",letterSpacing:2,marginBottom:4,fontFamily:"Barlow Condensed,sans-serif",fontWeight:800}}>{s.partido||"SIN PARTIDO"} · {s.nick||"Anónimo"}</div>
-                        <div style={{fontSize:14,color:"#f1f5f9",fontFamily:"Barlow Condensed,sans-serif",fontWeight:700,lineHeight:1.5}}>{s.pregunta}</div>
-                        <div style={{fontSize:8,color:"rgba(255,255,255,0.25)",marginTop:4,fontFamily:"Barlow Condensed,sans-serif"}}>{s.ts?new Date(s.ts).toLocaleString("es-MX"):""}</div>
-                      </div>
-                      <button onClick={()=>deleteSug(s.id)} style={{background:"rgba(220,38,38,0.2)",border:"1px solid #dc2626",borderRadius:8,padding:"6px 10px",color:"#f87171",fontSize:10,cursor:"pointer",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",flexShrink:0}}>🗑</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
+        {tab==="sugerencias"&&<AdminSugerenciasTab preguntaDestacada={preguntaDestacada} setPreguntaDestacada={setPreguntaDestacada}/>}
 
         {/* ── EXPORTAR ── */}
         {tab==="exportar"&&(<div>
