@@ -441,6 +441,10 @@ function OnboardingModal({onComplete,onSkip}){
 function LoginModal({onLogin,onClose}){
   const[name,setName]=useState("");const[loading,setLoading]=useState(false);const[step,setStep]=useState(1);const[nickname,setNickname]=useState("");
   const go=()=>{if(!name.trim())return;setLoading(true);setTimeout(()=>{setNickname(genNickname(name.trim()+Date.now()));setLoading(false);setStep(2);},900);};
+  const salirGoogle=()=>{
+    try{if(window.google?.accounts?.id){window.google.accounts.id.disableAutoSelect();window.google.accounts.id.revoke?.("",()=>{});}}catch(e){}
+    onClose();
+  };
   return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       {/* SALIR grande arriba */}
@@ -455,6 +459,10 @@ function LoginModal({onLogin,onClose}){
             <motion.button whileTap={{scale:0.96}} onClick={go} disabled={!name.trim()} style={{width:"100%",background:name.trim()?"#1877f2":"#e0e0e0",border:"none",borderRadius:9,padding:"11px",color:name.trim()?"#fff":"#aaa",fontSize:13,fontWeight:700,cursor:name.trim()?"pointer":"default"}}>GENERAR MI APODO →</motion.button>
           </>}
           <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:900,cursor:"pointer",marginTop:10,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
+          {/* Botón Salir de Google */}
+          <button onClick={salirGoogle} style={{width:"100%",background:"#f8f9fa",border:"1.5px solid #e0e0e0",borderRadius:10,padding:"9px",color:"#5f6368",fontSize:11,fontWeight:700,cursor:"pointer",marginTop:8,fontFamily:"Barlow Condensed,sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            <span style={{fontSize:14}}>🔵</span> Salir de Google / Cerrar sesión externa
+          </button>
         </>):(<>
           <div style={{textAlign:"center",marginBottom:12}}><div style={{fontSize:34,marginBottom:6}}>🎭</div><div style={{fontSize:8,color:"#9ca3af",letterSpacing:2,marginBottom:5}}>TU APODO SERÁ</div><div style={{fontSize:17,fontWeight:900,background:"#f3f4f6",borderRadius:10,padding:"10px 12px",marginBottom:6,fontFamily:"Barlow Condensed,sans-serif"}}>{nickname}</div></div>
           <motion.button whileTap={{scale:0.96}} onClick={()=>{playSound("success");onLogin({name:name.trim(),nickname,id:"u_"+Math.random().toString(36).slice(2)});}} style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:9,padding:"11px",color:"#fff",fontSize:13,fontWeight:800,cursor:"pointer",marginBottom:8}}>🗳️ ENTRAR Y PARTICIPAR</motion.button>
@@ -597,7 +605,18 @@ function Header({total,user,onLoginClick,onLogoClick,onLogout,siteLogo}){
                 <span style={{fontSize:13,fontWeight:900,color:"#1d4ed8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:90,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>{user.nickname}</span>
               </div>
             </div>
-            <button onClick={onLogout} style={{background:"none",border:"none",fontSize:8,color:"#9ca3af",cursor:"pointer",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif"}}>← SALIR</button>
+            <button onClick={onLogout} style={{
+              background:"linear-gradient(135deg,#fee2e2,#fecaca)",
+              border:"1.5px solid #fca5a5",
+              borderRadius:8,
+              fontSize:9,color:"#dc2626",
+              cursor:"pointer",
+              letterSpacing:0.5,
+              fontFamily:"Barlow Condensed,sans-serif",
+              fontWeight:800,
+              padding:"4px 8px",
+              marginTop:2,
+            }}>← SALIR</button>
           </div>
         ):(
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flex:1}}>
@@ -607,11 +626,22 @@ function Header({total,user,onLoginClick,onLogoClick,onLogout,siteLogo}){
           </div>
         )}
 
-        {/* RIGHT: EN VIVO */}
-        <div style={{background:"#fff0f0",border:"2px solid #e01010",borderRadius:10,padding:"4px 8px",textAlign:"center",flexShrink:0}}>
-          <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:1}}><div style={{width:4,height:4,borderRadius:"50%",background:"#e01010",animation:"pd 1.8s infinite"}}/><span style={{fontSize:7,color:"#e01010",letterSpacing:1.5,fontWeight:700}}>EN VIVO</span></div>
-          <div style={{fontSize:19,fontWeight:900,color:"#e01010",lineHeight:1,letterSpacing:-1,fontFamily:"Barlow Condensed,sans-serif"}}><LiveCount value={total}/></div>
-          <div style={{fontSize:7,color:"#6b7280",letterSpacing:1.5,fontFamily:"Barlow Condensed,sans-serif"}}>VOTOS</div>
+        {/* RIGHT: EN VIVO — contador blanco profesional */}
+        <div style={{
+          background:"#ffffff",
+          border:"2px solid #fecaca",
+          borderRadius:14,
+          padding:"6px 12px",
+          textAlign:"center",
+          flexShrink:0,
+          boxShadow:"0 2px 12px rgba(224,16,16,0.12)",
+        }}>
+          <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2,justifyContent:"center"}}>
+            <div style={{width:5,height:5,borderRadius:"50%",background:"#e01010",animation:"pd 1.8s infinite"}}/>
+            <span style={{fontSize:7,color:"#e01010",letterSpacing:1.5,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>EN VIVO</span>
+          </div>
+          <div style={{fontSize:22,fontWeight:900,color:"#111827",lineHeight:1,letterSpacing:-1,fontFamily:"Barlow Condensed,sans-serif"}}><LiveCount value={total}/></div>
+          <div style={{fontSize:7,color:"#6b7280",letterSpacing:1.5,fontFamily:"Barlow Condensed,sans-serif",fontWeight:700}}>VOTOS</div>
         </div>
 
       </div>
@@ -631,7 +661,7 @@ function BouncingBall({siteLogo,onLogoClick,votes,total}){
   const rafRef=useRef(null);
   const velRef=useRef({x:1.4,y:1.8});
   const posRef=useRef({x:80,y:60});
-  const SIZE=56;
+  const SIZE=64;// aumentado de 56 a 64 para mayor visibilidad
 
   useEffect(()=>{
     let last=null;
@@ -696,104 +726,96 @@ function BouncingBall({siteLogo,onLogoClick,votes,total}){
           setDragging(false);
         }}
         onClick={()=>{explode();onLogoClick&&onLogoClick();}}
-        whileTap={{scale:0.88}}
+        whileTap={{scale:0.85}}
         style={{position:"fixed",left:pos.x,top:pos.y,zIndex:400,cursor:"pointer",
           width:SIZE,height:SIZE,borderRadius:"50%",
-          background:"linear-gradient(135deg,#fff,#f0f0f0)",
-          border:`3px solid ${leader?.color||"#e01010"}`,
-          boxShadow:`0 0 18px ${leader?.color||"#e01010"}88, 0 6px 20px rgba(0,0,0,0.25)`,
+          background:"linear-gradient(135deg,#ffffff,#f0f4ff)",
+          border:`3.5px solid ${leader?.color||"#e01010"}`,
+          boxShadow:`0 0 0 3px ${(leader?.color||"#e01010")}33, 0 0 22px ${leader?.color||"#e01010"}77, 0 6px 24px rgba(0,0,0,0.30)`,
           overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",
           userSelect:"none",WebkitUserSelect:"none",touchAction:"none"}}>
         {siteLogo
           ?<img src={siteLogo} alt="Encuesta Silao" style={{width:"90%",height:"90%",objectFit:"contain",borderRadius:"50%"}}/>
-          :<div style={{fontSize:24,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",color:leader?.color||"#e01010",lineHeight:1,textAlign:"center"}}>
-            <div style={{fontSize:9,letterSpacing:1,color:"#6b7280"}}>ENCUESTA</div>
-            <div>SILAO</div>
+          :<div style={{fontSize:11,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",color:leader?.color||"#e01010",lineHeight:1,textAlign:"center",zIndex:1,position:"relative"}}>
+            <div style={{fontSize:7,letterSpacing:0.5,color:"#6b7280",fontWeight:700}}>ENCUESTA</div>
+            <div style={{fontSize:15,letterSpacing:-0.5}}>SILAO</div>
           </div>}
-        {/* anillo LED giratorio */}
-        <div style={{position:"absolute",inset:-2,borderRadius:"50%",
-          background:`conic-gradient(from 0deg,${leader?.color||"#e01010"},transparent,${leader?.color||"#e01010"})`,
-          animation:"ledSpin 1.5s linear infinite",opacity:0.6,zIndex:-1}}/>
+        {/* anillo LED giratorio mejorado */}
+        <div style={{position:"absolute",inset:-3,borderRadius:"50%",
+          background:`conic-gradient(from 0deg,${leader?.color||"#e01010"} 0deg,${leader?.color||"#e01010"}88 60deg,transparent 120deg,${leader?.color||"#e01010"}44 180deg,transparent 240deg,${leader?.color||"#e01010"} 360deg)`,
+          animation:"ledSpin 1.8s linear infinite",opacity:0.75,zIndex:0}}/>
       </motion.div>
     </>
   );
 }
 
-// ── NAVBAR ──
+// ── NAVBAR ── (rediseñado: mejor visibilidad, iconos profesionales, sección activa evidente)
 function NavBar({screen,setScreen}){
-  const[burst,setBurst]=useState(false);
   const tabs=[
-    {id:"results",  label:"INICIO",  color:"#e01010"},
-    {id:"vote",     label:"VOTAR",   color:"#16a34a"},
-    {id:"proposals",label:"IDEAS",   color:"#ca8a04"},
-    {id:"articles", label:"PARTIDOS",color:"#1d4ed8"},
-    {id:"preguntale",label:"RETAR",  color:"#e01010"},
-    {id:"comments", label:"FORO",    color:"#7c3aed"},
+    {id:"results",   label:"Inicio",    icon:"🏠", color:"#e01010"},
+    {id:"vote",      label:"Más",       icon:"➕", color:"#16a34a"},
+    {id:"articles",  label:"Estadísticas", icon:"📊", color:"#1d4ed8"},
+    {id:"comments",  label:"Compartir", icon:"📤", color:"#7c3aed"},
   ];
-  const handleTab=(id)=>{
-    playSound("click");
-    setBurst(true);
-    setTimeout(()=>setBurst(false),600);
-    setScreen(id);
-  };
+  const handleTab=(id)=>{playSound("click");setScreen(id);};
   return(
     <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:50}}>
       <style>{`
-        @keyframes spinSlow{to{transform:rotate(360deg)}}
-        @keyframes spinFast{to{transform:rotate(360deg)}}
-        @keyframes navDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
+        @keyframes navPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+        @keyframes navGlow{0%,100%{opacity:1}50%{opacity:0.5}}
       `}</style>
-      <div style={{background:"rgba(8,8,16,0.98)",backdropFilter:"blur(20px)",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,8px)",paddingTop:8,borderTop:"1px solid rgba(255,255,255,0.07)"}}>
+      <div style={{
+        background:"rgba(10,10,20,0.97)",
+        backdropFilter:"blur(24px)",
+        borderTop:"1.5px solid rgba(255,255,255,0.10)",
+        boxShadow:"0 -4px 24px rgba(0,0,0,0.45)",
+        display:"flex",
+        maxWidth:640,margin:"0 auto",
+        paddingBottom:"env(safe-area-inset-bottom,10px)",
+        paddingTop:6,
+        gap:2,
+      }}>
         {tabs.map(t=>{
           const active=screen===t.id;
-          const dur=burst?"0.35s":active?"0.7s":"2.8s";
-          const opacity=burst?1:active?1:0.3;
-          const bright=burst||active;
           return(
             <motion.button key={t.id}
-              whileTap={{scale:0.85}}
+              whileTap={{scale:0.88}}
               onClick={()=>handleTab(t.id)}
-              style={{flex:1,background:"transparent",border:"none",padding:"3px 1px 5px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,position:"relative"}}>
-              {/* LED spinning box */}
-              <div style={{position:"relative",width:52,height:52,borderRadius:14,overflow:"hidden",flexShrink:0}}>
-                {/* Conic spinning LED */}
-                <div style={{
-                  position:"absolute",width:"200%",height:"200%",top:"-50%",left:"-50%",
-                  background:`conic-gradient(from 0deg,${t.color} 0deg,transparent ${burst?60:active?45:18}deg,transparent ${burst?160:active?170:342}deg,${t.color} ${burst?220:active?215:355}deg,transparent ${burst?270:active?255:360}deg)`,
-                  animation:`${burst?"spinFast":"spinSlow"} ${dur} linear infinite`,
-                  opacity,
-                  filter:bright?`brightness(${burst?2:1.5}) drop-shadow(0 0 6px ${t.color})`:"none",
-                  zIndex:0,pointerEvents:"none",
-                  transition:"opacity .3s, filter .3s",
-                }}/>
-                {/* Inner mask */}
-                <div style={{
-                  position:"absolute",inset:2,borderRadius:12,
-                  background:active?`linear-gradient(145deg,${t.color}30,${t.color}12)`:"#0c0c1a",
-                  zIndex:1,
-                  transition:"background .3s",
-                }}/>
-                {/* Label */}
-                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
-                  <span style={{
-                    fontSize:active?13:11,fontWeight:900,
-                    color:active?t.color:burst?t.color:"rgba(255,255,255,0.38)",
-                    fontFamily:"Barlow Condensed,sans-serif",
-                    letterSpacing:0.5,lineHeight:1,textAlign:"center",padding:"0 3px",
-                    textShadow:bright?`0 0 14px ${t.color},0 0 28px ${t.color}88`:"none",
-                    transition:"all .25s",
-                  }}>{t.label}</span>
-                </div>
-              </div>
-              {/* Active dot */}
+              style={{
+                flex:1,background:"transparent",border:"none",
+                padding:"4px 2px 8px",cursor:"pointer",
+                display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,
+                position:"relative",
+              }}>
+              {/* Active indicator bar at top */}
               <div style={{
-                width:5,height:5,borderRadius:"50%",
-                background:t.color,
-                opacity:active?1:0,
-                boxShadow:active?`0 0 8px ${t.color},0 0 16px ${t.color}`:"none",
-                animation:active?"navDot 1.4s ease-in-out infinite":"none",
-                transition:"opacity .3s",
+                position:"absolute",top:0,left:"20%",right:"20%",height:2.5,
+                borderRadius:"0 0 4px 4px",
+                background:active?t.color:"transparent",
+                boxShadow:active?`0 0 8px ${t.color}`:undefined,
+                transition:"all .25s",
               }}/>
+              {/* Icon circle */}
+              <div style={{
+                width:44,height:44,borderRadius:13,
+                background:active?`linear-gradient(145deg,${t.color}30,${t.color}15)`:"rgba(255,255,255,0.06)",
+                border:`1.5px solid ${active?t.color:"rgba(255,255,255,0.1)"}`,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:active?22:20,
+                boxShadow:active?`0 2px 12px ${t.color}50,0 0 0 0 ${t.color}33`:"none",
+                transition:"all .25s",
+                animation:active?"navPulse 2s ease-in-out infinite":"none",
+              }}>{t.icon}</div>
+              {/* Label */}
+              <span style={{
+                fontSize:active?10:9,fontWeight:active?900:600,
+                color:active?"#ffffff":"rgba(255,255,255,0.42)",
+                fontFamily:"Barlow Condensed,sans-serif",
+                letterSpacing:active?0.5:0.3,lineHeight:1,
+                textTransform:"uppercase",
+                transition:"all .2s",
+                textShadow:active?`0 0 10px ${t.color}cc`:"none",
+              }}>{t.label}</span>
             </motion.button>
           );
         })}
@@ -817,11 +839,11 @@ function ShareModal({votes,total,sorted,pct}){
       const bar="█".repeat(Math.round(parseFloat(pc)/10))+"░".repeat(10-Math.round(parseFloat(pc)/10));
       return `${i===0?"🏆":i===1?"🥈":i===2?"🥉":"  "} ${p.short.padEnd(12)} ${bar} ${pc}%`;
     }).join("\n");
-    return `🗳️ ENCUESTA SILAO — CIUDADANA\n📅 ${fecha} · 🕐 ${hora}\n━━━━━━━━━━━━━━━━━━━\n${allRows}\n━━━━━━━━━━━━━━━━━━━\n📊 Total de votos: ${tot}\n\n📱 ¡Vota aquí!\n👉 silao360.com.mx\n\n#Silao #Guanajuato #EncuestaSilao`;
+    return `🗳️ ENCUESTA SILAO — CIUDADANA\n📅 ${fecha} · 🕐 ${hora}\n━━━━━━━━━━━━━━━━━━━\n${allRows}\n━━━━━━━━━━━━━━━━━━━\n📊 Total de votos: ${tot}\n\n🌐 Encuesta Silao\n📱 ¡Vota aquí! → silao360.com\n\n#Silao #Guanajuato #EncuestaSilao`;
   };
 
   const shareWA=()=>{window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(buildMsg()),"_blank");};
-  const shareFB=()=>{window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent("https://silao360.com.mx")+"&quote="+encodeURIComponent(buildMsg()),"_blank");};
+  const shareFB=()=>{window.open("https://www.facebook.com/sharer/sharer.php?u="+encodeURIComponent("https://silao360.com")+"&quote="+encodeURIComponent(buildMsg()),"_blank");};
 
   return(
     <>
@@ -841,8 +863,18 @@ function ShareModal({votes,total,sorted,pct}){
               {/* Handle */}
               <div style={{width:36,height:4,background:"#e5e7eb",borderRadius:2,margin:"0 auto 16px"}}/>
 
-              <div style={{fontSize:11,fontWeight:900,color:"#111",letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:4}}>📤 COMPARTIR RESULTADOS</div>
-              <div style={{fontSize:10,color:"#6b7280",marginBottom:14}}>Se compartirán los datos actuales de la encuesta</div>
+              <div style={{fontSize:16,fontWeight:900,color:"#111",letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",marginBottom:4}}>📤 Compartir Resultados</div>
+              <div style={{fontSize:12,color:"#6b7280",marginBottom:14}}>Se compartirán los datos actuales de la encuesta</div>
+
+              {/* URL destacada */}
+              <div style={{background:"linear-gradient(135deg,#f0f9ff,#e0f2fe)",border:"2px solid #0284c7",borderRadius:14,padding:"12px 16px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+                <div style={{fontSize:28}}>🌐</div>
+                <div>
+                  <div style={{fontSize:10,color:"#0369a1",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",marginBottom:2}}>ENCUESTA SILAO — DIRECCIÓN OFICIAL</div>
+                  <div style={{fontSize:20,fontWeight:900,color:"#0c4a6e",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>silao360.com</div>
+                  <div style={{fontSize:11,color:"#0369a1",fontFamily:"Barlow Condensed,sans-serif"}}>También: silao360.com.mx</div>
+                </div>
+              </div>
 
               {/* Preview del mensaje */}
               <div style={{background:"#f8fafc",border:"1.5px solid #e2e8f0",borderRadius:12,padding:"12px 14px",marginBottom:14,fontSize:11,color:"#374151",lineHeight:1.7,fontFamily:"monospace",whiteSpace:"pre-wrap"}}>
@@ -860,9 +892,9 @@ function ShareModal({votes,total,sorted,pct}){
                   <span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:18}}>f</span> COMPARTIR EN FACEBOOK
                 </motion.button>
                 <div style={{display:"flex",gap:8}}>
-                  <motion.button whileTap={{scale:0.97}} onClick={()=>window.open("https://silao360.com.mx","_blank")}
-                    style={{flex:1,background:"#f1f5f9",border:"1.5px solid #e2e8f0",borderRadius:10,padding:"10px",color:"#1d4ed8",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>
-                    📱 silao360.com.mx
+                  <motion.button whileTap={{scale:0.97}} onClick={()=>window.open("https://silao360.com","_blank")}
+                    style={{flex:1,background:"linear-gradient(135deg,#f0f9ff,#e0f2fe)",border:"2px solid #0284c7",borderRadius:10,padding:"11px",color:"#0369a1",fontSize:12,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>
+                    🌐 silao360.com
                   </motion.button>
                   <button onClick={()=>setOpen(false)} style={{flex:1,background:"#f1f5f9",border:"1.5px solid #e2e8f0",borderRadius:10,padding:"10px",color:"#374151",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>Cancelar</button>
                 </div>
@@ -906,7 +938,7 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
             else if(/android/i.test(navigator.userAgent)){alert("Android: toca el menú ⋮ → 'Agregar a pantalla de inicio'");}
             else if(window.deferredInstallPrompt){window.deferredInstallPrompt.prompt();}
             else{alert("Abre desde tu navegador móvil para instalar");}
-          }} style={{background:"linear-gradient(135deg,#1e3a5f,#2563eb)",border:"2px solid rgba(255,255,255,0.18)",borderRadius:12,aspectRatio:"1/1",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,padding:"6px 2px",boxShadow:"0 4px 14px rgba(37,99,235,0.5)"}}>
+          }} style={{background:"linear-gradient(135deg,#e01010,#8a0000)",border:"2px solid rgba(255,180,180,0.3)",borderRadius:12,aspectRatio:"1/1",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,padding:"6px 2px",boxShadow:"0 4px 14px rgba(224,16,16,0.50)"}}>
             <span style={{fontSize:"clamp(16px,4.5vw,24px)",lineHeight:1}}>📲</span>
             <span style={{fontSize:"clamp(7px,1.8vw,10px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1}}>INSTALAR</span>
           </motion.button>
@@ -1056,7 +1088,60 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
           );
         })()}
 
-        <div style={{fontSize:9,color:"#6b7280",letterSpacing:3,textAlign:"center",marginBottom:10,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>▼ RESULTADOS POR PARTIDO</div>
+        {/* ── ESTADÍSTICAS INDIVIDUALES POR PARTIDO ── */}
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:10,color:"#374151",letterSpacing:2,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",marginBottom:12,display:"flex",alignItems:"center",gap:6}}>
+            <span style={{color:"#e01010"}}>●</span> ESTADÍSTICAS INDIVIDUALES POR PARTIDO
+          </div>
+          {sorted.map((p,rank)=>{
+            const count=votes[p.id]||0;
+            const pc=pct(p.id);
+            const leaderCount=votes[sorted[0].id]||0;
+            const diff=count-leaderCount;
+            const isTop=rank===0&&count>0;
+            const isMe=myVote===p.id;
+            return(
+              <motion.div key={p.id} initial={{opacity:0,x:-12}} animate={{opacity:1,x:0}} transition={{delay:rank*0.04}}
+                style={{background:isTop?"linear-gradient(135deg,#fffbeb,#fff)":isMe?"#eff6ff":"#fff",border:`1.5px solid ${isTop?"#f59e0b":isMe?p.color+"55":"#e5e7eb"}`,borderRadius:14,padding:"12px 14px",marginBottom:8,boxShadow:isTop?"0 4px 16px rgba(245,158,11,0.15)":"0 1px 4px rgba(0,0,0,0.05)"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  {/* Rank badge */}
+                  <div style={{width:30,height:30,borderRadius:10,background:isTop?"#fef3c7":isMe?"#dbeafe":`${p.color}15`,border:`2px solid ${isTop?"#f59e0b":isMe?"#3b82f6":p.color+"30"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:900,color:isTop?"#d97706":isMe?"#1d4ed8":p.color,flexShrink:0}}>
+                    {isTop&&count>0?"🏆":rank+1}
+                  </div>
+                  {/* Logo */}
+                  <div style={{width:38,height:38,borderRadius:8,overflow:"hidden",flexShrink:0,background:`${p.color}10`,border:`2px solid ${p.color}40`}}>
+                    {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
+                  </div>
+                  {/* Info */}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4,flexWrap:"wrap"}}>
+                      <span style={{fontSize:14,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif"}}>{p.short}</span>
+                      {isMe&&<span style={{fontSize:8,color:"#1877f2",background:"#dbeafe",padding:"2px 5px",borderRadius:4,fontWeight:800}}>✓ TU VOTO</span>}
+                      {isTop&&count>0&&<span style={{fontSize:8,color:"#d97706",background:"#fef3c7",padding:"2px 5px",borderRadius:4,fontWeight:800}}>LÍDER</span>}
+                    </div>
+                    {/* Barra de progreso */}
+                    <div style={{height:6,background:"#f3f4f6",borderRadius:4,overflow:"hidden",marginBottom:3}}>
+                      <motion.div initial={{width:0}} animate={{width:bars?`${pc}%`:"0%"}} transition={{duration:1.2,ease:[.16,1,.3,1]}}
+                        style={{height:"100%",borderRadius:4,background:isTop?`linear-gradient(90deg,${p.color},#f59e0b)`:p.color,boxShadow:`0 0 6px ${p.color}50`}}/>
+                    </div>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      <span style={{fontSize:10,color:"#6b7280",fontFamily:"Barlow Condensed,sans-serif"}}>{count} votos</span>
+                      {!isTop&&count>0&&<span style={{fontSize:10,color:"#dc2626",fontFamily:"Barlow Condensed,sans-serif",fontWeight:700}}>{diff} del líder</span>}
+                      {!isTop&&count===0&&<span style={{fontSize:10,color:"#9ca3af",fontFamily:"Barlow Condensed,sans-serif"}}>Sin votos</span>}
+                    </div>
+                  </div>
+                  {/* % grande */}
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontSize:26,fontWeight:900,color:isTop&&count>0?"#d97706":p.color,lineHeight:1,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:-1}}>{pc.toFixed(1)}<span style={{fontSize:12}}>%</span></div>
+                    <div style={{fontSize:9,color:"#9ca3af",fontFamily:"Barlow Condensed,sans-serif",marginTop:2}}>#{rank+1} de {sorted.length}</div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <div style={{fontSize:9,color:"#6b7280",letterSpacing:3,textAlign:"center",marginBottom:10,fontWeight:700,fontFamily:"Barlow Condensed,sans-serif"}}>▼ DETALLE COMPLETO POR PARTIDO</div>
         {/* BOTONES GRANDES DE PARTIDOS */}
         <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:16}}> 
           {sorted.map((p,rank)=>{
@@ -1163,7 +1248,7 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
 // const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
 // const SUPABASE_ANON_KEY = "eyJ...tu-anon-key...";
 
-// ── BANNER INSTALAR APP ──
+// ── BANNER INSTALAR APP (rediseñado: mismo estilo que botón WEB) ──
 function InstallBanner(){
   const[show,setShow]=useState(false);
   const[deferredPrompt,setDeferredPrompt]=useState(null);
@@ -1171,7 +1256,6 @@ function InstallBanner(){
     try{if(localStorage.getItem("silao360_install_dismissed"))return;}catch(e){}
     const handler=(e)=>{e.preventDefault();setDeferredPrompt(e);setShow(true);};
     window.addEventListener("beforeinstallprompt",handler);
-    // Show for iOS after 3 seconds if not installed
     const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
     const isStandalone=window.matchMedia("(display-mode: standalone)").matches;
     if(isIOS&&!isStandalone){setTimeout(()=>setShow(true),3000);}
@@ -1187,19 +1271,34 @@ function InstallBanner(){
   return(
     <motion.div initial={{y:100,opacity:0}} animate={{y:0,opacity:1}} exit={{y:100,opacity:0}}
       style={{position:"fixed",bottom:70,left:0,right:0,zIndex:200,padding:"0 13px",maxWidth:580,margin:"0 auto"}}>
-      <div style={{background:"linear-gradient(135deg,#1a0a2e,#2d1b69)",border:"2px solid #7c3aed",borderRadius:16,padding:"14px 16px",boxShadow:"0 8px 32px rgba(124,58,237,0.4)",display:"flex",alignItems:"center",gap:12}}>
-        <div style={{width:44,height:44,borderRadius:10,overflow:"hidden",flexShrink:0,border:"2px solid #7c3aed"}}>
+      <div style={{
+        background:"#ffffff",
+        border:"2px solid #e5e7eb",
+        borderRadius:18,
+        padding:"14px 16px",
+        boxShadow:"0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+        display:"flex",alignItems:"center",gap:12,
+      }}>
+        <div style={{width:46,height:46,borderRadius:12,overflow:"hidden",flexShrink:0,border:"2px solid #e5e7eb",background:"#f8faff"}}>
           <img src={LOGO_SILAO360} alt="Encuesta Silao" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
         </div>
         <div style={{flex:1}}>
-          <div style={{fontSize:12,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",marginBottom:2}}>📲 Instala Encuesta Silao</div>
-          <div style={{fontSize:9,color:"rgba(196,181,253,0.7)",fontFamily:"Barlow Condensed,sans-serif"}}>Acceso rápido desde tu celular, gratis</div>
+          <div style={{fontSize:13,fontWeight:900,color:"#111827",fontFamily:"Barlow Condensed,sans-serif",marginBottom:2,letterSpacing:0.3}}>📲 Instala Encuesta Silao</div>
+          <div style={{fontSize:11,color:"#6b7280",fontFamily:"Barlow Condensed,sans-serif"}}>Acceso rápido · Gratis · Sin cuenta</div>
         </div>
         <motion.button whileTap={{scale:0.95}} onClick={install}
-          style={{background:"linear-gradient(135deg,#7c3aed,#5b21b6)",border:"none",borderRadius:9,padding:"8px 14px",color:"#fff",fontSize:11,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",flexShrink:0}}>
+          style={{
+            background:"linear-gradient(135deg,#e01010,#8a0000)",
+            border:"none",borderRadius:11,
+            padding:"10px 18px",
+            color:"#fff",fontSize:12,fontWeight:900,
+            cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",
+            flexShrink:0,letterSpacing:1,
+            boxShadow:"0 4px 14px rgba(224,16,16,0.35)",
+          }}>
           INSTALAR
         </motion.button>
-        <button onClick={dismiss} style={{background:"none",border:"none",color:"rgba(255,255,255,0.3)",fontSize:16,cursor:"pointer",flexShrink:0,padding:"4px"}}>✕</button>
+        <button onClick={dismiss} style={{background:"none",border:"none",color:"#9ca3af",fontSize:18,cursor:"pointer",flexShrink:0,padding:"2px",lineHeight:1}}>✕</button>
       </div>
     </motion.div>
   );
