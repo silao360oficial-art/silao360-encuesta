@@ -2838,6 +2838,31 @@ export default function App(){
   const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
   const doLogout=()=>{setUser(null);setMyVote(null);try{localStorage.removeItem("silao360_user");localStorage.removeItem("silao360_mivoto");}catch(e){}setShowOnboarding(true);};
 
+  // ── Supabase Storage: cargar imágenes al arrancar ──
+  useEffect(()=>{
+    const BASE = "https://irekcyeoumxnwbtonfup.supabase.co/storage/v1/object/public/fotos/";
+    // Logos de partidos
+    const partyIds = ["pan","morena","pri","mc","pvem","pt","somosmx","sombrero","independiente","nulo"];
+    partyIds.forEach(id=>{
+      const url = `${BASE}${id}_logo.jpg`;
+      fetch(url,{method:"HEAD"}).then(r=>{
+        if(r.ok){
+          (PARTY_LOGOS as any)[id] = url;
+        }
+      }).catch(()=>{});
+    });
+    // Logo principal
+    const logoUrl = `${BASE}silao360_logo.jpg`;
+    fetch(logoUrl,{method:"HEAD"}).then(r=>{ if(r.ok) setSiteLogo(logoUrl); }).catch(()=>{});
+    // Imágenes hero buttons
+    const heroNames = ["hero_0","hero_1","hero_2","hero_3","hero_4","hero_5"];
+    Promise.all(heroNames.map(name=>
+      fetch(`${BASE}${name}.jpg`,{method:"HEAD"}).then(r=>r.ok?`${BASE}${name}.jpg`:null).catch(()=>null)
+    )).then(urls=>{
+      if(urls.some(u=>u)) setHeroImages(urls);
+    });
+  },[]);
+
   // ── Supabase: registrar entrada ──
   useEffect(()=>{
     const sid=Math.random().toString(36).slice(2,10)+Date.now().toString(36);
