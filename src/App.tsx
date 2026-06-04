@@ -1392,44 +1392,38 @@ function ResultsScreen({votes,total,myVote,setScreen,user,onLoginClick,onLogoCli
           {/* 1 PULSO EN VIVO */}
           <motion.button whileTap={{scale:0.93}} onClick={()=>(window as any).__abrirPulso?.()}
             style={{background:heroImages?.[0]?`url(${heroImages[0]}) center/cover`:"linear-gradient(135deg,#0a1a0a,#0f4c0f)",border:"2px solid rgba(74,222,128,0.35)",borderRadius:14,aspectRatio:"1/1",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 4px",boxShadow:"0 4px 14px rgba(15,76,15,0.6)",position:"relative",overflow:"hidden"}}>
-            {heroImages?.[0]&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)",borderRadius:12}}/>}
-            <span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>📊</span>
-            <span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>PULSO EN VIVO</span>
+            {!heroImages?.[0]&&<span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>📊</span>}
+            {!heroImages?.[0]&&<span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>PULSO EN VIVO</span>}
           </motion.button>
           {/* 2 WEB */}
           <motion.button whileTap={{scale:0.93}} onClick={()=>window.open("https://silao360.com","_blank")}
             style={{background:heroImages?.[1]?`url(${heroImages[1]}) center/cover`:"linear-gradient(135deg,#7c0a0a,#cc0a0a)",border:"2px solid rgba(255,255,255,0.18)",borderRadius:14,aspectRatio:"1/1",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 4px",boxShadow:"0 4px 14px rgba(204,10,10,0.5)",position:"relative",overflow:"hidden"}}>
-            {heroImages?.[1]&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)",borderRadius:12}}/>}
-            <span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>🌐</span>
-            <span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>WEB</span>
+            {!heroImages?.[1]&&<span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>🌐</span>}
+            {!heroImages?.[1]&&<span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>WEB</span>}
           </motion.button>
           {/* 3 TRIVIA */}
           <motion.button whileTap={{scale:0.93}} onClick={()=>window.open("https://trivia.silao360.com.mx","_blank")}
             style={{background:heroImages?.[2]?`url(${heroImages[2]}) center/cover`:"linear-gradient(135deg,#3b0764,#7c3aed)",border:"2px solid rgba(255,255,255,0.18)",borderRadius:14,aspectRatio:"1/1",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 4px",boxShadow:"0 4px 14px rgba(124,58,237,0.5)",position:"relative",overflow:"hidden"}}>
-            {heroImages?.[2]&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)",borderRadius:12}}/>}
-            <span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>🎯</span>
-            <span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>TRIVIA</span>
+            {!heroImages?.[2]&&<span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>🎯</span>}
+            {!heroImages?.[2]&&<span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>TRIVIA</span>}
           </motion.button>
           {/* 4 PESO A PESO */}
           <motion.button whileTap={{scale:0.93}} onClick={()=>window.open("https://pesoapeso.silao360.com.mx","_blank")}
             style={{background:heroImages?.[3]?`url(${heroImages[3]}) center/cover`:"linear-gradient(135deg,#831843,#db2777)",border:"2px solid rgba(255,255,255,0.18)",borderRadius:14,aspectRatio:"1/1",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 4px",boxShadow:"0 4px 14px rgba(219,39,119,0.5)",position:"relative",overflow:"hidden"}}>
-            {heroImages?.[3]&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)",borderRadius:12}}/>}
-            <span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>💰</span>
-            <span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>PESO A PESO</span>
+            {!heroImages?.[3]&&<span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>💰</span>}
+            {!heroImages?.[3]&&<span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>PESO A PESO</span>}
           </motion.button>
           {/* 5 COMUNÍCATE */}
           <motion.button whileTap={{scale:0.93}} onClick={()=>(window as any).__abrirContacto?.()}
             style={{background:heroImages?.[4]?`url(${heroImages[4]}) center/cover`:"linear-gradient(135deg,#065f46,#059669)",border:"2px solid rgba(255,255,255,0.18)",borderRadius:14,aspectRatio:"1/1",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 4px",boxShadow:"0 4px 14px rgba(5,150,105,0.5)",position:"relative",overflow:"hidden"}}>
-            {heroImages?.[4]&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)",borderRadius:12}}/>}
-            <span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>✉️</span>
-            <span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>COMUNÍCATE</span>
+            {!heroImages?.[4]&&<span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>✉️</span>}
+            {!heroImages?.[4]&&<span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>COMUNÍCATE</span>}
           </motion.button>
           {/* 6 INSTALAR */}
           <motion.button whileTap={{scale:0.93}} onClick={()=>(window as any).__abrirInstalar?.()}
             style={{background:heroImages?.[5]?`url(${heroImages[5]}) center/cover`:"linear-gradient(135deg,#1e3a5f,#2563eb)",border:"2px solid rgba(255,255,255,0.18)",borderRadius:14,aspectRatio:"1/1",color:"#fff",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,padding:"8px 4px",boxShadow:"0 4px 14px rgba(37,99,235,0.5)",position:"relative",overflow:"hidden"}}>
-            {heroImages?.[5]&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)",borderRadius:12}}/>}
-            <span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>📲</span>
-            <span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>INSTALAR</span>
+            {!heroImages?.[5]&&<span style={{fontSize:"clamp(18px,5vw,26px)",lineHeight:1,position:"relative",zIndex:1}}>📲</span>}
+            {!heroImages?.[5]&&<span style={{fontSize:"clamp(8px,2vw,11px)",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textAlign:"center",lineHeight:1.1,position:"relative",zIndex:1}}>INSTALAR</span>}
           </motion.button>
         </div>
 
