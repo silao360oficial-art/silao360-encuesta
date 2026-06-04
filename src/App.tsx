@@ -36,6 +36,13 @@ const sb = {
       headers:{...H,"Prefer":"return=minimal"},
       body:JSON.stringify(data)
     }).then(r=>r.ok?{}:r.json()).catch(()=>({})),
+    update: (data) => ({
+      eq: (col,val) => fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`,{
+        method:"PATCH",
+        headers:{...H,"Prefer":"return=minimal"},
+        body:JSON.stringify(data)
+      }).then(r=>r.ok?{}:r.json()).catch(()=>({}))
+    }),
     delete: () => ({
       eq: (col,val) => fetch(`${SUPABASE_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`,{
         method:"DELETE", headers:H
@@ -1257,8 +1264,8 @@ function ResultsStatsSection({votes,total}){
   const[sbTotal,setSbTotal]=useState(null);
   const[sbVisitas,setSbVisitas]=useState(null);
   useEffect(()=>{
-    sb.from("votos").select("partido_id").then(rows=>{
-      if(Array.isArray(rows)) setSbTotal(rows.length);
+    sb.from("votos").select("id,partido,total").then(rows=>{
+      if(Array.isArray(rows)) setSbTotal(rows.reduce((s,r)=>s+(r.total||0),0));
     }).catch(()=>{});
     sb.from("visitas").select("id").then(rows=>{
       if(Array.isArray(rows)) setSbVisitas(rows.length);
@@ -2828,7 +2835,21 @@ export default function App(){
   const[alertaActiva,setAlertaActiva]=useState(false);
   const[heroImages,setHeroImages]=useState([null,null,null,null,null,null]);
   const total=Object.values(votes).reduce((a,b)=>a+b,0);
-  const handleVote=(id)=>{setVotes(prev=>{const next={...prev};if(myVote&&next[myVote]>0)next[myVote]--;next[id]=(next[id]||0)+1;return next;});setMyVote(id);try{localStorage.setItem("silao360_mivoto",id);}catch(e){};const uid=(user?.nickname||"anon_"+Math.random().toString(36).slice(2,8));sb.from("votos").insert({partido_id:id,user_id:uid}).catch(()=>{});};
+  const handleVote=(id)=>{
+    setVotes(prev=>{
+      const next={...prev};
+      if(myVote&&next[myVote]>0)next[myVote]--;
+      next[id]=(next[id]||0)+1;
+      const nuevoTotal=next[id];
+      // Mapeo a nombre en Supabase (tabla usa PAN, MORENA, MC, PRI, PVEM, PT en mayúsculas, resto en minúsculas)
+      const SB_PARTIDO_MAP:{[k:string]:string}={pan:"PAN",morena:"MORENA",mc:"MC",pri:"PRI",pvem:"PVEM",pt:"PT",somosmx:"somosmx",sombrero:"sombrero",independiente:"independiente",nulo:"nulo"};
+      const sbPartido=SB_PARTIDO_MAP[id]||id;
+      sb.from("votos").update({total:nuevoTotal}).eq("partido",sbPartido).catch(()=>{});
+      return next;
+    });
+    setMyVote(id);
+    try{localStorage.setItem("silao360_mivoto",id);}catch(e){}
+  };
   const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
   const doLogout=()=>{setUser(null);setMyVote(null);try{localStorage.removeItem("silao360_user");localStorage.removeItem("silao360_mivoto");}catch(e){}setShowOnboarding(true);};
 
@@ -2860,18 +2881,33 @@ export default function App(){
   // ── Supabase: registrar entrada ──
   useEffect(()=>{
     const sid=Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-    sb.from("visitas").insert({sid,ts:new Date().toISOString(),ua:navigator.userAgent.slice(0,80)}).catch(()=>{});
+    sb.from("visitas").insert({sid,ua:navigator.userAgent.slice(0,120),plataforma:"react",timestamp:new Date().toISOString()}).catch(()=>{});
   },[]);
 
   // ── Supabase: cargar votos (reemplaza estado completo) ──
   useEffect(()=>{
-    sb.from("votos").select("partido_id").then(rows=>{
+    sb.from("votos").select("id,partido,total").then(rows=>{
       if(!Array.isArray(rows)||rows.length===0) return;
-      const counts={};
-      rows.forEach(r=>{if(r.partido_id) counts[r.partido_id]=(counts[r.partido_id]||0)+1;});
+      // Mapeo case-insensitive: la tabla usa PAN/MORENA/MC etc, el app usa pan/morena/mc
+      const countsRaw:{[k:string]:number}={};
+      rows.forEach(r=>{if(r.partido) countsRaw[r.partido.toLowerCase()]=(r.total||0);});
       // Reemplazar votos con los reales de Supabase
-      setVotes(Object.fromEntries(PARTIES.map(p=>[p.id, counts[p.id]||0])));
+      setVotes(Object.fromEntries(PARTIES.map(p=>[p.id, countsRaw[p.id.toLowerCase()]||0])));
     }).catch(()=>{});
+  },[]);
+
+  // ── Supabase: Realtime — sincronizar votos en tiempo real ──
+  useEffect(()=>{
+    const channel=sb.channel("votos_realtime")
+      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"votos"},(payload)=>{
+        if(payload.new&&payload.new.partido){
+          // Mapeo inverso: Supabase -> app id (lowercase)
+          const sbId=payload.new.partido.toLowerCase();
+          setVotes(prev=>({...prev,[sbId]:payload.new.total||0}));
+        }
+      })
+      .subscribe();
+    return ()=>{ sb.removeChannel(channel); };
   },[]);
 
   // ── Supabase: cargar comentarios ──
