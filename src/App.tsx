@@ -2896,18 +2896,17 @@ export default function App(){
     }).catch(()=>{});
   },[]);
 
-  // ── Supabase: Realtime — sincronizar votos en tiempo real ──
+  // ── Supabase: polling votos cada 30s (reemplaza Realtime) ──
   useEffect(()=>{
-    const channel=sb.channel("votos_realtime")
-      .on("postgres_changes",{event:"UPDATE",schema:"public",table:"votos"},(payload)=>{
-        if(payload.new&&payload.new.partido){
-          // Mapeo inverso: Supabase -> app id (lowercase)
-          const sbId=payload.new.partido.toLowerCase();
-          setVotes(prev=>({...prev,[sbId]:payload.new.total||0}));
-        }
-      })
-      .subscribe();
-    return ()=>{ sb.removeChannel(channel); };
+    const interval=setInterval(()=>{
+      sb.from("votos").select("id,partido,total").then(rows=>{
+        if(!Array.isArray(rows)||rows.length===0)return;
+        const countsRaw:{[k:string]:number}={};
+        rows.forEach(r=>{if(r.partido)countsRaw[r.partido.toLowerCase()]=(r.total||0);});
+        setVotes(Object.fromEntries(PARTIES.map(p=>[p.id,countsRaw[p.id.toLowerCase()]||0])));
+      }).catch(()=>{});
+    },30000);
+    return ()=>clearInterval(interval);
   },[]);
 
   // ── Supabase: cargar comentarios ──
