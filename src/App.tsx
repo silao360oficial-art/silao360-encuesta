@@ -2081,31 +2081,22 @@ function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,onLogout,cand
           <div style={{fontSize:16,color:"#374151",letterSpacing:2,marginBottom:8,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>🧭 ¿QUÉ SIGNIFICA CADA TÉRMINO?</div>
           <style>{`
             @keyframes ideoBounce{0%{transform:scale(1)}30%{transform:scale(1.13) rotate(-2deg)}60%{transform:scale(0.96) rotate(1deg)}100%{transform:scale(1)}}
-            .ideo-flip{perspective:400px;cursor:pointer;}
-            .ideo-flip-inner{transition:transform 0.45s cubic-bezier(.4,2,.6,1);transform-style:preserve-3d;position:relative;}
-            .ideo-flip:active .ideo-flip-inner{transform:rotateY(180deg) scale(1.06);}
-            .ideo-face{backface-visibility:hidden;-webkit-backface-visibility:hidden;}
-            .ideo-back{position:absolute;inset:0;transform:rotateY(180deg);backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;align-items:center;justify-content:center;}
+            .ideo-btn{position:relative;cursor:pointer;}
+            .ideo-comic-ring{position:absolute;inset:-3px;border-radius:10px;z-index:0;background:conic-gradient(from 0deg,#fff 0deg,transparent 60deg,transparent 170deg,#c7d2fe 215deg,transparent 270deg,#fff 360deg);animation:spinSlow 2.2s linear infinite;opacity:0.65;filter:brightness(1.4) drop-shadow(0 0 5px rgba(255,255,255,0.8));}
+            .ideo-btn:active .ideo-comic-ring{animation:spinFast 0.35s linear infinite!important;opacity:1!important;filter:brightness(2) drop-shadow(0 0 10px #fff)!important;}
+            .ideo-inner{position:relative;z-index:1;background:linear-gradient(135deg,#ffffff,#f0f4ff);border:2px solid rgba(0,0,0,0.13);border-radius:8px;padding:7px 9px;min-height:42px;display:flex;flex-direction:column;justify-content:space-between;gap:2px;box-shadow:0 2px 8px rgba(0,0,0,0.14),inset 0 1px 0 #fff;transition:transform 0.1s;}
+            .ideo-btn:active .ideo-inner{animation:ideoBounce 0.38s cubic-bezier(.4,2,.6,1) forwards;}
           `}</style>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-            {IDEOLOGIES.map((ideo,i)=>{
-              const sc=SPECTRUM_COLORS[ideo.spectrum];
-              return(
-                <div key={ideo.id} className="ideo-flip" onClick={()=>{playSound("click");setIdeologyOpen(i);}}>
-                  <div className="ideo-flip-inner" style={{borderRadius:8,overflow:"hidden",border:`2.5px solid ${sc.solid}`,boxShadow:`0 2px 8px ${sc.solid}30`}}>
-                    {/* FRENTE */}
-                    <div className="ideo-face" style={{background:`linear-gradient(135deg,${sc.light},${sc.solid}18)`,padding:"7px 9px",minHeight:38,display:"flex",flexDirection:"column",justifyContent:"space-between",gap:2}}>
-                      <span style={{fontSize:12,fontWeight:900,color:sc.solid,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,lineHeight:1.1,display:"block"}}>{ideo.label}</span>
-                      <span style={{fontSize:10,fontWeight:700,color:`${sc.solid}99`,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{sc.label}</span>
-                    </div>
-                    {/* DORSO (se ve medio segundo al girar) */}
-                    <div className="ideo-back" style={{background:sc.solid,borderRadius:6,padding:"4px"}}>
-                      <span style={{fontSize:14,color:"#fff",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>→</span>
-                    </div>
-                  </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+            {IDEOLOGIES.map((ideo,i)=>(
+              <div key={ideo.id} className="ideo-btn" onClick={()=>{playSound("click");setIdeologyOpen(i);}}>
+                <div className="ideo-comic-ring"/>
+                <div className="ideo-inner">
+                  <span style={{fontSize:12,fontWeight:900,color:"#0a0a0a",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,lineHeight:1.1,display:"block",textShadow:"0 1px 0 rgba(255,255,255,0.9)"}}>{ideo.label}</span>
+                  <span style={{fontSize:9,fontWeight:800,color:"rgba(0,0,0,0.38)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textTransform:"uppercase"}}>{SPECTRUM_COLORS[ideo.spectrum].label}</span>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -3116,7 +3107,12 @@ export default function App(){
         .q-active{animation:qPorfavor 1.8s ease-in-out infinite;border-color:#e01010 !important}
         .q-porfavor{animation:qPorfavor 0.9s ease-in-out infinite}
         .bar-bg{background:linear-gradient(270deg,#e01010,#7c3aed,#3b82f6,#10b981,#f59e0b,#e01010);background-size:400% 400%;animation:barLights 4s linear infinite}
-        ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#c4b5fd}
+        @keyframes spinSlow{to{transform:rotate(360deg)}}
+        @keyframes spinFast{to{transform:rotate(360deg)}}
+        @keyframes ideoBounceComic{0%{transform:scale(1)}20%{transform:scale(1.18) rotate(-3deg)}50%{transform:scale(0.94) rotate(2deg)}75%{transform:scale(1.06) rotate(-1deg)}100%{transform:scale(1) rotate(0deg)}}
+        .ideo-btn{position:relative;cursor:pointer;border-radius:8px;overflow:visible;}
+        .ideo-btn:active .ideo-comic-ring{opacity:1!important;animation:spinFast 0.35s linear infinite!important;}
+        .ideo-btn:active .ideo-inner{animation:ideoBounceComic 0.4s cubic-bezier(.4,2,.6,1) forwards;}
         input::placeholder{color:#9ca3af}
         textarea::placeholder{color:#6b7280}
       `}</style>
