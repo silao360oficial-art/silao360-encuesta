@@ -2017,6 +2017,223 @@ function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo
   );
 }
 
+// ── SPIDER IDEOLOGY DIAGRAM ──
+function SpiderIdeologyDiagram({ideologies,spectrumColors,onSelect}:{ideologies:any[],spectrumColors:any,onSelect:(i:number)=>void}){
+  const [selected,setSelected]=useState<number|null>(null);
+  const [panelVisible,setPanelVisible]=useState(false);
+  const [pulseIdx,setPulseIdx]=useState<number|null>(null);
+  const cx=180,cy=185,outerR=145,innerR=52;
+  const N=ideologies.length;
+
+  // Colores por spectrum
+  const specColor=(spec:string)=>spectrumColors[spec]?.solid||"#6b7280";
+
+  // Posiciones de los nodos en el anillo externo
+  const nodePos=(i:number,r:number)=>{
+    const a=(i/N)*Math.PI*2-Math.PI/2;
+    return{x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r};
+  };
+
+  // Pulso cíclico: recorre los nodos uno a uno
+  useEffect(()=>{
+    if(selected!==null)return;
+    const iv=setInterval(()=>setPulseIdx(p=>(p===null?0:((p+1)%N))),700);
+    return()=>clearInterval(iv);
+  },[selected,N]);
+
+  const handleNode=(i:number)=>{
+    setSelected(i===selected?null:i);
+    setPanelVisible(i!==selected);
+    onSelect(i);
+  };
+
+  const handleClose=()=>{setSelected(null);setPanelVisible(false);};
+
+  const ideo=selected!==null?ideologies[selected]:null;
+
+  return(
+    <div style={{marginBottom:14}}>
+      <style>{`
+        @keyframes spiderPulse{0%,100%{opacity:0.15}50%{opacity:1}}
+        @keyframes spiderFlow{0%{stroke-dashoffset:60}100%{stroke-dashoffset:0}}
+        @keyframes spiderGovPulse{0%,100%{filter:drop-shadow(0 0 6px #e01010aa)}50%{filter:drop-shadow(0 0 18px #e01010ff) drop-shadow(0 0 32px #7c3aed88)}}
+        @keyframes spiderNodeSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        @keyframes spiderFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+        .spider-node{cursor:pointer;transition:transform 0.18s;}
+        .spider-node:hover{transform:scale(1.15);}
+        .spider-node:active{transform:scale(0.92);}
+        .spider-gov{animation:spiderGovPulse 2.2s ease-in-out infinite;}
+      `}</style>
+
+      {/* Título */}
+      <div style={{background:"linear-gradient(135deg,#0f172a,#1e1b4b)",borderRadius:"14px 14px 0 0",padding:"10px 14px",display:"flex",alignItems:"center",gap:8}}>
+        <div style={{width:7,height:7,borderRadius:"50%",background:"#e01010",animation:"pd 1.2s infinite",flexShrink:0}}/>
+        <span style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>🕷️ RED POLÍTICA — IDEOLOGÍAS</span>
+        <span style={{fontSize:16,color:"rgba(255,255,255,0.4)",marginLeft:"auto",fontFamily:"Barlow Condensed,sans-serif"}}>TOCA UN NODO</span>
+      </div>
+
+      {/* SVG Diagrama */}
+      <div style={{background:"linear-gradient(160deg,#0a0a14,#0f172a,#0a0a14)",borderRadius:"0 0 14px 14px",overflow:"hidden",position:"relative"}}>
+        {/* Grid digital de fondo */}
+        <svg width="100%" viewBox={`0 0 ${cx*2} ${cy*2+20}`} style={{display:"block",maxHeight:400}}>
+          <defs>
+            <radialGradient id="spGovGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.9"/>
+              <stop offset="60%" stopColor="#e01010" stopOpacity="0.7"/>
+              <stop offset="100%" stopColor="#0f172a" stopOpacity="0.8"/>
+            </radialGradient>
+            <pattern id="spGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5"/>
+            </pattern>
+          </defs>
+
+          {/* Fondo grid */}
+          <rect width={cx*2} height={cy*2+20} fill="url(#spGrid)"/>
+
+          {/* Líneas de araña: centro a cada nodo */}
+          {ideologies.map((_,i)=>{
+            const p=nodePos(i,outerR);
+            const isActive=selected===i;
+            const isPulse=pulseIdx===i&&selected===null;
+            return(
+              <g key={"line"+i}>
+                <line x1={cx} y1={cy} x2={p.x} y2={p.y}
+                  stroke={specColor(ideologies[i].spectrum)}
+                  strokeWidth={isActive?2:0.7}
+                  strokeOpacity={isActive?0.95:isPulse?0.7:0.18}
+                  strokeDasharray={isActive?"none":"4 3"}
+                />
+                {/* Partícula de flujo hacia el centro en el activo */}
+                {isActive&&<circle r="3" fill={specColor(ideologies[i].spectrum)} opacity="0.9">
+                  <animateMotion dur="1.2s" repeatCount="indefinite" path={`M ${p.x} ${p.y} L ${cx} ${cy}`}/>
+                </circle>}
+              </g>
+            );
+          })}
+
+          {/* Telaraña periférica: conexiones entre nodos adyacentes */}
+          {ideologies.map((_,i)=>{
+            const p1=nodePos(i,outerR);
+            const p2=nodePos((i+1)%N,outerR);
+            return(<line key={"web"+i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+              stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>);
+          })}
+
+          {/* Nodos ideológicos */}
+          {ideologies.map((ideo,i)=>{
+            const p=nodePos(i,outerR);
+            const isActive=selected===i;
+            const isPulse=pulseIdx===i&&selected===null;
+            const c=specColor(ideo.spectrum);
+            const r=isActive?13:isPulse?11:9;
+            return(
+              <g key={"node"+i} className="spider-node" onClick={()=>handleNode(i)}
+                style={{transformOrigin:`${p.x}px ${p.y}px`}}>
+                {/* Anillo conic giratorio */}
+                <circle cx={p.x} cy={p.y} r={r+5}
+                  fill="none" stroke={c} strokeWidth={isActive?2.5:1}
+                  strokeOpacity={isActive?0.9:isPulse?0.7:0.25}
+                  strokeDasharray={isActive?"none":"3 2"}/>
+                {/* Núcleo del nodo */}
+                <circle cx={p.x} cy={p.y} r={r}
+                  fill={isActive?c:`${c}55`}
+                  stroke={c} strokeWidth={isActive?2:1}
+                  filter={isActive?`drop-shadow(0 0 6px ${c})`:"none"}/>
+                {/* Punto interior */}
+                <circle cx={p.x} cy={p.y} r={isActive?4:2.5} fill="#fff" opacity={isActive?1:0.6}/>
+              </g>
+            );
+          })}
+
+          {/* Nodo central GOBIERNO — diamante */}
+          <g className="spider-gov" onClick={handleClose} style={{cursor:"pointer"}}>
+            {/* Diamante base */}
+            <polygon points={`${cx},${cy-innerR} ${cx+innerR*0.65},${cy} ${cx},${cy+innerR} ${cx-innerR*0.65},${cy}`}
+              fill="url(#spGovGrad)"
+              stroke="#e01010" strokeWidth="1.5"/>
+            {/* Capa interior faceta */}
+            <polygon points={`${cx},${cy-innerR*0.6} ${cx+innerR*0.38},${cy} ${cx},${cy+innerR*0.6} ${cx-innerR*0.38},${cy}`}
+              fill="rgba(124,58,237,0.35)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5"/>
+            {/* Núcleo brillante */}
+            <circle cx={cx} cy={cy} r="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
+            {/* Texto GOBIERNO */}
+            <text x={cx} y={cy-4} textAnchor="middle" fill="#fff"
+              style={{fontSize:9,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>GOB.</text>
+            <text x={cx} y={cy+8} textAnchor="middle" fill="rgba(255,255,255,0.65)"
+              style={{fontSize:7,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>TOCA</text>
+          </g>
+
+          {/* Labels de nodos visibles cerca (solo los activos o pulsados) */}
+          {ideologies.map((ideo,i)=>{
+            const p=nodePos(i,outerR);
+            const isActive=selected===i;
+            if(!isActive)return null;
+            // Posición del label: un poco más afuera del nodo
+            const a=(i/N)*Math.PI*2-Math.PI/2;
+            const lx=cx+Math.cos(a)*(outerR+22);
+            const ly=cy+Math.sin(a)*(outerR+22);
+            return(
+              <text key={"lbl"+i} x={lx} y={ly} textAnchor="middle"
+                fill={specColor(ideo.spectrum)}
+                style={{fontSize:8,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,
+                  textShadow:`0 0 8px ${specColor(ideo.spectrum)}`}}>
+                {ideo.label.length>14?ideo.label.slice(0,12)+"…":ideo.label}
+              </text>
+            );
+          })}
+        </svg>
+
+        {/* Barra espectro inferior */}
+        <div style={{position:"absolute",bottom:0,left:0,right:0,height:4,background:"linear-gradient(90deg,#b91c1c,#e02030,#c026d3,#6b7280,#2563eb,#1d4ed8,#1e3a8a)",opacity:0.7}}/>
+
+        {/* Instrucción si nada seleccionado */}
+        {selected===null&&(
+          <div style={{position:"absolute",bottom:8,left:0,right:0,textAlign:"center",pointerEvents:"none"}}>
+            <span style={{fontSize:16,color:"rgba(255,255,255,0.3)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>← IZQ · CENTRO · DER →</span>
+          </div>
+        )}
+      </div>
+
+      {/* Panel de info — slide up */}
+      <AnimatePresence>
+        {ideo&&panelVisible&&(
+          <motion.div initial={{y:30,opacity:0}} animate={{y:0,opacity:1}} exit={{y:20,opacity:0}} transition={{duration:0.22}}
+            style={{background:`linear-gradient(135deg,${specColor(ideo.spectrum)}18,${specColor(ideo.spectrum)}08)`,
+              border:`2px solid ${specColor(ideo.spectrum)}60`,
+              borderRadius:12,padding:"14px",marginTop:6}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <div style={{background:specColor(ideo.spectrum),borderRadius:6,padding:"2px 9px",flexShrink:0}}>
+                <span style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>{spectrumColors[ideo.spectrum]?.label}</span>
+              </div>
+              <span style={{fontSize:16,fontWeight:900,color:specColor(ideo.spectrum),fontFamily:"Barlow Condensed,sans-serif",flex:1,letterSpacing:0.5}}>{ideo.label}</span>
+              <button onClick={handleClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"rgba(0,0,0,0.4)",padding:0,lineHeight:1}}>✕</button>
+            </div>
+            <div style={{fontSize:16,color:"#374151",lineHeight:1.7,marginBottom:10}}>{ideo.desc}</div>
+            {/* Partidos relacionados */}
+            {(()=>{
+              const related=PARTIES.filter(p=>p.ideologyTags.includes(ideo.id));
+              if(!related.length)return null;
+              return(
+                <div>
+                  <div style={{fontSize:16,color:"#6b7280",letterSpacing:1,marginBottom:6,fontFamily:"Barlow Condensed,sans-serif",fontWeight:700}}>🇲🇽 PARTIDOS RELACIONADOS</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                    {related.map(p=>(
+                      <div key={p.id} style={{display:"flex",alignItems:"center",gap:4,background:`${p.color}14`,border:`1.5px solid ${p.color}50`,borderRadius:18,padding:"3px 9px"}}>
+                        {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:16,height:16,borderRadius:3,objectFit:"cover"}}/>:<span style={{fontSize:14}}>{p.emoji}</span>}
+                        <span style={{fontSize:16,fontWeight:800,color:p.color,fontFamily:"Barlow Condensed,sans-serif"}}>{p.short}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,onLogout,candidates,siteLogo}){
   const[open,setOpen]=useState(null);const[ideologyOpen,setIdeologyOpen]=useState(null);
   const art=open!==null?PARTIES[open]:null;const ideo=ideologyOpen!==null?IDEOLOGIES[ideologyOpen]:null;
@@ -2077,28 +2294,7 @@ function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,onLogout,cand
       <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
         <div style={{padding:"12px 2px 10px"}}><div style={{fontSize:16,color:"#111",fontWeight:800,letterSpacing:3,marginBottom:2,fontFamily:"Barlow Condensed,sans-serif"}}>ENCUESTA SILAO</div><div style={{fontSize:17,fontWeight:900,color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif"}}>Partidos e Ideologías</div></div>
-        <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:14,padding:"12px",marginBottom:12}}>
-          <div style={{fontSize:16,color:"#374151",letterSpacing:2,marginBottom:8,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>🧭 ¿QUÉ SIGNIFICA CADA TÉRMINO?</div>
-          <style>{`
-            @keyframes ideoBounce{0%{transform:scale(1)}30%{transform:scale(1.13) rotate(-2deg)}60%{transform:scale(0.96) rotate(1deg)}100%{transform:scale(1)}}
-            .ideo-btn{position:relative;cursor:pointer;}
-            .ideo-comic-ring{position:absolute;inset:-3px;border-radius:10px;z-index:0;background:conic-gradient(from 0deg,#fff 0deg,transparent 60deg,transparent 170deg,#c7d2fe 215deg,transparent 270deg,#fff 360deg);animation:spinSlow 2.2s linear infinite;opacity:0.65;filter:brightness(1.4) drop-shadow(0 0 5px rgba(255,255,255,0.8));}
-            .ideo-btn:active .ideo-comic-ring{animation:spinFast 0.35s linear infinite!important;opacity:1!important;filter:brightness(2) drop-shadow(0 0 10px #fff)!important;}
-            .ideo-inner{position:relative;z-index:1;background:linear-gradient(135deg,#ffffff,#f0f4ff);border:2px solid rgba(0,0,0,0.13);border-radius:8px;padding:7px 9px;min-height:42px;display:flex;flex-direction:column;justify-content:space-between;gap:2px;box-shadow:0 2px 8px rgba(0,0,0,0.14),inset 0 1px 0 #fff;transition:transform 0.1s;}
-            .ideo-btn:active .ideo-inner{animation:ideoBounce 0.38s cubic-bezier(.4,2,.6,1) forwards;}
-          `}</style>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            {IDEOLOGIES.map((ideo,i)=>(
-              <div key={ideo.id} className="ideo-btn" onClick={()=>{playSound("click");setIdeologyOpen(i);}}>
-                <div className="ideo-comic-ring"/>
-                <div className="ideo-inner">
-                  <span style={{fontSize:12,fontWeight:900,color:"#0a0a0a",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,lineHeight:1.1,display:"block",textShadow:"0 1px 0 rgba(255,255,255,0.9)"}}>{ideo.label}</span>
-                  <span style={{fontSize:9,fontWeight:800,color:"rgba(0,0,0,0.38)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textTransform:"uppercase"}}>{SPECTRUM_COLORS[ideo.spectrum].label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <SpiderIdeologyDiagram ideologies={IDEOLOGIES} spectrumColors={SPECTRUM_COLORS} onSelect={(i)=>{playSound("click");setIdeologyOpen(i);}} />
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {PARTIES.map((a,i)=>{const count=votes[a.id]||0;const pctVal=total>0?((count/total)*100).toFixed(1):"0.0";return(
             <motion.button key={a.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*0.04}}
