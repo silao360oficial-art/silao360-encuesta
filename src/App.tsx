@@ -2017,219 +2017,171 @@ function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo
   );
 }
 
-// ── SPIDER IDEOLOGY DIAGRAM ──
+// ── HOLOGRAPHIC IDEOLOGY DIAGRAM ──
+// Mapa mental árbol: GOBIERNO arriba, ramas en abanico diagonal
+const MIND_GROUPS = [
+  { label:"ULTRAIZQUIERDA", color:"#c2001a", glow:"#ff2040", emoji:"🔴", sub:[{label:"Comunismo",id:"comunismo"},{label:"Socialismo",id:"socialismo"},{label:"Izquierda",id:"izquierda"}] },
+  { label:"CENTRO-IZQ.", color:"#f97316", glow:"#ffaa44", emoji:"🟠", sub:[{label:"Socialdemocracia",id:"socialdemocrata"},{label:"Progresismo",id:"progresismo"},{label:"Ambientalismo",id:"ambientalismo"}] },
+  { label:"CENTRO", color:"#94a3b8", glow:"#e2e8f0", emoji:"⚪", sub:[{label:"Humanismo",id:"humanismo"},{label:"Federalismo",id:"federalismo"},{label:"Municipalismo",id:"municipalismo"},{label:"Tecnocracia",id:"tecnocracia"}] },
+  { label:"CENTRO-DER.", color:"#3b82f6", glow:"#60a5fa", emoji:"🔵", sub:[{label:"Liberalismo",id:"liberalismo"},{label:"Dem. Cristiana",id:"democraciacristiana"},{label:"Nacionalismo",id:"nacionalismo"}] },
+  { label:"DERECHA", color:"#7c3aed", glow:"#a78bfa", emoji:"🟣", sub:[{label:"Conservadurismo",id:"conservador"},{label:"Neoliberalismo",id:"neoliberalismo"},{label:"Libertarismo",id:"libertarismo"}] },
+];
+
 function SpiderIdeologyDiagram({ideologies,spectrumColors,onSelect}:{ideologies:any[],spectrumColors:any,onSelect:(i:number)=>void}){
-  const [selected,setSelected]=useState<number|null>(null);
-  const [panelVisible,setPanelVisible]=useState(false);
-  const [pulseIdx,setPulseIdx]=useState<number|null>(null);
-  const cx=180,cy=185,outerR=145,innerR=52;
-  const N=ideologies.length;
+  const [openBranch,setOpenBranch]=useState<number|null>(null);
+  const [openLeaf,setOpenLeaf]=useState<string|null>(null);
 
-  // Colores por spectrum
-  const specColor=(spec:string)=>spectrumColors[spec]?.solid||"#6b7280";
-
-  // Posiciones de los nodos en el anillo externo
-  const nodePos=(i:number,r:number)=>{
-    const a=(i/N)*Math.PI*2-Math.PI/2;
-    return{x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r};
+  const toggleBranch=(i:number)=>{
+    playSound("click");
+    setOpenBranch(openBranch===i?null:i);
+    setOpenLeaf(null);
+  };
+  const toggleLeaf=(id:string)=>{
+    playSound("click");
+    setOpenLeaf(openLeaf===id?null:id);
+    const idx=ideologies.findIndex(x=>x.id===id);
+    if(idx>=0)onSelect(idx);
   };
 
-  // Pulso cíclico: recorre los nodos uno a uno
-  useEffect(()=>{
-    if(selected!==null)return;
-    const iv=setInterval(()=>setPulseIdx(p=>(p===null?0:((p+1)%N))),700);
-    return()=>clearInterval(iv);
-  },[selected,N]);
-
-  const handleNode=(i:number)=>{
-    setSelected(i===selected?null:i);
-    setPanelVisible(i!==selected);
-    onSelect(i);
-  };
-
-  const handleClose=()=>{setSelected(null);setPanelVisible(false);};
-
-  const ideo=selected!==null?ideologies[selected]:null;
+  // Ángulos de abanico para las 5 ramas: izquierda fuerte → derecha fuerte
+  // -55, -27, 0, 27, 55 grados desde vertical
+  const BRANCH_ANGLES=[-55,-27,0,27,55];
 
   return(
     <div style={{marginBottom:14}}>
       <style>{`
-        @keyframes spiderPulse{0%,100%{opacity:0.15}50%{opacity:1}}
-        @keyframes spiderFlow{0%{stroke-dashoffset:60}100%{stroke-dashoffset:0}}
-        @keyframes spiderGovPulse{0%,100%{filter:drop-shadow(0 0 6px #e01010aa)}50%{filter:drop-shadow(0 0 18px #e01010ff) drop-shadow(0 0 32px #7c3aed88)}}
-        @keyframes spiderNodeSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-        @keyframes spiderFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-        .spider-node{cursor:pointer;transition:transform 0.18s;}
-        .spider-node:hover{transform:scale(1.15);}
-        .spider-node:active{transform:scale(0.92);}
-        .spider-gov{animation:spiderGovPulse 2.2s ease-in-out infinite;}
+        @keyframes mmSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        @keyframes mmGovPulse{0%,100%{box-shadow:0 0 16px rgba(224,16,16,0.7),0 0 32px rgba(124,58,237,0.5)}50%{box-shadow:0 0 36px rgba(224,16,16,1),0 0 64px rgba(124,58,237,0.9)}}
+        @keyframes mmLeafPop{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}
+        @keyframes mmBeamPulse{0%,100%{opacity:0.35}50%{opacity:1}}
+        .mm-node{cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;}
+        .mm-node:active{transform:scale(0.93)!important;}
+        .mm-leaf-enter{animation:mmLeafPop 0.22s cubic-bezier(.4,2,.6,1) forwards;}
       `}</style>
 
-      {/* Título */}
+      {/* Header */}
       <div style={{background:"linear-gradient(135deg,#0f172a,#1e1b4b)",borderRadius:"14px 14px 0 0",padding:"10px 14px",display:"flex",alignItems:"center",gap:8}}>
         <div style={{width:7,height:7,borderRadius:"50%",background:"#e01010",animation:"pd 1.2s infinite",flexShrink:0}}/>
-        <span style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>🕷️ RED POLÍTICA — IDEOLOGÍAS</span>
-        <span style={{fontSize:16,color:"rgba(255,255,255,0.4)",marginLeft:"auto",fontFamily:"Barlow Condensed,sans-serif"}}>TOCA UN NODO</span>
+        <span style={{fontSize:15,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>🗺️ MAPA IDEOLÓGICO — ESPECTRO POLÍTICO</span>
       </div>
 
-      {/* SVG Diagrama */}
-      <div style={{background:"linear-gradient(160deg,#0a0a14,#0f172a,#0a0a14)",borderRadius:"0 0 14px 14px",overflow:"hidden",position:"relative"}}>
-        {/* Grid digital de fondo */}
-        <svg width="100%" viewBox={`0 0 ${cx*2} ${cy*2+20}`} style={{display:"block",maxHeight:400}}>
-          <defs>
-            <radialGradient id="spGovGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.9"/>
-              <stop offset="60%" stopColor="#e01010" stopOpacity="0.7"/>
-              <stop offset="100%" stopColor="#0f172a" stopOpacity="0.8"/>
-            </radialGradient>
-            <pattern id="spGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5"/>
-            </pattern>
-          </defs>
+      {/* Cuerpo del mapa */}
+      <div style={{background:"linear-gradient(160deg,#070712,#0d1020,#070712)",padding:"20px 12px 16px",borderRadius:"0 0 14px 14px",overflow:"hidden",position:"relative"}}>
 
-          {/* Fondo grid */}
-          <rect width={cx*2} height={cy*2+20} fill="url(#spGrid)"/>
+        {/* Grid digital */}
+        <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px)",backgroundSize:"22px 22px",pointerEvents:"none"}}/>
+        {/* Barra espectro top */}
+        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,#c2001a,#f97316,#94a3b8,#3b82f6,#7c3aed)"}}/>
 
-          {/* Líneas de araña: centro a cada nodo */}
-          {ideologies.map((_,i)=>{
-            const p=nodePos(i,outerR);
-            const isActive=selected===i;
-            const isPulse=pulseIdx===i&&selected===null;
+        {/* ── NODO GOBIERNO (hexágono) ── */}
+        <div style={{display:"flex",justifyContent:"center",marginBottom:0}}>
+          <div className="mm-node" onClick={()=>{setOpenBranch(null);setOpenLeaf(null);playSound("click");}}
+            style={{position:"relative",width:74,height:74,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {/* Anillo conic spinning multicolor — efecto trivia */}
+            <div style={{position:"absolute",inset:-4,background:"conic-gradient(from 0deg,#e01010,#f59e0b,#7c3aed,#3b82f6,#e01010)",borderRadius:10,animation:"mmSpin 2.5s linear infinite",transform:"rotate(30deg)",opacity:0.85}}/>
+            {/* Hexágono con clip-path */}
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,#1a0028,#2d0a0a,#08102a)",clipPath:"polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)",animation:"mmGovPulse 2.5s ease-in-out infinite"}}/>
+            {/* Faceta interna */}
+            <div style={{position:"absolute",inset:10,background:"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(224,16,16,0.35))",clipPath:"polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)",border:"1px solid rgba(255,255,255,0.12)"}}/>
+            {/* Texto */}
+            <div style={{position:"relative",zIndex:2,textAlign:"center",lineHeight:1}}>
+              <div style={{fontSize:10,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1.5,textShadow:"0 0 10px rgba(255,255,255,0.9)"}}>GOB.</div>
+              <div style={{fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.5)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>BIERNO</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── RAMAS (nivel 1) ── */}
+        {/* SVG para las líneas de conexión */}
+        <svg width="100%" height={openBranch!==null?0:32} style={{display:"block",overflow:"visible",marginTop:-2,pointerEvents:"none",position:"relative",zIndex:1}}>
+          {MIND_GROUPS.map((_,i)=>{
+            // Posición X de cada nodo nivel 1 (5 columnas uniformes)
+            const xPct=10+i*20; // 10,30,50,70,90%
             return(
-              <g key={"line"+i}>
-                <line x1={cx} y1={cy} x2={p.x} y2={p.y}
-                  stroke={specColor(ideologies[i].spectrum)}
-                  strokeWidth={isActive?2:0.7}
-                  strokeOpacity={isActive?0.95:isPulse?0.7:0.18}
-                  strokeDasharray={isActive?"none":"4 3"}
-                />
-                {/* Partícula de flujo hacia el centro en el activo */}
-                {isActive&&<circle r="3" fill={specColor(ideologies[i].spectrum)} opacity="0.9">
-                  <animateMotion dur="1.2s" repeatCount="indefinite" path={`M ${p.x} ${p.y} L ${cx} ${cy}`}/>
-                </circle>}
-              </g>
-            );
-          })}
-
-          {/* Telaraña periférica: conexiones entre nodos adyacentes */}
-          {ideologies.map((_,i)=>{
-            const p1=nodePos(i,outerR);
-            const p2=nodePos((i+1)%N,outerR);
-            return(<line key={"web"+i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-              stroke="rgba(255,255,255,0.06)" strokeWidth="0.5"/>);
-          })}
-
-          {/* Nodos ideológicos */}
-          {ideologies.map((ideo,i)=>{
-            const p=nodePos(i,outerR);
-            const isActive=selected===i;
-            const isPulse=pulseIdx===i&&selected===null;
-            const c=specColor(ideo.spectrum);
-            const r=isActive?13:isPulse?11:9;
-            return(
-              <g key={"node"+i} className="spider-node" onClick={()=>handleNode(i)}
-                style={{transformOrigin:`${p.x}px ${p.y}px`}}>
-                {/* Anillo conic giratorio */}
-                <circle cx={p.x} cy={p.y} r={r+5}
-                  fill="none" stroke={c} strokeWidth={isActive?2.5:1}
-                  strokeOpacity={isActive?0.9:isPulse?0.7:0.25}
-                  strokeDasharray={isActive?"none":"3 2"}/>
-                {/* Núcleo del nodo */}
-                <circle cx={p.x} cy={p.y} r={r}
-                  fill={isActive?c:`${c}55`}
-                  stroke={c} strokeWidth={isActive?2:1}
-                  filter={isActive?`drop-shadow(0 0 6px ${c})`:"none"}/>
-                {/* Punto interior */}
-                <circle cx={p.x} cy={p.y} r={isActive?4:2.5} fill="#fff" opacity={isActive?1:0.6}/>
-              </g>
-            );
-          })}
-
-          {/* Nodo central GOBIERNO — diamante */}
-          <g className="spider-gov" onClick={handleClose} style={{cursor:"pointer"}}>
-            {/* Diamante base */}
-            <polygon points={`${cx},${cy-innerR} ${cx+innerR*0.65},${cy} ${cx},${cy+innerR} ${cx-innerR*0.65},${cy}`}
-              fill="url(#spGovGrad)"
-              stroke="#e01010" strokeWidth="1.5"/>
-            {/* Capa interior faceta */}
-            <polygon points={`${cx},${cy-innerR*0.6} ${cx+innerR*0.38},${cy} ${cx},${cy+innerR*0.6} ${cx-innerR*0.38},${cy}`}
-              fill="rgba(124,58,237,0.35)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.5"/>
-            {/* Núcleo brillante */}
-            <circle cx={cx} cy={cy} r="10" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
-            {/* Texto GOBIERNO */}
-            <text x={cx} y={cy-4} textAnchor="middle" fill="#fff"
-              style={{fontSize:9,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>GOB.</text>
-            <text x={cx} y={cy+8} textAnchor="middle" fill="rgba(255,255,255,0.65)"
-              style={{fontSize:7,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>TOCA</text>
-          </g>
-
-          {/* Labels de nodos visibles cerca (solo los activos o pulsados) */}
-          {ideologies.map((ideo,i)=>{
-            const p=nodePos(i,outerR);
-            const isActive=selected===i;
-            if(!isActive)return null;
-            // Posición del label: un poco más afuera del nodo
-            const a=(i/N)*Math.PI*2-Math.PI/2;
-            const lx=cx+Math.cos(a)*(outerR+22);
-            const ly=cy+Math.sin(a)*(outerR+22);
-            return(
-              <text key={"lbl"+i} x={lx} y={ly} textAnchor="middle"
-                fill={specColor(ideo.spectrum)}
-                style={{fontSize:8,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,
-                  textShadow:`0 0 8px ${specColor(ideo.spectrum)}`}}>
-                {ideo.label.length>14?ideo.label.slice(0,12)+"…":ideo.label}
-              </text>
+              <line key={i}
+                x1="50%" y1="0"
+                x2={`${xPct}%`} y2="32"
+                stroke={MIND_GROUPS[i].color}
+                strokeWidth="1.5"
+                strokeOpacity="0.6"
+                strokeDasharray="4 3"
+                style={{animation:"mmBeamPulse 2s ease-in-out infinite"}}
+              />
             );
           })}
         </svg>
 
-        {/* Barra espectro inferior */}
-        <div style={{position:"absolute",bottom:0,left:0,right:0,height:4,background:"linear-gradient(90deg,#b91c1c,#e02030,#c026d3,#6b7280,#2563eb,#1d4ed8,#1e3a8a)",opacity:0.7}}/>
+        {/* Nodos de rama */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"0 2px",gap:3,marginTop:openBranch!==null?8:0}}>
+          {MIND_GROUPS.map((g,i)=>{
+            const isOpen=openBranch===i;
+            return(
+              <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
 
-        {/* Instrucción si nada seleccionado */}
-        {selected===null&&(
-          <div style={{position:"absolute",bottom:8,left:0,right:0,textAlign:"center",pointerEvents:"none"}}>
-            <span style={{fontSize:16,color:"rgba(255,255,255,0.3)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>← IZQ · CENTRO · DER →</span>
+                {/* Nodo rama — círculo con conic trivia */}
+                <div className="mm-node" onClick={()=>toggleBranch(i)}
+                  style={{position:"relative",width:isOpen?52:44,height:isOpen?52:44,transition:"width 0.2s,height 0.2s",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {/* Conic spinning del color de la rama */}
+                  <div style={{position:"absolute",inset:-3,borderRadius:"50%",background:`conic-gradient(from 0deg,${g.color},#fff,${g.color}88,transparent,${g.color})`,animation:`mmSpin ${isOpen?1:2.2}s linear infinite`}}/>
+                  {/* Círculo interior */}
+                  <div style={{position:"absolute",inset:0,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${g.color}cc,${g.color}55 60%,#080818)`,border:`2px solid ${g.color}`,
+                    boxShadow:isOpen?`0 0 20px ${g.glow},0 0 40px ${g.glow}55`:`0 0 8px ${g.glow}44`}}/>
+                  {/* Emoji o chevron */}
+                  <span style={{position:"relative",zIndex:2,fontSize:isOpen?14:11,lineHeight:1}}>{isOpen?"▾":g.emoji}</span>
+                </div>
+
+                {/* Label rama */}
+                <div style={{fontSize:7,fontWeight:900,color:isOpen?g.glow:g.color,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.2,textAlign:"center",marginTop:3,lineHeight:1.2,textShadow:isOpen?`0 0 8px ${g.glow}`:"none",transition:"color 0.2s",maxWidth:54}}>
+                  {g.label}
+                </div>
+
+                {/* ── SUB-NODOS (nivel 2) — se despliegan hacia abajo ── */}
+                <AnimatePresence>
+                  {isOpen&&(
+                    <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}} transition={{duration:0.22}}
+                      style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,marginTop:6,overflow:"hidden",width:"100%"}}>
+                      {/* Línea vertical desde la rama */}
+                      <div style={{width:2,height:8,background:`linear-gradient(to bottom,${g.color},${g.color}44)`,borderRadius:1,flexShrink:0}}/>
+                      {g.sub.map((s,si)=>{
+                        const isLeafOpen=openLeaf===s.id;
+                        return(
+                          <div key={s.id} className="mm-leaf-enter mm-node" onClick={()=>toggleLeaf(s.id)}
+                            style={{animationDelay:`${si*0.06}s`,width:"100%"}}>
+                            {/* Línea de conexión */}
+                            {si>0&&<div style={{width:1.5,height:4,background:`${g.color}44`,margin:"0 auto",flexShrink:0}}/>}
+                            {/* Leaf node */}
+                            <div style={{position:"relative",overflow:"hidden",borderRadius:6,border:`1.5px solid ${isLeafOpen?g.color:g.color+"55"}`,background:isLeafOpen?`${g.color}28`:`${g.color}10`,padding:"4px 4px",
+                              boxShadow:isLeafOpen?`0 0 10px ${g.glow}55`:"none",transition:"all 0.15s"}}>
+                              {/* Mini conic ring en el leaf activo */}
+                              {isLeafOpen&&<div style={{position:"absolute",inset:-2,borderRadius:7,background:`conic-gradient(from 0deg,${g.color},transparent,${g.color})`,animation:"mmSpin 1.2s linear infinite",opacity:0.6,zIndex:0}}/>}
+                              <div style={{position:"relative",zIndex:1,textAlign:"center"}}>
+                                <div style={{fontSize:7,fontWeight:900,color:isLeafOpen?g.glow:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.3,lineHeight:1.2}}>{s.label}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Barra espectro inferior */}
+        <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,#c2001a,#f97316,#94a3b8,#3b82f6,#7c3aed)",marginTop:14,opacity:0.7}}/>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
+          <span style={{fontSize:7,color:"#c2001a",fontFamily:"Barlow Condensed,sans-serif",fontWeight:800}}>← IZQ.</span>
+          <span style={{fontSize:7,color:"#94a3b8",fontFamily:"Barlow Condensed,sans-serif",fontWeight:800}}>CENTRO</span>
+          <span style={{fontSize:7,color:"#7c3aed",fontFamily:"Barlow Condensed,sans-serif",fontWeight:800}}>DER. →</span>
+        </div>
+        {openBranch===null&&(
+          <div style={{textAlign:"center",marginTop:5}}>
+            <span style={{fontSize:10,color:"rgba(255,255,255,0.22)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>TOCA UNA RAMA PARA EXPANDIR</span>
           </div>
         )}
       </div>
-
-      {/* Panel de info — slide up */}
-      <AnimatePresence>
-        {ideo&&panelVisible&&(
-          <motion.div initial={{y:30,opacity:0}} animate={{y:0,opacity:1}} exit={{y:20,opacity:0}} transition={{duration:0.22}}
-            style={{background:`linear-gradient(135deg,${specColor(ideo.spectrum)}18,${specColor(ideo.spectrum)}08)`,
-              border:`2px solid ${specColor(ideo.spectrum)}60`,
-              borderRadius:12,padding:"14px",marginTop:6}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <div style={{background:specColor(ideo.spectrum),borderRadius:6,padding:"2px 9px",flexShrink:0}}>
-                <span style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>{spectrumColors[ideo.spectrum]?.label}</span>
-              </div>
-              <span style={{fontSize:16,fontWeight:900,color:specColor(ideo.spectrum),fontFamily:"Barlow Condensed,sans-serif",flex:1,letterSpacing:0.5}}>{ideo.label}</span>
-              <button onClick={handleClose} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,color:"rgba(0,0,0,0.4)",padding:0,lineHeight:1}}>✕</button>
-            </div>
-            <div style={{fontSize:16,color:"#374151",lineHeight:1.7,marginBottom:10}}>{ideo.desc}</div>
-            {/* Partidos relacionados */}
-            {(()=>{
-              const related=PARTIES.filter(p=>p.ideologyTags.includes(ideo.id));
-              if(!related.length)return null;
-              return(
-                <div>
-                  <div style={{fontSize:16,color:"#6b7280",letterSpacing:1,marginBottom:6,fontFamily:"Barlow Condensed,sans-serif",fontWeight:700}}>🇲🇽 PARTIDOS RELACIONADOS</div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-                    {related.map(p=>(
-                      <div key={p.id} style={{display:"flex",alignItems:"center",gap:4,background:`${p.color}14`,border:`1.5px solid ${p.color}50`,borderRadius:18,padding:"3px 9px"}}>
-                        {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:16,height:16,borderRadius:3,objectFit:"cover"}}/>:<span style={{fontSize:14}}>{p.emoji}</span>}
-                        <span style={{fontSize:16,fontWeight:800,color:p.color,fontFamily:"Barlow Condensed,sans-serif"}}>{p.short}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
