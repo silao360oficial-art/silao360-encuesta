@@ -166,16 +166,48 @@ const PARTIES = [
   { id:"nulo", short:"TODAVÍA NO DECIDO", name:"Escucho propuestas primero", color:"#0891b2", emoji:"🤔", spectrumPos:50, spectrumLabel:"Ciudadano informado", ideologyTags:["centro"], fundado:"No aplica", fundador:"No aplica", dirigente:"No aplica", militantes:"No aplica", gobiernos:"No aplica", descripcion:"Informarse antes de decidir es un derecho ciudadano. Conocer las propuestas, trayectorias y plataformas de cada candidato es fundamental para una votación responsable.", curioso:"💡 El voto informado es una de las herramientas más poderosas de la democracia. Analizar opciones antes de decidir es un ejercicio cívico valioso.", opinion:"Esperar a conocer las propuestas completas antes de decidir es una postura válida y responsable para cualquier ciudadano." },
 ];
 
+// Colores del espectro político (estilo Ground News)
+// Izq ←  rojo/rosa  |  centro → púrpura/gris  |  der → azul  →
 const IDEOLOGIES = [
-  { id:"derecha", label:"DERECHA", color:"#1e3a8a", bg:"#dbeafe", desc:"Favorece tradición, libre mercado, propiedad privada y valores familiares." },
-  { id:"izquierda", label:"IZQUIERDA", color:"#991b1b", bg:"#fee2e2", desc:"Busca reducir desigualdades sociales, más intervención del Estado." },
-  { id:"centro", label:"CENTRO", color:"#374151", bg:"#f3f4f6", desc:"Busca equilibrio entre libre mercado y protección social." },
-  { id:"conservador", label:"CONSERVADOR", color:"#7c2d12", bg:"#fff7ed", desc:"Valora la tradición, las instituciones históricas, la familia y la religión." },
-  { id:"socialdemocrata", label:"SOCIALDEMOCRACIA", color:"#166534", bg:"#dcfce7", desc:"Acepta el capitalismo pero exige regulación estatal y servicios sociales." },
-  { id:"populismo", label:"POPULISMO", color:"#92400e", bg:"#fef3c7", desc:"Divide al mundo entre el pueblo y la élite corrupta." },
-  { id:"progresismo", label:"PROGRESISMO", color:"#5b21b6", bg:"#ede9fe", desc:"Busca cambios sociales acelerados: igualdad, derechos, inclusión." },
-  { id:"nacionalismo", label:"NACIONALISMO", color:"#065f46", bg:"#d1fae5", desc:"Pone al país y su soberanía por encima de todo." },
+  { id:"ultraizquierda",  label:"ULTRAIZQUIERDA",    spectrum:"far-left",    color:"#c2001a", bg:"#ffe4e6", desc:"Corriente que propone transformaciones profundas en la estructura económica y social. Generalmente favorece una intervención muy amplia del Estado o formas de propiedad colectiva para reducir diferencias económicas y cambiar de manera significativa la distribución del poder y los recursos." },
+  { id:"izquierda",       label:"IZQUIERDA",         spectrum:"left",        color:"#e02030", bg:"#fee2e2", desc:"Corriente política que busca reducir las desigualdades económicas y sociales mediante la acción del gobierno. Considera importante que existan programas públicos, regulaciones económicas y mecanismos de apoyo para mejorar las condiciones de vida de las personas con menos recursos y oportunidades." },
+  { id:"centroizquierda", label:"CENTRO-IZQUIERDA",  spectrum:"center-left", color:"#e06080", bg:"#fce7f3", desc:"Corriente que combina la economía de mercado con una participación activa del gobierno en asuntos sociales. Apoya programas de bienestar, educación pública y salud accesible, pero mantiene espacio para la inversión privada y la actividad empresarial como motores del crecimiento económico." },
+  { id:"comunismo",       label:"COMUNISMO",         spectrum:"far-left",    color:"#b91c1c", bg:"#fca5a5", desc:"Ideología que busca una sociedad sin clases sociales donde los medios de producción, como fábricas, tierras y recursos importantes, pertenezcan colectivamente a la sociedad. Su objetivo es eliminar grandes diferencias económicas y organizar la producción con base en las necesidades colectivas." },
+  { id:"socialismo",      label:"SOCIALISMO",        spectrum:"left",        color:"#dc2626", bg:"#fee2e2", desc:"Ideología que propone una participación importante del Estado en la economía para distribuir la riqueza de manera más equitativa. Considera que sectores estratégicos pueden estar bajo control público y que el gobierno debe intervenir activamente para garantizar bienestar social y oportunidades para todos." },
+  { id:"socialdemocrata", label:"SOCIALDEMOCRACIA",  spectrum:"center-left", color:"#be185d", bg:"#fce7f3", desc:"Corriente que combina una economía de mercado con programas sociales amplios. Busca que existan empresas privadas y crecimiento económico, mientras el gobierno garantiza acceso a servicios como salud, educación y protección social para reducir desigualdades y mejorar la calidad de vida." },
+  { id:"progresismo",     label:"PROGRESISMO",       spectrum:"center-left", color:"#9333ea", bg:"#f3e8ff", desc:"Corriente que impulsa cambios sociales, culturales y políticos para ampliar derechos y adaptar las instituciones a nuevas realidades. Considera que la sociedad evoluciona constantemente y que las leyes deben actualizarse para responder a los cambios y necesidades actuales." },
+  { id:"populismo",       label:"POPULISMO",         spectrum:"center-left", color:"#a21caf", bg:"#fae8ff", desc:"Forma de hacer política que busca representar directamente al pueblo y responder a sus demandas. Suele presentar los problemas políticos como una confrontación entre la población común y grupos considerados privilegiados o con excesiva influencia sobre las decisiones públicas." },
+  { id:"centro",          label:"CENTRO",            spectrum:"center",      color:"#6b7280", bg:"#f3f4f6", desc:"Corriente que busca equilibrar ideas de izquierda y derecha. Considera que algunas situaciones requieren más participación del gobierno y otras más libertad económica. Su objetivo principal es encontrar soluciones prácticas sin apegarse completamente a una sola ideología política." },
+  { id:"humanismo",       label:"HUMANISMO",         spectrum:"center",      color:"#7c3aed", bg:"#ede9fe", desc:"Corriente que coloca a la persona, su dignidad, sus derechos y su bienestar en el centro de las decisiones públicas. Considera que el desarrollo económico, social y político debe orientarse principalmente a mejorar la calidad de vida de los seres humanos." },
+  { id:"comunitarismo",   label:"COMUNITARISMO",     spectrum:"center",      color:"#7c3aed", bg:"#f5f3ff", desc:"Corriente que destaca la importancia de la comunidad, la cooperación y la responsabilidad compartida. Considera que las personas forman parte de grupos sociales que influyen en su desarrollo y que las decisiones deben fortalecer el bienestar colectivo." },
+  { id:"federalismo",     label:"FEDERALISMO",       spectrum:"center",      color:"#6d28d9", bg:"#ede9fe", desc:"Sistema político que distribuye el poder entre un gobierno nacional y gobiernos estatales. Permite que las entidades federativas tengan cierto grado de autonomía para tomar decisiones locales, manteniendo al mismo tiempo una estructura nacional común." },
+  { id:"municipalismo",   label:"MUNICIPALISMO",     spectrum:"center",      color:"#0891b2", bg:"#cffafe", desc:"Corriente que propone fortalecer a los municipios otorgándoles más recursos, facultades y capacidad de decisión. Considera que los gobiernos locales están más cerca de la población y pueden responder de manera más eficiente a los problemas comunitarios." },
+  { id:"centralismo",     label:"CENTRALISMO",       spectrum:"center",      color:"#475569", bg:"#f1f5f9", desc:"Sistema político en el que la mayor parte de las decisiones y facultades se concentran en el gobierno nacional. Busca una dirección uniforme para todo el país, limitando el grado de autonomía que tienen los estados o regiones." },
+  { id:"tecnocracia",     label:"TECNOCRACIA",       spectrum:"center",      color:"#0f766e", bg:"#ccfbf1", desc:"Corriente que considera que las decisiones públicas deben basarse principalmente en evidencia, datos y conocimientos técnicos. Propone que especialistas y expertos desempeñen un papel importante en el diseño e implementación de políticas para resolver problemas complejos." },
+  { id:"ambientalismo",   label:"AMBIENTALISMO",     spectrum:"center-left", color:"#15803d", bg:"#dcfce7", desc:"Corriente que considera la protección del medio ambiente una prioridad fundamental. Busca promover el uso sostenible de los recursos naturales, reducir la contaminación, proteger ecosistemas y garantizar que el desarrollo económico sea compatible con la conservación ambiental." },
+  { id:"nacionalismo",    label:"NACIONALISMO",      spectrum:"center-right",color:"#854d0e", bg:"#fef9c3", desc:"Corriente que prioriza los intereses, la soberanía, la cultura y la identidad de una nación. Considera importante proteger los recursos estratégicos, fortalecer las instituciones nacionales y promover decisiones que beneficien principalmente al país y a sus ciudadanos." },
+  { id:"liberalismo",     label:"LIBERALISMO",       spectrum:"center-right",color:"#2563eb", bg:"#dbeafe", desc:"Corriente que promueve las libertades individuales, la igualdad ante la ley y la protección de los derechos civiles. Defiende que las personas puedan tomar decisiones sobre su vida con la menor interferencia posible, dentro de un sistema democrático basado en leyes e instituciones." },
+  { id:"democraciacristiana", label:"DEMOCRACIA CRISTIANA", spectrum:"center-right", color:"#1d4ed8", bg:"#dbeafe", desc:"Corriente que combina principios democráticos con valores inspirados en la tradición cristiana. Busca equilibrar la economía de mercado, la justicia social, la solidaridad y el respeto a la dignidad humana dentro de un sistema democrático." },
+  { id:"conservador",     label:"CONSERVADURISMO",   spectrum:"right",       color:"#1e40af", bg:"#eff6ff", desc:"Corriente que valora la preservación de tradiciones, costumbres e instituciones históricas. Considera que los cambios deben realizarse de forma gradual para evitar efectos negativos en la sociedad. Da importancia a la estabilidad social, la continuidad institucional y los valores culturales heredados." },
+  { id:"centroderecha",   label:"CENTRO-DERECHA",    spectrum:"center-right",color:"#2563eb", bg:"#eff6ff", desc:"Corriente que apoya la economía de mercado y la iniciativa privada, pero reconoce la necesidad de que el gobierno participe en ciertas áreas como educación, salud e infraestructura. Busca equilibrar el crecimiento económico con programas sociales que ayuden a quienes enfrentan mayores dificultades." },
+  { id:"derecha",         label:"DERECHA",           spectrum:"right",       color:"#1d4ed8", bg:"#dbeafe", desc:"Corriente política que defiende la propiedad privada, la libre empresa y la competencia económica. Considera que las personas y las empresas deben tener libertad para producir, invertir y generar riqueza, mientras que el gobierno debe intervenir lo menos posible en la economía, manteniendo el orden, la seguridad y el cumplimiento de las leyes." },
+  { id:"neoliberalismo",  label:"NEOLIBERALISMO",    spectrum:"right",       color:"#1e3a8a", bg:"#e0e7ff", desc:"Corriente económica que promueve la libre competencia, la apertura de mercados, la inversión privada y la reducción de la participación del Estado en actividades económicas. Considera que la competencia y la iniciativa privada pueden impulsar el crecimiento y la eficiencia económica." },
+  { id:"libertarismo",    label:"LIBERTARISMO",      spectrum:"right",       color:"#0c4a6e", bg:"#bae6fd", desc:"Corriente que busca reducir al mínimo la intervención gubernamental tanto en la economía como en la vida privada. Considera que las personas deben tener la máxima libertad para tomar decisiones y que el papel del gobierno debe limitarse principalmente a garantizar seguridad y justicia." },
+  { id:"ultraderecha",    label:"ULTRADERECHA",      spectrum:"far-right",   color:"#1e3a8a", bg:"#bfdbfe", desc:"Corriente que enfatiza la identidad nacional, la soberanía, la seguridad y la preservación de tradiciones culturales. Suele favorecer políticas migratorias más estrictas, una autoridad fuerte y cambios limitados en temas sociales. Puede variar significativamente entre países y movimientos políticos." },
+  { id:"corporativismo",  label:"CORPORATIVISMO",    spectrum:"center",      color:"#6b7280", bg:"#f9fafb", desc:"Modelo político y social en el que sectores organizados, como trabajadores, empresarios y organizaciones profesionales, participan formalmente en la toma de decisiones públicas. Busca coordinar intereses de distintos grupos para alcanzar acuerdos y reducir conflictos dentro de la sociedad." },
+  { id:"anarquismo",      label:"ANARQUISMO",        spectrum:"far-left",    color:"#1f2937", bg:"#e5e7eb", desc:"Corriente política que propone una sociedad basada en la cooperación voluntaria entre personas, con poca o ninguna autoridad gubernamental. Considera que las comunidades pueden organizarse mediante acuerdos libres sin necesidad de estructuras de poder centralizadas." },
+  { id:"monarquismo",     label:"MONARQUISMO",       spectrum:"far-right",   color:"#92400e", bg:"#fef3c7", desc:"Corriente que apoya sistemas políticos donde una monarquía forma parte del Estado. Dependiendo del modelo, el monarca puede tener funciones principalmente simbólicas o ejercer facultades políticas más amplias dentro de un sistema de gobierno." },
 ];
+// Mapa de colores del espectro (Ground News style)
+const SPECTRUM_COLORS:Record<string,{solid:string,light:string,label:string}> = {
+  "far-left":    { solid:"#b91c1c", light:"#fecaca", label:"Extrema Izq." },
+  "left":        { solid:"#e02030", light:"#fee2e2", label:"Izquierda"    },
+  "center-left": { solid:"#c026d3", light:"#fae8ff", label:"Centro-Izq." },
+  "center":      { solid:"#6b7280", light:"#f3f4f6", label:"Centro"       },
+  "center-right":{ solid:"#2563eb", light:"#dbeafe", label:"Centro-Der." },
+  "right":       { solid:"#1d4ed8", light:"#e0e7ff", label:"Derecha"      },
+  "far-right":   { solid:"#1e3a8a", light:"#bfdbfe", label:"Extrema Der." },
+};
 
 const INIT_CANDIDATES = {
   pan:{nombre:"Por definir",cargo:"Candidato a Presidente Municipal",fotoUrl:null,bio:"El PAN aún no ha anunciado candidato oficial para el municipio."},
@@ -933,33 +965,32 @@ function HeroModals({total,votes}:{total:number,votes:Record<string,number>}){
   const cargarPulso=async()=>{
     setPulsoLoading(true);
     try{
-      // Visitas totales y hoy
-      const visRows:any[]=await sb.from("visitas").select("id,ts,seccion");
+      // Visitas totales — tabla usa "timestamp" y "plataforma"
+      const visRows:any[]=await sb.from("visitas").select("id,timestamp,plataforma,ua");
       if(Array.isArray(visRows)){
-        setSbVisitas(visRows.length);
+        // Excluir fila id=1 del HTML (contador, no visita real)
+        const reales=visRows.filter((r:any)=>r.plataforma==="react"||r.ua);
+        setSbVisitas(reales.length);
         const hoy=new Date().toISOString().slice(0,10);
-        const visHoy=visRows.filter((r:any)=>r.ts&&r.ts.slice(0,10)===hoy);
-        setSbHoy(visHoy.length);
+        setSbHoy(reales.filter((r:any)=>r.timestamp&&r.timestamp.slice(0,10)===hoy).length);
         // Activos: visitas en últimos 5 min
         const hace5=Date.now()-5*60*1000;
-        setSbActivos(visRows.filter((r:any)=>r.ts&&new Date(r.ts).getTime()>hace5).length);
-        // Entradas por sección
-        setSbEncuesta(visRows.filter((r:any)=>r.seccion==="encuesta").length);
-        setSbTrivia(visRows.filter((r:any)=>r.seccion==="trivia").length);
-        setSbPesoPeso(visRows.filter((r:any)=>r.seccion==="pesopeso").length);
-        setSbEscribeme(visRows.filter((r:any)=>r.seccion==="escribeme").length);
-        // Gráfica: últimas 10 lecturas agrupadas por hora
+        setSbActivos(reales.filter((r:any)=>r.timestamp&&new Date(r.timestamp).getTime()>hace5).length);
+        // Sin sección — poner todo en encuesta
+        setSbEncuesta(reales.length);
+        setSbTrivia(0);setSbPesoPeso(0);setSbEscribeme(0);
+        // Gráfica por hora
         const porHora:{[k:string]:number}={};
-        visRows.slice(-200).forEach((r:any)=>{
-          if(r.ts){const h=r.ts.slice(0,13);porHora[h]=(porHora[h]||0)+1;}
+        reales.slice(-200).forEach((r:any)=>{
+          if(r.timestamp){const h=r.timestamp.slice(0,13);porHora[h]=(porHora[h]||0)+1;}
         });
         const gData=Object.entries(porHora).sort((a,b)=>a[0]<b[0]?-1:1).slice(-10).map(([ts,count])=>({ts:ts.slice(8,13).replace("T"," "),count}));
         setSbGrafica(gData);
       }
-      // Mensajes directos (comentarios)
+      // Comentarios
       const comRows:any[]=await sb.from("comentarios").select("id");
       if(Array.isArray(comRows)) setSbMensajes(comRows.length);
-    }catch(e){}
+    }catch(e){console.warn("Pulso error",e);}
     setPulsoLoading(false);
   };
 
@@ -1248,7 +1279,7 @@ function PartyResultCard({p,rank,votes,pct,myVote,bars}){
               </div>
 
               <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:12}}>
-                {p.ideologyTags.map(tag=>{const ideo=IDEOLOGIES.find(i=>i.id===tag);return ideo?(<div key={tag} style={{background:ideo.bg,color:ideo.color,padding:"4px 10px",borderRadius:20,fontSize:16,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>{ideo.label}</div>):null;})}
+                {p.ideologyTags.map(tag=>{const ideo=IDEOLOGIES.find(i=>i.id===tag);if(!ideo)return null;const sc=SPECTRUM_COLORS[ideo.spectrum];return(<div key={tag} style={{background:sc.light,color:sc.solid,padding:"4px 10px",borderRadius:20,fontSize:16,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>{ideo.label}</div>);})}
               </div>
             </div>
           </motion.div>
@@ -1739,7 +1770,7 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals
   const doVote=(pid,tipo)=>{if(!user){playSound("click");onLoginClick();return;}const p=proposals.find(x=>x.id===pid);if(p?.miVoto===tipo)return;if(p?.miVoto){setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,[x.miVoto]:x[x.miVoto]-1,miVoto:tipo};}));}else{playSound("vote");setConfirmVote({pid,tipo});}};
   const confirmAndVote=()=>{if(!confirmVote)return;const{pid,tipo}=confirmVote;setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,miVoto:tipo};}));playSound("success");setConfirmVote(null);};
   const addProp=()=>{if(!newProp.trim())return;const newP={id:"p"+Date.now(),emoji:newPropEmoji,titulo:newProp.trim(),desc:`Propuesta de ${user?.nickname||"ciudadano"}`,si:1,no:0,miVoto:"si",autor:user?.nickname||"Ciudadano"};setProposals(prev=>[newP,...prev]);sb.from("propuestas").insert({emoji:newP.emoji,titulo:newP.titulo,descripcion:newP.desc,si:1,no:0,autor:newP.autor}).catch(()=>{});setNewProp("");setNewPropEmoji("🙏");setShowForm(false);playSound("success");};
-  const deleteProp=(pid)=>setProposals(prev=>prev.filter(x=>x.id!==pid));
+  const deleteProp=async(pid)=>{setProposals(prev=>prev.filter(x=>x.id!==pid));await sb.from("propuestas").delete().eq("id",String(pid)).catch(()=>{});};
   const pending=confirmVote?proposals.find(x=>x.id===confirmVote.pid):null;
   const THEMES=[{bg:"linear-gradient(135deg,#0d0221,#2d1b69)",border:"#7c3aed",glow:"rgba(124,58,237,0.5)"},{bg:"linear-gradient(135deg,#012312,#064e3b)",border:"#10b981",glow:"rgba(16,185,129,0.5)"},{bg:"linear-gradient(135deg,#1a0600,#7c2d12)",border:"#f97316",glow:"rgba(249,115,22,0.5)"},{bg:"linear-gradient(135deg,#020617,#1e3a8a)",border:"#3b82f6",glow:"rgba(59,130,246,0.5)"},{bg:"linear-gradient(135deg,#1a0020,#701a75)",border:"#e879f9",glow:"rgba(232,121,249,0.5)"}];
   return(
@@ -1994,7 +2025,15 @@ function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,onLogout,cand
       <Header total={total} user={user} onLoginClick={onLoginClick} onLogoClick={onLogoClick} onLogout={onLogout} siteLogo={siteLogo}/>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 13px"}}>
         <motion.button whileTap={{scale:0.96}} onClick={()=>setIdeologyOpen(null)} style={{background:"#e01010",border:"none",borderRadius:8,padding:"7px 14px",color:"#fff",fontSize:16,cursor:"pointer",margin:"12px 0",fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>← VOLVER</motion.button>
-        <div style={{background:ideo.bg,border:`2px solid ${ideo.color}`,borderRadius:16,padding:"18px",marginBottom:12}}><div style={{fontSize:18,fontWeight:900,color:ideo.color,marginBottom:8,fontFamily:"Barlow Condensed,sans-serif"}}>{ideo.label}</div><div style={{fontSize:16,color:"#374151",lineHeight:1.75}}>{ideo.desc}</div></div>
+        <div style={{background:SPECTRUM_COLORS[ideo.spectrum].light,border:`2.5px solid ${SPECTRUM_COLORS[ideo.spectrum].solid}`,borderRadius:16,padding:"18px",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+            <div style={{background:SPECTRUM_COLORS[ideo.spectrum].solid,borderRadius:6,padding:"3px 10px"}}>
+              <span style={{fontSize:11,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{SPECTRUM_COLORS[ideo.spectrum].label.toUpperCase()}</span>
+            </div>
+          </div>
+          <div style={{fontSize:20,fontWeight:900,color:SPECTRUM_COLORS[ideo.spectrum].solid,marginBottom:10,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>🇲🇽 {ideo.label}</div>
+          <div style={{fontSize:16,color:"#374151",lineHeight:1.8}}>👉 {ideo.desc}</div>
+        </div>
         <div style={{display:"flex",flexWrap:"wrap",gap:7}}>{PARTIES.filter(p=>p.ideologyTags.includes(ideo.id)).map(p=>(<div key={p.id} style={{display:"flex",alignItems:"center",gap:5,background:`${p.color}12`,border:`1.5px solid ${p.color}40`,borderRadius:20,padding:"4px 10px"}}>{PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:18,height:18,borderRadius:3,objectFit:"cover"}}/>:<span>{p.emoji}</span>}<span style={{fontSize:16,fontWeight:800,color:p.color,fontFamily:"Barlow Condensed,sans-serif"}}>{p.short}</span></div>))}</div>
       </div>
     </div>
@@ -2040,7 +2079,34 @@ function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,onLogout,cand
         <div style={{padding:"12px 2px 10px"}}><div style={{fontSize:16,color:"#111",fontWeight:800,letterSpacing:3,marginBottom:2,fontFamily:"Barlow Condensed,sans-serif"}}>ENCUESTA SILAO</div><div style={{fontSize:17,fontWeight:900,color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif"}}>Partidos e Ideologías</div></div>
         <div style={{background:"#fff",border:"1.5px solid #e5e7eb",borderRadius:14,padding:"12px",marginBottom:12}}>
           <div style={{fontSize:16,color:"#374151",letterSpacing:2,marginBottom:8,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>🧭 ¿QUÉ SIGNIFICA CADA TÉRMINO?</div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>{IDEOLOGIES.map((ideo,i)=>(<motion.button key={ideo.id} whileTap={{scale:0.95}} onClick={()=>{playSound("click");setIdeologyOpen(i);}} style={{background:ideo.bg,border:`2px solid ${ideo.color}`,borderRadius:20,padding:"5px 11px",cursor:"pointer"}}><span style={{fontSize:16,fontWeight:900,color:ideo.color,fontFamily:"Barlow Condensed,sans-serif"}}>{ideo.label}</span></motion.button>))}</div>
+          <style>{`
+            @keyframes ideoBounce{0%{transform:scale(1)}30%{transform:scale(1.13) rotate(-2deg)}60%{transform:scale(0.96) rotate(1deg)}100%{transform:scale(1)}}
+            .ideo-flip{perspective:400px;cursor:pointer;}
+            .ideo-flip-inner{transition:transform 0.45s cubic-bezier(.4,2,.6,1);transform-style:preserve-3d;position:relative;}
+            .ideo-flip:active .ideo-flip-inner{transform:rotateY(180deg) scale(1.06);}
+            .ideo-face{backface-visibility:hidden;-webkit-backface-visibility:hidden;}
+            .ideo-back{position:absolute;inset:0;transform:rotateY(180deg);backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;align-items:center;justify-content:center;}
+          `}</style>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+            {IDEOLOGIES.map((ideo,i)=>{
+              const sc=SPECTRUM_COLORS[ideo.spectrum];
+              return(
+                <div key={ideo.id} className="ideo-flip" onClick={()=>{playSound("click");setIdeologyOpen(i);}}>
+                  <div className="ideo-flip-inner" style={{borderRadius:8,overflow:"hidden",border:`2.5px solid ${sc.solid}`,boxShadow:`0 2px 8px ${sc.solid}30`}}>
+                    {/* FRENTE */}
+                    <div className="ideo-face" style={{background:`linear-gradient(135deg,${sc.light},${sc.solid}18)`,padding:"7px 9px",minHeight:38,display:"flex",flexDirection:"column",justifyContent:"space-between",gap:2}}>
+                      <span style={{fontSize:12,fontWeight:900,color:sc.solid,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,lineHeight:1.1,display:"block"}}>{ideo.label}</span>
+                      <span style={{fontSize:10,fontWeight:700,color:`${sc.solid}99`,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{sc.label}</span>
+                    </div>
+                    {/* DORSO (se ve medio segundo al girar) */}
+                    <div className="ideo-back" style={{background:sc.solid,borderRadius:6,padding:"4px"}}>
+                      <span style={{fontSize:14,color:"#fff",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>→</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {PARTIES.map((a,i)=>{const count=votes[a.id]||0;const pctVal=total>0?((count/total)*100).toFixed(1):"0.0";return(
@@ -2052,19 +2118,19 @@ function ArticlesScreen({user,onLoginClick,votes,total,onLogoClick,onLogout,cand
               <div style={{marginBottom:12}}>
                 <div style={{fontSize:16,fontWeight:900,color:a.color,fontFamily:"Barlow Condensed,sans-serif",marginBottom:3}}>{a.short}</div>
                 <div style={{fontSize:16,color:"#111",fontWeight:800,marginBottom:5}}>{a.name} · {a.fundado}</div>
-                <div style={{display:"flex",flexWrap:"wrap",gap:4}}>{a.ideologyTags.slice(0,2).map(tag=>{const ideo=IDEOLOGIES.find(x=>x.id===tag);if(!ideo)return null;return<span key={tag} style={{fontSize:16,color:ideo.color,background:ideo.bg,border:`1px solid ${ideo.color}40`,borderRadius:8,padding:"2px 7px",fontWeight:700}}>{ideo.label}</span>;})}</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:4}}>{a.ideologyTags.slice(0,2).map(tag=>{const ideo=IDEOLOGIES.find(x=>x.id===tag);if(!ideo)return null;const sc=SPECTRUM_COLORS[ideo.spectrum];return<span key={tag} style={{fontSize:16,color:sc.solid,background:sc.light,border:`1px solid ${sc.solid}40`,borderRadius:8,padding:"2px 7px",fontWeight:700}}>{ideo.label}</span>;})}</div>
               </div>
               {/* Dos tarjetas separadas: logo | stats */}
               <div style={{display:"flex",gap:10}}>
-                {/* TARJETA LOGO PARTIDO */}
-                <div style={{flex:1,background:`${a.color}08`,border:`2px solid ${a.color}30`,borderRadius:12,padding:"12px",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+                {/* TARJETA LOGO PARTIDO — ancho fijo */}
+                <div style={{width:110,flexShrink:0,background:`${a.color}08`,border:`2px solid ${a.color}30`,borderRadius:12,padding:"12px",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
                   <div style={{fontSize:16,color:a.color,letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif"}}>PARTIDO</div>
                   <div style={{width:72,height:72,borderRadius:12,overflow:"hidden",border:`3px solid ${a.color}`,boxShadow:`0 0 16px ${a.color}40`}}>
                     {PARTY_LOGOS[a.id]?<img src={PARTY_LOGOS[a.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:36,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{a.emoji}</span>}
                   </div>
                   {count>0&&<div style={{background:a.color,borderRadius:8,padding:"3px 10px"}}><span style={{fontSize:16,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif"}}>{pctVal}%</span></div>}
                 </div>
-                {/* TARJETA ESTADÍSTICAS */}
+                {/* TARJETA ESTADÍSTICAS — ocupa el resto */}
                 <div style={{flex:1,background:"rgba(0,0,0,0.03)",border:`2px solid ${a.color}40`,borderRadius:12,padding:"10px",display:"flex",flexDirection:"column",gap:5}}>
                   <div style={{fontSize:16,color:a.color,letterSpacing:2,fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",marginBottom:2}}>ESTADÍSTICAS</div>
                   <div style={{background:"#f8faff",borderRadius:7,padding:"5px 8px"}}>
@@ -2398,7 +2464,7 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,heroImages,se
   const uploadCandPhoto=(pid,e)=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>setCandidates(p=>({...p,[pid]:{...p[pid],fotoUrl:ev.target.result}}));r.readAsDataURL(f);};
   const saveCand=()=>{setCandidates(p=>({...p,[editId]:editData}));setEditId(null);playSound("success");};
   const addProp=()=>{if(!newPropTitle.trim())return;setProposals(prev=>[{id:"ap"+Date.now(),emoji:newPropEmoji,titulo:newPropTitle.trim(),desc:newPropDesc.trim()||"Propuesta del administrador",si:0,no:0,miVoto:null,autor:"Admin"},...prev]);setNewPropTitle("");setNewPropDesc("");playSound("success");};
-  const deleteProp=(pid)=>setProposals(prev=>prev.filter(x=>x.id!==pid));
+  const deleteProp=async(pid)=>{setProposals(prev=>prev.filter(x=>x.id!==pid));await sb.from("propuestas").delete().eq("id",String(pid)).catch(()=>{});};
   const resetVotes=()=>{setVotes(Object.fromEntries(PARTIES.map(p=>[p.id,0])));setResetConfirm(false);playSound("success");};
   const total=Object.values(votes).reduce((a,b)=>a+b,0);
   const TABS=[{id:"stats",label:"📊 STATS"},{id:"alertas",label:"🔔 ALERTAS"},{id:"encuesta",label:"🗳️ ENCUESTA"},{id:"candidatos",label:"👤 CANDIDATOS"},{id:"propuestas",label:"💡 PROPUESTAS"},{id:"sugerencias",label:"❓ PREGUNTAS"},{id:"partidos",label:"🏛️ PARTIDOS"},{id:"exportar",label:"📥 EXPORTAR"},{id:"config",label:"⚙️ CONFIG"}];
@@ -2810,6 +2876,97 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,heroImages,se
   );
 }
 
+// ── FOOTER LEGAL ──
+function FooterLegal(){
+  const[showPriv,setShowPriv]=useState(false);
+  const[showQuienes,setShowQuienes]=useState(false);
+  const overlay:React.CSSProperties={position:"fixed",inset:0,zIndex:900,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(6px)",display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"16px",overflowY:"auto"};
+  const box:React.CSSProperties={background:"#0f172a",border:"1px solid rgba(255,255,255,0.1)",borderRadius:18,maxWidth:640,width:"100%",padding:"24px 20px",margin:"auto",color:"#fff",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.7};
+  const h3s:React.CSSProperties={fontFamily:"Barlow Condensed,sans-serif",fontSize:13,fontWeight:800,letterSpacing:3,color:"#e01010",margin:"0 0 8px"};
+  const p:React.CSSProperties={fontSize:14,color:"rgba(255,255,255,0.75)",marginBottom:16};
+  return(
+    <>
+      <div style={{paddingBottom:90,paddingTop:20,textAlign:"center",borderTop:"1px solid rgba(255,255,255,0.06)",marginTop:8}}>
+        <div style={{fontSize:11,color:"rgba(255,255,255,0.25)",letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}>ENCUESTA SILAO · VOZ CIUDADANA · SILAO, GTO.</div>
+        <div style={{display:"flex",justifyContent:"center",gap:16}}>
+          <button onClick={()=>setShowQuienes(true)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.35)",fontFamily:"Barlow Condensed,sans-serif",fontSize:12,fontWeight:800,letterSpacing:2,cursor:"pointer",textDecoration:"underline"}}>¿QUIÉNES SOMOS?</button>
+          <button onClick={()=>setShowPriv(true)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.35)",fontFamily:"Barlow Condensed,sans-serif",fontSize:12,fontWeight:800,letterSpacing:2,cursor:"pointer",textDecoration:"underline"}}>AVISO DE PRIVACIDAD</button>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showPriv&&(
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={overlay} onClick={e=>{if(e.target===e.currentTarget)setShowPriv(false);}}>
+            <motion.div initial={{y:30,opacity:0}} animate={{y:0,opacity:1}} exit={{y:30,opacity:0}} style={box}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:900,letterSpacing:3,color:"#fff"}}>AVISO DE PRIVACIDAD</div>
+                <button onClick={()=>setShowPriv(false)} style={{background:"rgba(255,255,255,0.08)",border:"none",borderRadius:8,padding:"6px 12px",color:"#fff",cursor:"pointer",fontSize:16}}>✕</button>
+              </div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",letterSpacing:1,marginBottom:20}}>Última actualización: Junio de 2026</div>
+              <div style={p}>En Encuesta Silao, respetamos y protegemos la privacidad de nuestros usuarios. El presente Aviso tiene como finalidad informar cómo recopilamos, utilizamos y protegemos la información proporcionada a través de nuestra plataforma.</div>
+              <div style={h3s}>1. INFORMACIÓN QUE PODEMOS RECOPILAR</div>
+              <ul style={{fontSize:14,color:"rgba(255,255,255,0.75)",marginBottom:16,paddingLeft:18}}>
+                <li>Nombre o alias de usuario.</li>
+                <li>Correo electrónico cuando sea proporcionado voluntariamente.</li>
+                <li>Datos de participación en encuestas.</li>
+                <li>Información técnica de navegación (dispositivo, navegador, estadísticas).</li>
+                <li>Comentarios, sugerencias o mensajes enviados.</li>
+              </ul>
+              <div style={h3s}>2. USO DE LA INFORMACIÓN</div>
+              <ul style={{fontSize:14,color:"rgba(255,255,255,0.75)",marginBottom:16,paddingLeft:18}}>
+                <li>Permitir la participación en encuestas.</li>
+                <li>Mejorar la experiencia de uso.</li>
+                <li>Generar estadísticas de participación.</li>
+                <li>Prevenir actividades fraudulentas o usos indebidos.</li>
+                <li>Mantener la seguridad y funcionamiento del sitio.</li>
+              </ul>
+              <div style={h3s}>3. PROTECCIÓN DE LA INFORMACIÓN</div>
+              <div style={p}>Implementamos medidas razonables de seguridad para proteger la información almacenada y evitar accesos no autorizados.</div>
+              <div style={h3s}>4. COMPARTICIÓN DE INFORMACIÓN</div>
+              <div style={p}>Encuesta Silao <strong>no vende ni comercializa</strong> información personal. Solo se compartirá ante obligación legal o requerimiento de autoridad competente.</div>
+              <div style={h3s}>5. COOKIES Y TECNOLOGÍAS SIMILARES</div>
+              <div style={p}>La plataforma puede usar cookies para mejorar la navegación y obtener estadísticas. El usuario puede configurar su navegador para rechazarlas.</div>
+              <div style={h3s}>6. DERECHOS DE LOS USUARIOS</div>
+              <div style={p}>Los usuarios pueden solicitar información, corrección o eliminación de sus datos personales cuando resulte procedente.</div>
+              <div style={h3s}>7. MODIFICACIONES</div>
+              <div style={p}>Encuesta Silao podrá actualizar este Aviso en cualquier momento. Las modificaciones serán publicadas en esta sección.</div>
+              <div style={h3s}>8. CONTACTO</div>
+              <div style={p}>Para dudas o solicitudes relacionadas con este Aviso, comunícate a través de los medios de contacto publicados en la plataforma.</div>
+              <button onClick={()=>setShowPriv(false)} style={{width:"100%",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"12px",color:"rgba(255,255,255,0.5)",fontFamily:"Barlow Condensed,sans-serif",fontSize:13,fontWeight:800,letterSpacing:2,cursor:"pointer"}}>CERRAR</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showQuienes&&(
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={overlay} onClick={e=>{if(e.target===e.currentTarget)setShowQuienes(false);}}>
+            <motion.div initial={{y:30,opacity:0}} animate={{y:0,opacity:1}} exit={{y:30,opacity:0}} style={box}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+                <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:900,letterSpacing:3,color:"#fff"}}>¿QUIÉNES SOMOS?</div>
+                <button onClick={()=>setShowQuienes(false)} style={{background:"rgba(255,255,255,0.08)",border:"none",borderRadius:8,padding:"6px 12px",color:"#fff",cursor:"pointer",fontSize:16}}>✕</button>
+              </div>
+              <div style={h3s}>BIENVENIDO A ENCUESTA SILAO</div>
+              <div style={p}>Encuesta Silao es una plataforma digital independiente creada para fomentar la participación ciudadana, conocer la opinión pública y generar espacios de interacción entre la ciudadanía y los temas de interés local.</div>
+              <div style={p}>Nuestro objetivo es ofrecer a los habitantes de Silao una herramienta moderna donde puedan expresar sus opiniones mediante encuestas, sondeos y espacios de participación comunitaria.</div>
+              <div style={h3s}>NUESTRA MISIÓN</div>
+              <div style={p}>Promover la participación ciudadana mediante herramientas digitales accesibles, transparentes y fáciles de usar, fortaleciendo el interés de la comunidad en los asuntos públicos y sociales del municipio.</div>
+              <div style={h3s}>NUESTRA VISIÓN</div>
+              <div style={p}>Convertirnos en la plataforma ciudadana de referencia en Silao para la consulta de opiniones, tendencias y participación comunitaria.</div>
+              <div style={{background:"rgba(204,10,10,0.1)",border:"1px solid rgba(204,10,10,0.3)",borderRadius:12,padding:"14px 16px",marginBottom:20}}>
+                <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:12,fontWeight:800,letterSpacing:3,color:"#e01010",marginBottom:6}}>⚠ IMPORTANTE</div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,0.7)"}}>Las encuestas tienen fines informativos, estadísticos y de participación ciudadana. Los resultados no sustituyen estudios demoscópicos profesionales ni representan necesariamente la opinión de toda la población.</div>
+              </div>
+              <button onClick={()=>setShowQuienes(false)} style={{width:"100%",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"12px",color:"rgba(255,255,255,0.5)",fontFamily:"Barlow Condensed,sans-serif",fontSize:13,fontWeight:800,letterSpacing:2,cursor:"pointer"}}>CERRAR</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+
 // ── APP PRINCIPAL ──
 export default function App(){
   const[screen,setScreen]=useState("results");
@@ -2879,10 +3036,18 @@ export default function App(){
   },[]);
 
   // ── Supabase: registrar entrada ──
+  const sidRef = useRef<string>("");
   useEffect(()=>{
     const sid=Math.random().toString(36).slice(2,10)+Date.now().toString(36);
-    sb.from("visitas").insert({sid,ua:navigator.userAgent.slice(0,120),plataforma:"react",timestamp:new Date().toISOString()}).catch(()=>{});
+    sidRef.current=sid;
+    sb.from("visitas").insert({sid,ua:navigator.userAgent.slice(0,120),plataforma:"react",timestamp:new Date().toISOString(),seccion:"results"}).catch(()=>{});
   },[]);
+
+  // ── Supabase: actualizar sección activa al cambiar pantalla ──
+  useEffect(()=>{
+    if(!sidRef.current) return;
+    sb.from("visitas").update({seccion:screen}).eq("sid",sidRef.current).catch(()=>{});
+  },[screen]);
 
   // ── Supabase: cargar votos (reemplaza estado completo) ──
   useEffect(()=>{
@@ -2970,6 +3135,7 @@ export default function App(){
           {screen==="preguntale"&&<PreguntaleScreen {...sp} candidates={candidates} preguntaDestacada={preguntaDestacada}/>}
           {screen==="comments"&&<CommentsScreen {...sp} isAdmin={isAdmin} comments={comments} setComments={setComments} blockedNicks={blockedNicks} pinnedMsg={pinnedMsg}/>}
         </div>
+        <FooterLegal/>
         <InstallBanner/>
         <FloatingBubble myVote={myVote} candidates={candidates}/>
         <NavBar screen={screen} setScreen={setScreen}/>
