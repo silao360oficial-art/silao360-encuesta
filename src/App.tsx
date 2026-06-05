@@ -882,7 +882,7 @@ function ShareModal({votes,total,sorted,pct}){
       const bar="█".repeat(Math.round(parseFloat(pc)/10))+"░".repeat(10-Math.round(parseFloat(pc)/10));
       return `${i===0?"🏆":i===1?"🥈":i===2?"🥉":"  "} ${p.short.padEnd(12)} ${bar} ${pc}%`;
     }).join("\n");
-    return `🗳️ ENCUESTA SILAO — CIUDADANA\n📅 ${fecha} · 🕐 ${hora}\n━━━━━━━━━━━━━━━━━━━\n${allRows}\n━━━━━━━━━━━━━━━━━━━\n📊 Total de votos: ${tot}\n\n📱 ¡Vota aquí!\n👉 silao360.com.mx\n\n#Silao #Guanajuato #EncuestaSilao`;
+    return `🗳️ ENCUESTA SILAO — CIUDADANA\n📅 ${fecha} · 🕐 ${hora}\n━━━━━━━━━━━━━━━━━━━\n${allRows}\n━━━━━━━━━━━━━━━━━━━\n📊 Total de votos: ${tot}\n\n📱 ¡Vota aquí!\n👉 silao360.com\n👉 silao360.com.mx\n\n#Silao #Guanajuato #EncuestaSilao`;
   };
 
   const shareWA=()=>{window.open("https://api.whatsapp.com/send?text="+encodeURIComponent(buildMsg()),"_blank");};
@@ -925,12 +925,16 @@ function ShareModal({votes,total,sorted,pct}){
                   <span style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:18}}>f</span> COMPARTIR EN FACEBOOK
                 </motion.button>
                 <div style={{display:"flex",gap:8}}>
-                  <motion.button whileTap={{scale:0.97}} onClick={()=>window.open("https://silao360.com.mx","_blank")}
-                    style={{flex:1,background:"#f1f5f9",border:"1.5px solid #e2e8f0",borderRadius:10,padding:"10px",color:"#1d4ed8",fontSize:16,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>
-                    📱 silao360.com.mx
+                  <motion.button whileTap={{scale:0.97}} onClick={()=>window.open("https://silao360.com","_blank")}
+                    style={{flex:1,background:"linear-gradient(135deg,#0f172a,#1e3a8a)",border:"1.5px solid rgba(59,130,246,0.4)",borderRadius:10,padding:"10px",color:"#93c5fd",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                    🌐 silao360.com
                   </motion.button>
-                  <button onClick={()=>setOpen(false)} style={{flex:1,background:"#f1f5f9",border:"1.5px solid #e2e8f0",borderRadius:10,padding:"10px",color:"#374151",fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>Cancelar</button>
+                  <motion.button whileTap={{scale:0.97}} onClick={()=>window.open("https://silao360.com.mx","_blank")}
+                    style={{flex:1,background:"linear-gradient(135deg,#0f172a,#1e3a8a)",border:"1.5px solid rgba(59,130,246,0.4)",borderRadius:10,padding:"10px",color:"#93c5fd",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+                    🌐 silao360.com.mx
+                  </motion.button>
                 </div>
+                <button onClick={()=>setOpen(false)} style={{width:"100%",background:"#f1f5f9",border:"1.5px solid #e2e8f0",borderRadius:10,padding:"10px",color:"#374151",fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>Cancelar</button>
               </div>
             </motion.div>
           </motion.div>
@@ -2018,7 +2022,6 @@ function PreguntaleScreen({user,onLoginClick,onLogoClick,onLogout,total,siteLogo
 }
 
 // ── HOLOGRAPHIC IDEOLOGY DIAGRAM ──
-// Mapa mental árbol: GOBIERNO arriba, ramas en abanico diagonal
 const MIND_GROUPS = [
   { label:"ULTRAIZQUIERDA", color:"#c2001a", glow:"#ff2040", emoji:"🔴", sub:[{label:"Comunismo",id:"comunismo"},{label:"Socialismo",id:"socialismo"},{label:"Izquierda",id:"izquierda"}] },
   { label:"CENTRO-IZQ.", color:"#f97316", glow:"#ffaa44", emoji:"🟠", sub:[{label:"Socialdemocracia",id:"socialdemocrata"},{label:"Progresismo",id:"progresismo"},{label:"Ambientalismo",id:"ambientalismo"}] },
@@ -2043,20 +2046,17 @@ function SpiderIdeologyDiagram({ideologies,spectrumColors,onSelect}:{ideologies:
     if(idx>=0)onSelect(idx);
   };
 
-  // Ángulos de abanico para las 5 ramas: izquierda fuerte → derecha fuerte
-  // -55, -27, 0, 27, 55 grados desde vertical
-  const BRANCH_ANGLES=[-55,-27,0,27,55];
-
   return(
     <div style={{marginBottom:14}}>
       <style>{`
         @keyframes mmSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-        @keyframes mmGovPulse{0%,100%{box-shadow:0 0 16px rgba(224,16,16,0.7),0 0 32px rgba(124,58,237,0.5)}50%{box-shadow:0 0 36px rgba(224,16,16,1),0 0 64px rgba(124,58,237,0.9)}}
-        @keyframes mmLeafPop{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}
-        @keyframes mmBeamPulse{0%,100%{opacity:0.35}50%{opacity:1}}
+        @keyframes mmGovPulse{0%,100%{box-shadow:0 0 20px rgba(224,16,16,0.9),0 0 40px rgba(124,58,237,0.6)}50%{box-shadow:0 0 40px rgba(224,16,16,1),0 0 80px rgba(124,58,237,1)}}
+        @keyframes mmBeamPulse{0%,100%{opacity:0.4}50%{opacity:1}}
+        @keyframes mmLeafSlide{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
+        @keyframes mmSpherePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
         .mm-node{cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;}
         .mm-node:active{transform:scale(0.93)!important;}
-        .mm-leaf-enter{animation:mmLeafPop 0.22s cubic-bezier(.4,2,.6,1) forwards;}
+        .mm-leaf-slide{animation:mmLeafSlide 0.18s ease-out forwards;}
       `}</style>
 
       {/* Header */}
@@ -2065,97 +2065,141 @@ function SpiderIdeologyDiagram({ideologies,spectrumColors,onSelect}:{ideologies:
         <span style={{fontSize:15,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>🗺️ MAPA IDEOLÓGICO — ESPECTRO POLÍTICO</span>
       </div>
 
-      {/* Cuerpo del mapa */}
-      <div style={{background:"linear-gradient(160deg,#070712,#0d1020,#070712)",padding:"20px 12px 16px",borderRadius:"0 0 14px 14px",overflow:"hidden",position:"relative"}}>
+      {/* Cuerpo — fondo transparente/ligero, no negro */}
+      <div style={{background:"linear-gradient(160deg,rgba(15,23,42,0.06),rgba(30,27,75,0.08),rgba(15,23,42,0.06))",border:"1.5px solid rgba(99,102,241,0.18)",padding:"18px 10px 14px",borderRadius:"0 0 14px 14px",overflow:"hidden",position:"relative"}}>
 
-        {/* Grid digital */}
-        <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px)",backgroundSize:"22px 22px",pointerEvents:"none"}}/>
+        {/* Grid sutil */}
+        <div style={{position:"absolute",inset:0,backgroundImage:"linear-gradient(rgba(99,102,241,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,0.04) 1px,transparent 1px)",backgroundSize:"22px 22px",pointerEvents:"none"}}/>
         {/* Barra espectro top */}
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,#c2001a,#f97316,#94a3b8,#3b82f6,#7c3aed)"}}/>
 
-        {/* ── NODO GOBIERNO (hexágono) ── */}
-        <div style={{display:"flex",justifyContent:"center",marginBottom:0}}>
+        {/* ── NODO GOBIERNO (centro araña) ── */}
+        <div style={{display:"flex",justifyContent:"center",marginBottom:4}}>
           <div className="mm-node" onClick={()=>{setOpenBranch(null);setOpenLeaf(null);playSound("click");}}
-            style={{position:"relative",width:74,height:74,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            {/* Anillo conic spinning multicolor — efecto trivia */}
-            <div style={{position:"absolute",inset:-4,background:"conic-gradient(from 0deg,#e01010,#f59e0b,#7c3aed,#3b82f6,#e01010)",borderRadius:10,animation:"mmSpin 2.5s linear infinite",transform:"rotate(30deg)",opacity:0.85}}/>
-            {/* Hexágono con clip-path */}
+            style={{position:"relative",width:72,height:72,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {/* Anillo conic spinning */}
+            <div style={{position:"absolute",inset:-4,background:"conic-gradient(from 0deg,#e01010,#f59e0b,#7c3aed,#3b82f6,#e01010)",borderRadius:12,animation:"mmSpin 2.5s linear infinite",opacity:0.9}}/>
+            {/* Hexágono */}
             <div style={{position:"absolute",inset:0,background:"linear-gradient(135deg,#1a0028,#2d0a0a,#08102a)",clipPath:"polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)",animation:"mmGovPulse 2.5s ease-in-out infinite"}}/>
-            {/* Faceta interna */}
-            <div style={{position:"absolute",inset:10,background:"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(224,16,16,0.35))",clipPath:"polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)",border:"1px solid rgba(255,255,255,0.12)"}}/>
-            {/* Texto */}
+            <div style={{position:"absolute",inset:10,background:"linear-gradient(135deg,rgba(124,58,237,0.45),rgba(224,16,16,0.35))",clipPath:"polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)",border:"1px solid rgba(255,255,255,0.14)"}}/>
             <div style={{position:"relative",zIndex:2,textAlign:"center",lineHeight:1}}>
-              <div style={{fontSize:10,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1.5,textShadow:"0 0 10px rgba(255,255,255,0.9)"}}>GOB.</div>
-              <div style={{fontSize:8,fontWeight:700,color:"rgba(255,255,255,0.5)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>BIERNO</div>
+              <div style={{fontSize:20,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,textShadow:"0 0 12px rgba(255,255,255,1)"}}>GOB.</div>
+              <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.55)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>BIERNO</div>
             </div>
           </div>
         </div>
 
-        {/* ── RAMAS (nivel 1) ── */}
-        {/* SVG para las líneas de conexión */}
-        <svg width="100%" height={openBranch!==null?0:32} style={{display:"block",overflow:"visible",marginTop:-2,pointerEvents:"none",position:"relative",zIndex:1}}>
-          {MIND_GROUPS.map((_,i)=>{
-            // Posición X de cada nodo nivel 1 (5 columnas uniformes)
-            const xPct=10+i*20; // 10,30,50,70,90%
+        {/* SVG líneas de araña */}
+        <svg width="100%" height="28" style={{display:"block",overflow:"visible",marginTop:-2,pointerEvents:"none",position:"relative",zIndex:1}}>
+          {MIND_GROUPS.map((g,i)=>{
+            const xPct=10+i*20;
             return(
               <line key={i}
                 x1="50%" y1="0"
-                x2={`${xPct}%`} y2="32"
-                stroke={MIND_GROUPS[i].color}
-                strokeWidth="1.5"
-                strokeOpacity="0.6"
-                strokeDasharray="4 3"
-                style={{animation:"mmBeamPulse 2s ease-in-out infinite"}}
+                x2={`${xPct}%`} y2="28"
+                stroke={g.color}
+                strokeWidth="1.8"
+                strokeOpacity="0.7"
+                strokeDasharray="5 3"
+                style={{animation:"mmBeamPulse 2s ease-in-out infinite",animationDelay:`${i*0.3}s`}}
               />
             );
           })}
         </svg>
 
-        {/* Nodos de rama */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"0 2px",gap:3,marginTop:openBranch!==null?8:0}}>
+        {/* ── RAMAS — esferas de color ── */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"0 2px",gap:2}}>
           {MIND_GROUPS.map((g,i)=>{
             const isOpen=openBranch===i;
+            const sphereSize=isOpen?58:50;
             return(
               <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
 
-                {/* Nodo rama — círculo con conic trivia */}
+                {/* Esfera principal — color sólido del espectro */}
                 <div className="mm-node" onClick={()=>toggleBranch(i)}
-                  style={{position:"relative",width:isOpen?52:44,height:isOpen?52:44,transition:"width 0.2s,height 0.2s",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  {/* Conic spinning del color de la rama */}
-                  <div style={{position:"absolute",inset:-3,borderRadius:"50%",background:`conic-gradient(from 0deg,${g.color},#fff,${g.color}88,transparent,${g.color})`,animation:`mmSpin ${isOpen?1:2.2}s linear infinite`}}/>
-                  {/* Círculo interior */}
-                  <div style={{position:"absolute",inset:0,borderRadius:"50%",background:`radial-gradient(circle at 35% 35%,${g.color}cc,${g.color}55 60%,#080818)`,border:`2px solid ${g.color}`,
-                    boxShadow:isOpen?`0 0 20px ${g.glow},0 0 40px ${g.glow}55`:`0 0 8px ${g.glow}44`}}/>
-                  {/* Emoji o chevron */}
-                  <span style={{position:"relative",zIndex:2,fontSize:isOpen?14:11,lineHeight:1}}>{isOpen?"▾":g.emoji}</span>
+                  style={{position:"relative",width:sphereSize,height:sphereSize,transition:"width 0.2s,height 0.2s",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",animation:isOpen?"none":"mmSpherePulse 3s ease-in-out infinite",animationDelay:`${i*0.4}s`}}>
+                  {/* Anillo conic giratorio */}
+                  <div style={{position:"absolute",inset:-3,borderRadius:"50%",background:`conic-gradient(from 0deg,${g.color},rgba(255,255,255,0.6),${g.color}99,rgba(255,255,255,0.2),${g.color})`,animation:`mmSpin ${isOpen?0.9:2}s linear infinite`}}/>
+                  {/* Esfera con gradiente radial del color */}
+                  <div style={{
+                    position:"absolute",inset:0,borderRadius:"50%",
+                    background:`radial-gradient(circle at 32% 28%, ${g.color}ff 0%, ${g.color}dd 40%, ${g.color}88 75%, ${g.color}44 100%)`,
+                    boxShadow:isOpen
+                      ?`0 0 24px ${g.color}, 0 0 48px ${g.color}88, inset 0 2px 6px rgba(255,255,255,0.35)`
+                      :`0 0 10px ${g.color}66, inset 0 1px 4px rgba(255,255,255,0.25)`,
+                    transition:"box-shadow 0.3s"
+                  }}/>
+                  {/* Brillo tipo esfera 3D */}
+                  <div style={{position:"absolute",top:"14%",left:"22%",width:"30%",height:"22%",borderRadius:"50%",background:"rgba(255,255,255,0.45)",filter:"blur(2px)",pointerEvents:"none"}}/>
+                  {/* Flecha open/close */}
+                  <span style={{position:"relative",zIndex:2,fontSize:isOpen?15:12,lineHeight:1,color:"#fff",fontWeight:900,textShadow:"0 1px 4px rgba(0,0,0,0.6)"}}>
+                    {isOpen?"▾":g.emoji}
+                  </span>
                 </div>
 
-                {/* Label rama */}
-                <div style={{fontSize:7,fontWeight:900,color:isOpen?g.glow:g.color,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.2,textAlign:"center",marginTop:3,lineHeight:1.2,textShadow:isOpen?`0 0 8px ${g.glow}`:"none",transition:"color 0.2s",maxWidth:54}}>
+                {/* Label — letras blancas 20px */}
+                <div style={{
+                  fontSize:isOpen?11:9,
+                  fontWeight:900,
+                  color:"#fff",
+                  fontFamily:"Barlow Condensed,sans-serif",
+                  letterSpacing:0.3,
+                  textAlign:"center",
+                  marginTop:4,
+                  lineHeight:1.15,
+                  textShadow:isOpen?`0 0 10px ${g.color}, 0 1px 3px rgba(0,0,0,0.9)`:"0 1px 3px rgba(0,0,0,0.8)",
+                  transition:"all 0.2s",
+                  maxWidth:58,
+                  padding:"1px 2px",
+                  background:isOpen?`${g.color}22`:"transparent",
+                  borderRadius:4,
+                  border:isOpen?`1px solid ${g.color}44`:"none"
+                }}>
                   {g.label}
                 </div>
 
-                {/* ── SUB-NODOS (nivel 2) — se despliegan hacia abajo ── */}
+                {/* ── SUB-NODOS — cajones que bajan como patas de araña ── */}
                 <AnimatePresence>
                   {isOpen&&(
-                    <motion.div initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}} transition={{duration:0.22}}
-                      style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,marginTop:6,overflow:"hidden",width:"100%"}}>
-                      {/* Línea vertical desde la rama */}
-                      <div style={{width:2,height:8,background:`linear-gradient(to bottom,${g.color},${g.color}44)`,borderRadius:1,flexShrink:0}}/>
+                    <motion.div
+                      initial={{opacity:0,height:0}}
+                      animate={{opacity:1,height:"auto"}}
+                      exit={{opacity:0,height:0}}
+                      transition={{duration:0.25,ease:[0.22,1,0.36,1]}}
+                      style={{display:"flex",flexDirection:"column",alignItems:"center",gap:0,marginTop:3,overflow:"hidden",width:"100%"}}>
+                      {/* Línea vertical araña */}
+                      <div style={{width:2,height:10,background:`linear-gradient(to bottom,${g.color},${g.color}33)`,borderRadius:1}}/>
                       {g.sub.map((s,si)=>{
                         const isLeafOpen=openLeaf===s.id;
                         return(
-                          <div key={s.id} className="mm-leaf-enter mm-node" onClick={()=>toggleLeaf(s.id)}
-                            style={{animationDelay:`${si*0.06}s`,width:"100%"}}>
-                            {/* Línea de conexión */}
-                            {si>0&&<div style={{width:1.5,height:4,background:`${g.color}44`,margin:"0 auto",flexShrink:0}}/>}
-                            {/* Leaf node */}
-                            <div style={{position:"relative",overflow:"hidden",borderRadius:6,border:`1.5px solid ${isLeafOpen?g.color:g.color+"55"}`,background:isLeafOpen?`${g.color}28`:`${g.color}10`,padding:"4px 4px",
-                              boxShadow:isLeafOpen?`0 0 10px ${g.glow}55`:"none",transition:"all 0.15s"}}>
-                              {/* Mini conic ring en el leaf activo */}
-                              {isLeafOpen&&<div style={{position:"absolute",inset:-2,borderRadius:7,background:`conic-gradient(from 0deg,${g.color},transparent,${g.color})`,animation:"mmSpin 1.2s linear infinite",opacity:0.6,zIndex:0}}/>}
+                          <div key={s.id} style={{width:"100%",display:"flex",flexDirection:"column",alignItems:"center",animationDelay:`${si*0.07}s`}} className="mm-leaf-slide mm-node" onClick={()=>toggleLeaf(s.id)}>
+                            {/* Conector pata */}
+                            <div style={{width:1.5,height:5,background:`${g.color}55`}}/>
+                            {/* Cajón sub-nodo */}
+                            <div style={{
+                              position:"relative",overflow:"hidden",
+                              width:"100%",
+                              borderRadius:5,
+                              border:`1.5px solid ${isLeafOpen?g.color:g.color+"66"}`,
+                              background:isLeafOpen
+                                ?`linear-gradient(135deg,${g.color}44,${g.color}22)`
+                                :`linear-gradient(135deg,${g.color}18,${g.color}08)`,
+                              padding:"4px 3px",
+                              boxShadow:isLeafOpen?`0 0 12px ${g.color}66, 0 0 4px ${g.color}44`:"none",
+                              transition:"all 0.15s"
+                            }}>
+                              {/* Mini conic si activo */}
+                              {isLeafOpen&&<div style={{position:"absolute",inset:-2,borderRadius:6,background:`conic-gradient(from 0deg,${g.color},transparent,${g.color})`,animation:"mmSpin 1.2s linear infinite",opacity:0.5,zIndex:0}}/>}
                               <div style={{position:"relative",zIndex:1,textAlign:"center"}}>
-                                <div style={{fontSize:7,fontWeight:900,color:isLeafOpen?g.glow:"#fff",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.3,lineHeight:1.2}}>{s.label}</div>
+                                <div style={{
+                                  fontSize:20,
+                                  fontWeight:900,
+                                  color:"#fff",
+                                  fontFamily:"Barlow Condensed,sans-serif",
+                                  letterSpacing:0.2,
+                                  lineHeight:1.2,
+                                  textShadow:isLeafOpen?`0 0 8px ${g.color}`:"0 1px 3px rgba(0,0,0,0.8)"
+                                }}>{s.label}</div>
                               </div>
                             </div>
                           </div>
@@ -2171,14 +2215,14 @@ function SpiderIdeologyDiagram({ideologies,spectrumColors,onSelect}:{ideologies:
 
         {/* Barra espectro inferior */}
         <div style={{height:3,borderRadius:2,background:"linear-gradient(90deg,#c2001a,#f97316,#94a3b8,#3b82f6,#7c3aed)",marginTop:14,opacity:0.7}}/>
-        <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
-          <span style={{fontSize:7,color:"#c2001a",fontFamily:"Barlow Condensed,sans-serif",fontWeight:800}}>← IZQ.</span>
-          <span style={{fontSize:7,color:"#94a3b8",fontFamily:"Barlow Condensed,sans-serif",fontWeight:800}}>CENTRO</span>
-          <span style={{fontSize:7,color:"#7c3aed",fontFamily:"Barlow Condensed,sans-serif",fontWeight:800}}>DER. →</span>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+          <span style={{fontSize:20,color:"#c2001a",fontFamily:"Barlow Condensed,sans-serif",fontWeight:900,textShadow:"0 0 8px #c2001a88"}}>← IZQ.</span>
+          <span style={{fontSize:20,color:"#94a3b8",fontFamily:"Barlow Condensed,sans-serif",fontWeight:900}}>CENTRO</span>
+          <span style={{fontSize:20,color:"#7c3aed",fontFamily:"Barlow Condensed,sans-serif",fontWeight:900,textShadow:"0 0 8px #7c3aed88"}}>DER. →</span>
         </div>
         {openBranch===null&&(
-          <div style={{textAlign:"center",marginTop:5}}>
-            <span style={{fontSize:10,color:"rgba(255,255,255,0.22)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>TOCA UNA RAMA PARA EXPANDIR</span>
+          <div style={{textAlign:"center",marginTop:6}}>
+            <span style={{fontSize:20,color:"rgba(30,27,75,0.45)",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,fontWeight:800}}>TOCA UNA ESFERA PARA EXPANDIR</span>
           </div>
         )}
       </div>
