@@ -844,19 +844,24 @@ function NavBar({screen,setScreen,isAdmin=false,unreadBuzon=0}){
                 transition:"opacity .3s,filter .3s",
               }}/>
 
-              {/* Letras — negras, grandes, reveal izq→der */}
-              <div style={{position:"relative",zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",overflow:"hidden",width:"100%"}}>
+              {/* Franja blanca semitransparente donde viven las letras */}
+              <div style={{
+                position:"absolute",inset:0,zIndex:2,
+                background:"rgba(255,255,255,0.55)",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                overflow:"hidden",
+              }}>
                 <span style={{
-                  fontSize:active?24:21,
+                  fontSize:active?22:19,
                   fontWeight:900,
                   color:"#000000",
                   fontFamily:"Barlow Condensed,sans-serif",
-                  letterSpacing:1,
+                  letterSpacing:0.5,
                   lineHeight:1,
                   textAlign:"center",
-                  padding:"0 3px",
-                  textShadow:"0 0 1px #000000,0 0 2px #000000",
-                  WebkitTextStroke:"0.5px #000000",
+                  padding:"0 2px",
+                  textShadow:"0 2px 4px rgba(255,255,255,0.8),0 -1px 0 rgba(255,255,255,0.9)",
+                  WebkitTextStroke:"1px #000000",
                   transition:"font-size .2s",
                   animation:"navTextReveal 10s linear infinite",
                   WebkitMaskImage:"linear-gradient(90deg,transparent 0%,#000 100%)",
