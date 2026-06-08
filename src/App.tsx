@@ -803,7 +803,7 @@ function NavBar({screen,setScreen,isAdmin=false,unreadBuzon=0}){
     setScreen(id);
   };
   return(
-    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:50}}>
+    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:50,borderTop:"3px solid rgba(0,0,0,0.15)"}}>
       <style>{`
         @keyframes spinSlow{to{transform:rotate(360deg)}}
         @keyframes spinFast{to{transform:rotate(360deg)}}
@@ -811,75 +811,74 @@ function NavBar({screen,setScreen,isAdmin=false,unreadBuzon=0}){
         @keyframes navBgWalk{0%{background-position:0% 50%}100%{background-position:200% 50%}}
         @keyframes navTextReveal{0%{-webkit-mask-position:200% 0%;opacity:0.2}60%{-webkit-mask-position:0% 0%;opacity:1}90%{-webkit-mask-position:0% 0%;opacity:1}100%{-webkit-mask-position:200% 0%;opacity:0.2}}
       `}</style>
-      <div style={{background:"rgba(10,10,20,0.97)",backdropFilter:"blur(20px)",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,4px)",paddingTop:4,borderTop:"2px solid rgba(224,16,16,0.35)"}}>
+      <div style={{background:"transparent",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,0px)",paddingTop:0,gap:2,padding:"2px"}}>
         {tabs.map(t=>{
           const active=screen===t.id;
           const dur=burst?"0.35s":active?"0.7s":"2.2s";
           const bright=burst||active;
           return(
             <motion.button key={t.id}
-              whileTap={{scale:0.85}}
+              whileTap={{scale:0.95}}
               onClick={()=>handleTab(t.id)}
-              style={{flex:1,background:"transparent",border:"none",padding:"2px 0px 4px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,position:"relative"}}>
-              {/* LED spinning box */}
-              <div style={{position:"relative",width:54,height:54,borderRadius:12,overflow:"hidden",flexShrink:0}}>
-                {/* Gradiente caminando de fondo */}
-                <div style={{
-                  position:"absolute",inset:0,borderRadius:12,
-                  background:active
-                    ?`linear-gradient(90deg,${t.color}44,${t.color}99,#fff3,${t.color}99,${t.color}44)`
-                    :`linear-gradient(90deg,#1a1a2e,#2a2a4e,#1a1a2e,#111128,#1a1a2e)`,
-                  backgroundSize:"300% 100%",
-                  animation:"navBgWalk 3s linear infinite",
-                  zIndex:0,
-                }}/>
-                {/* Conic spinning LED */}
-                <div style={{
-                  position:"absolute",width:"200%",height:"200%",top:"-50%",left:"-50%",
-                  background:`conic-gradient(from 0deg,${t.color} 0deg,transparent ${burst?60:active?45:30}deg,transparent ${burst?160:active?170:330}deg,${t.color} ${burst?220:active?215:345}deg,transparent ${burst?270:active?255:360}deg)`,
-                  animation:`${burst?"spinFast":"spinSlow"} ${dur} linear infinite`,
-                  opacity:burst?1:active?1:0.65,
-                  filter:`brightness(${burst?2:active?1.5:1.1}) drop-shadow(0 0 ${bright?8:4}px ${t.color})`,
-                  zIndex:1,pointerEvents:"none",
-                  transition:"opacity .3s, filter .3s",
-                }}/>
-                {/* Inner mask */}
-                <div style={{
-                  position:"absolute",inset:4,borderRadius:9,
-                  background:active?`linear-gradient(145deg,${t.color}33,${t.color}11)`:"rgba(10,10,20,0.85)",
-                  zIndex:2,
-                  transition:"background .3s",
-                }}/>
-                {/* Label con reveal izq→der */}
-                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",zIndex:3,overflow:"hidden"}}>
-                  <span style={{
-                    fontSize:active?25:22,fontWeight:900,
-                    color:active?t.color:"rgba(255,255,255,0.7)",
-                    fontFamily:"Barlow Condensed,sans-serif",
-                    letterSpacing:0.5,lineHeight:1,textAlign:"center",padding:"0 2px",
-                    textShadow:active?`0 0 14px ${t.color},0 0 28px ${t.color}88`:`0 1px 3px rgba(0,0,0,0.5)`,
-                    transition:"all .25s",
-                    animation:"navTextReveal 10s linear infinite",
-                    WebkitMaskImage:"linear-gradient(90deg,transparent 0%,#000 100%)",
-                    WebkitMaskSize:"200% 100%",
-                    WebkitMaskPosition:"0% 0%",
-                  }}>{t.label}</span>
-                </div>
+              style={{flex:1,border:"none",padding:0,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",borderRadius:0,overflow:"hidden",height:62,background:"transparent"}}>
+
+              {/* Gradiente caminando de fondo — color propio del botón */}
+              <div style={{
+                position:"absolute",inset:0,
+                background:active
+                  ?`linear-gradient(90deg,${t.color}cc,${t.color}ff,#ffffffaa,${t.color}ff,${t.color}cc)`
+                  :`linear-gradient(90deg,${t.color}55,${t.color}99,#ffffff66,${t.color}99,${t.color}55)`,
+                backgroundSize:"300% 100%",
+                animation:"navBgWalk 3s linear infinite",
+                zIndex:0,
+              }}/>
+
+              {/* LED conic giratorio encima del gradiente */}
+              <div style={{
+                position:"absolute",width:"200%",height:"200%",top:"-50%",left:"-50%",
+                background:`conic-gradient(from 0deg,${t.color} 0deg,transparent ${burst?60:active?45:20}deg,transparent ${burst?160:active?170:340}deg,${t.color} ${burst?220:active?215:355}deg,transparent 360deg)`,
+                animation:`${burst?"spinFast":"spinSlow"} ${dur} linear infinite`,
+                opacity:burst?0.6:active?0.5:0.3,
+                filter:`brightness(${burst?2:active?1.8:1.2}) drop-shadow(0 0 ${bright?10:5}px ${t.color})`,
+                zIndex:1,pointerEvents:"none",
+                transition:"opacity .3s,filter .3s",
+              }}/>
+
+              {/* Letras — negras, grandes, reveal izq→der */}
+              <div style={{position:"relative",zIndex:2,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",overflow:"hidden",width:"100%"}}>
+                <span style={{
+                  fontSize:active?24:21,
+                  fontWeight:900,
+                  color:"#000",
+                  fontFamily:"Barlow Condensed,sans-serif",
+                  letterSpacing:1,
+                  lineHeight:1,
+                  textAlign:"center",
+                  padding:"0 3px",
+                  textShadow:"0 1px 0 rgba(255,255,255,0.6)",
+                  transition:"font-size .2s",
+                  animation:"navTextReveal 10s linear infinite",
+                  WebkitMaskImage:"linear-gradient(90deg,transparent 0%,#000 100%)",
+                  WebkitMaskSize:"200% 100%",
+                  WebkitMaskPosition:"0% 0%",
+                }}>{t.label}</span>
               </div>
-              {/* Badge mensajes nuevos — solo admin y solo en botón FORO (Comunícate) */}
+
+              {/* Badge mensajes nuevos */}
               {isAdmin&&unreadBuzon>0&&t.id==="comments"&&(
-                <div style={{position:"absolute",top:0,right:2,background:"#dc2626",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",zIndex:10,boxShadow:"0 0 8px #dc262688"}}>
+                <div style={{position:"absolute",top:2,right:2,background:"#dc2626",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",zIndex:10,boxShadow:"0 0 8px #dc262688"}}>
                   <span style={{fontSize:10,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif"}}>{unreadBuzon>9?"9+":unreadBuzon}</span>
                 </div>
               )}
-              {/* Active dot */}
+
+              {/* Active dot abajo */}
               <div style={{
-                width:4,height:4,borderRadius:"50%",
-                background:t.color,
-                opacity:active?1:0,
-                boxShadow:active?`0 0 8px ${t.color},0 0 16px ${t.color}`:"none",
-                animation:active?"navDot 1.4s ease-in-out infinite":"none",
-                transition:"opacity .3s",
+                position:"absolute",bottom:3,
+                width:active?28:0,height:3,borderRadius:2,
+                background:"#000",
+                opacity:active?0.5:0,
+                transition:"width .3s,opacity .3s",
+                zIndex:3,
               }}/>
             </motion.button>
           );
