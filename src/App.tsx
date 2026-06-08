@@ -786,7 +786,7 @@ function BouncingBall({siteLogo,onLogoClick,votes,total}){
 }
 
 // ── NAVBAR ──
-function NavBar({screen,setScreen}){
+function NavBar({screen,setScreen,isAdmin=false,unreadBuzon=0}){
   const[burst,setBurst]=useState(false);
   const tabs=[
     {id:"results",  label:"INICIO",  color:"#e01010"},
@@ -808,8 +808,10 @@ function NavBar({screen,setScreen}){
         @keyframes spinSlow{to{transform:rotate(360deg)}}
         @keyframes spinFast{to{transform:rotate(360deg)}}
         @keyframes navDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
+        @keyframes navBgWalk{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+        @keyframes navTextReveal{0%{-webkit-mask-position:200% 0%;opacity:0.2}60%{-webkit-mask-position:0% 0%;opacity:1}90%{-webkit-mask-position:0% 0%;opacity:1}100%{-webkit-mask-position:200% 0%;opacity:0.2}}
       `}</style>
-      <div style={{background:"rgba(255,255,255,0.98)",backdropFilter:"blur(20px)",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,8px)",paddingTop:8,borderTop:"2px solid rgba(224,16,16,0.2)"}}>
+      <div style={{background:"rgba(10,10,20,0.97)",backdropFilter:"blur(20px)",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,4px)",paddingTop:4,borderTop:"2px solid rgba(224,16,16,0.35)"}}>
         {tabs.map(t=>{
           const active=screen===t.id;
           const dur=burst?"0.35s":active?"0.7s":"2.2s";
@@ -818,41 +820,61 @@ function NavBar({screen,setScreen}){
             <motion.button key={t.id}
               whileTap={{scale:0.85}}
               onClick={()=>handleTab(t.id)}
-              style={{flex:1,background:"transparent",border:"none",padding:"3px 1px 5px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3,position:"relative"}}>
+              style={{flex:1,background:"transparent",border:"none",padding:"2px 0px 4px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2,position:"relative"}}>
               {/* LED spinning box */}
-              <div style={{position:"relative",width:52,height:52,borderRadius:14,overflow:"hidden",flexShrink:0}}>
-                {/* Conic spinning LED — siempre visible */}
+              <div style={{position:"relative",width:54,height:54,borderRadius:12,overflow:"hidden",flexShrink:0}}>
+                {/* Gradiente caminando de fondo */}
+                <div style={{
+                  position:"absolute",inset:0,borderRadius:12,
+                  background:active
+                    ?`linear-gradient(90deg,${t.color}44,${t.color}99,#fff3,${t.color}99,${t.color}44)`
+                    :`linear-gradient(90deg,#1a1a2e,#2a2a4e,#1a1a2e,#111128,#1a1a2e)`,
+                  backgroundSize:"300% 100%",
+                  animation:"navBgWalk 3s linear infinite",
+                  zIndex:0,
+                }}/>
+                {/* Conic spinning LED */}
                 <div style={{
                   position:"absolute",width:"200%",height:"200%",top:"-50%",left:"-50%",
                   background:`conic-gradient(from 0deg,${t.color} 0deg,transparent ${burst?60:active?45:30}deg,transparent ${burst?160:active?170:330}deg,${t.color} ${burst?220:active?215:345}deg,transparent ${burst?270:active?255:360}deg)`,
                   animation:`${burst?"spinFast":"spinSlow"} ${dur} linear infinite`,
                   opacity:burst?1:active?1:0.65,
                   filter:`brightness(${burst?2:active?1.5:1.1}) drop-shadow(0 0 ${bright?8:4}px ${t.color})`,
-                  zIndex:0,pointerEvents:"none",
+                  zIndex:1,pointerEvents:"none",
                   transition:"opacity .3s, filter .3s",
                 }}/>
                 {/* Inner mask */}
                 <div style={{
-                  position:"absolute",inset:5,borderRadius:10,
-                  background:active?`linear-gradient(145deg,${t.color}22,${t.color}08)`:"#ffffff",
-                  zIndex:1,
+                  position:"absolute",inset:4,borderRadius:9,
+                  background:active?`linear-gradient(145deg,${t.color}33,${t.color}11)`:"rgba(10,10,20,0.85)",
+                  zIndex:2,
                   transition:"background .3s",
                 }}/>
-                {/* Label */}
-                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2}}>
+                {/* Label con reveal izq→der */}
+                <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",zIndex:3,overflow:"hidden"}}>
                   <span style={{
-                    fontSize:active?13:11,fontWeight:900,
-                    color:active?t.color:"#111",
+                    fontSize:active?25:22,fontWeight:900,
+                    color:active?t.color:"rgba(255,255,255,0.7)",
                     fontFamily:"Barlow Condensed,sans-serif",
-                    letterSpacing:0.5,lineHeight:1,textAlign:"center",padding:"0 3px",
-                    textShadow:active?`0 0 14px ${t.color},0 0 28px ${t.color}88`:`0 1px 3px rgba(0,0,0,0.2)`,
+                    letterSpacing:0.5,lineHeight:1,textAlign:"center",padding:"0 2px",
+                    textShadow:active?`0 0 14px ${t.color},0 0 28px ${t.color}88`:`0 1px 3px rgba(0,0,0,0.5)`,
                     transition:"all .25s",
+                    animation:"navTextReveal 10s linear infinite",
+                    WebkitMaskImage:"linear-gradient(90deg,transparent 0%,#000 100%)",
+                    WebkitMaskSize:"200% 100%",
+                    WebkitMaskPosition:"0% 0%",
                   }}>{t.label}</span>
                 </div>
               </div>
+              {/* Badge mensajes nuevos — solo admin y solo en botón FORO (Comunícate) */}
+              {isAdmin&&unreadBuzon>0&&t.id==="comments"&&(
+                <div style={{position:"absolute",top:0,right:2,background:"#dc2626",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",zIndex:10,boxShadow:"0 0 8px #dc262688"}}>
+                  <span style={{fontSize:10,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif"}}>{unreadBuzon>9?"9+":unreadBuzon}</span>
+                </div>
+              )}
               {/* Active dot */}
               <div style={{
-                width:5,height:5,borderRadius:"50%",
+                width:4,height:4,borderRadius:"50%",
                 background:t.color,
                 opacity:active?1:0,
                 boxShadow:active?`0 0 8px ${t.color},0 0 16px ${t.color}`:"none",
@@ -1176,12 +1198,55 @@ function HeroModals({total,votes}:{total:number,votes:Record<string,number>}){
                 <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:900,letterSpacing:3,color:"#fff"}}>📩 ESCRÍBEME</div>
                 <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:16,fontWeight:800,letterSpacing:2,color:"rgba(255,255,255,0.32)",marginTop:2}}>ELIGE CÓMO CONTACTARME</div>
               </div>
-              {ctView==="canales"?(
+              {ctView==="quienes"?(
+                <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                  <button onClick={()=>setCtView("canales")} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"rgba(255,255,255,0.45)",fontFamily:"Barlow Condensed,sans-serif",fontSize:16,fontWeight:800,letterSpacing:2,cursor:"pointer",padding:0,marginBottom:4}}>← VOLVER</button>
+                  <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:13,padding:"18px 16px",maxHeight:400,overflowY:"auto"}}>
+                    <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:20,fontWeight:900,letterSpacing:3,color:"#fff",marginBottom:12,textAlign:"center"}}>BIENVENIDO A ENCUESTA SILAO</div>
+                    <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:15,color:"rgba(255,255,255,0.75)",lineHeight:1.7,marginBottom:12}}>Encuesta Silao es una plataforma digital independiente creada para fomentar la participación ciudadana, conocer la opinión pública y generar espacios de interacción entre la ciudadanía y los temas de interés local.</div>
+                    <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:15,color:"rgba(255,255,255,0.75)",lineHeight:1.7,marginBottom:16}}>Nuestro objetivo es ofrecer a los habitantes de Silao una herramienta moderna donde puedan expresar sus opiniones mediante encuestas, sondeos y espacios de participación comunitaria.</div>
+                    {[{titulo:"NUESTRA MISIÓN",texto:"Promover la participación ciudadana mediante herramientas digitales accesibles, transparentes y fáciles de usar, fortaleciendo el interés de la comunidad en los asuntos públicos y sociales del municipio.",color:"#3b82f6"},{titulo:"NUESTRA VISIÓN",texto:"Convertirnos en la plataforma ciudadana de referencia en Silao para la consulta de opiniones, tendencias y participación comunitaria.",color:"#7c3aed"}].map(({titulo,texto,color})=>(
+                      <div key={titulo} style={{background:`${color}15`,border:`1px solid ${color}40`,borderRadius:10,padding:"12px 14px",marginBottom:10}}>
+                        <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:16,fontWeight:900,letterSpacing:2,color,marginBottom:6}}>{titulo}</div>
+                        <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:15,color:"rgba(255,255,255,0.7)",lineHeight:1.6}}>{texto}</div>
+                      </div>
+                    ))}
+                    <div style={{background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.4)",borderRadius:10,padding:"12px 14px",marginTop:4}}>
+                      <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:16,fontWeight:900,letterSpacing:2,color:"#fbbf24",marginBottom:6}}>⚠ IMPORTANTE</div>
+                      <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:15,color:"rgba(255,255,255,0.7)",lineHeight:1.6}}>Las encuestas publicadas en esta plataforma tienen fines informativos, estadísticos y de participación ciudadana. Los resultados no sustituyen estudios demoscópicos profesionales ni representan necesariamente la opinión de toda la población.</div>
+                    </div>
+                  </div>
+                </div>
+              ):ctView==="privacidad"?(
+                <div style={{display:"flex",flexDirection:"column",gap:9}}>
+                  <button onClick={()=>setCtView("canales")} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"rgba(255,255,255,0.45)",fontFamily:"Barlow Condensed,sans-serif",fontSize:16,fontWeight:800,letterSpacing:2,cursor:"pointer",padding:0,marginBottom:4}}>← VOLVER</button>
+                  <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:13,padding:"18px 16px",maxHeight:400,overflowY:"auto"}}>
+                    <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:18,fontWeight:900,letterSpacing:3,color:"#fff",marginBottom:4,textAlign:"center"}}>AVISO DE PRIVACIDAD</div>
+                    <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:13,color:"rgba(255,255,255,0.35)",textAlign:"center",marginBottom:14,letterSpacing:1}}>Última actualización: Junio de 2026</div>
+                    {[
+                      {n:"1. INFORMACIÓN QUE PODEMOS RECOPILAR",txt:"Nombre o alias de usuario. Correo electrónico cuando sea proporcionado voluntariamente o mediante inicio de sesión autorizado. Datos de participación en encuestas. Información técnica de navegación (tipo de dispositivo, navegador y estadísticas generales de uso). Comentarios, sugerencias o mensajes enviados por los usuarios."},
+                      {n:"2. USO DE LA INFORMACIÓN",txt:"Permitir la participación en encuestas. Mejorar la experiencia de uso de la plataforma. Generar estadísticas de participación. Prevenir actividades fraudulentas o usos indebidos. Responder consultas o solicitudes realizadas por los usuarios."},
+                      {n:"3. PROTECCIÓN DE LA INFORMACIÓN",txt:"Implementamos medidas razonables de seguridad para proteger la información almacenada y evitar accesos no autorizados, alteraciones o divulgaciones indebidas."},
+                      {n:"4. COMPARTICIÓN DE INFORMACIÓN",txt:"Encuesta Silao no vende ni comercializa información personal de los usuarios. La información únicamente podrá ser compartida cuando exista una obligación legal o requerimiento de autoridad competente conforme a la legislación aplicable."},
+                      {n:"5. COOKIES Y TECNOLOGÍAS SIMILARES",txt:"La plataforma puede utilizar cookies o tecnologías similares para mejorar la experiencia de navegación, obtener estadísticas de uso y optimizar el funcionamiento del sitio."},
+                      {n:"6. DERECHOS DE LOS USUARIOS",txt:"Los usuarios podrán solicitar información relacionada con los datos proporcionados, así como solicitar la corrección o eliminación de información personal cuando resulte procedente."},
+                      {n:"7. MODIFICACIONES",txt:"Encuesta Silao podrá actualizar este Aviso de Privacidad en cualquier momento para adaptarlo a cambios legales, técnicos o de funcionamiento de la plataforma."},
+                      {n:"8. CONTACTO",txt:"Para dudas, comentarios o solicitudes relacionadas con este Aviso de Privacidad, los usuarios podrán comunicarse a través de los medios de contacto publicados en la plataforma."},
+                    ].map(({n,txt})=>(
+                      <div key={n} style={{marginBottom:12}}>
+                        <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:14,fontWeight:900,letterSpacing:1.5,color:"#a78bfa",marginBottom:4}}>{n}</div>
+                        <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:14,color:"rgba(255,255,255,0.65)",lineHeight:1.7}}>{txt}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ):ctView==="canales"?(
                 <div style={{display:"flex",flexDirection:"column",gap:9}}>
                   {[
                     {ico:"✉️",tit:"CORREO",sub:"silao360oficial@gmail.com",fn:()=>setCtView("correo"),bg:"rgba(255,255,255,0.05)",bc:"rgba(255,255,255,0.1)"},
                     {ico:"f",tit:"PÁGINA FACEBOOK",sub:"facebook.com/Encuestasilao",fn:()=>window.open("https://www.facebook.com/Encuestasilao/","_blank"),bg:"rgba(24,119,242,0.1)",bc:"rgba(24,119,242,0.3)",fbStyle:true},
-                    {ico:"💬",tit:"WHATSAPP",sub:"Mensaje directo",fn:()=>window.open("https://api.whatsapp.com/send?text="+encodeURIComponent("Hola, me comunico desde Encuesta Silao"),"_blank"),bg:"rgba(37,211,102,0.1)",bc:"rgba(37,211,102,0.3)"},
+                    {ico:"👥",tit:"¿QUIÉNES SOMOS?",sub:"Conoce la plataforma",fn:()=>setCtView("quienes"),bg:"rgba(124,58,237,0.1)",bc:"rgba(124,58,237,0.3)"},
+                    {ico:"🔒",tit:"AVISO DE PRIVACIDAD",sub:"Última actualización: Junio 2026",fn:()=>setCtView("privacidad"),bg:"rgba(59,130,246,0.1)",bc:"rgba(59,130,246,0.3)"},
                   ].map((c,i)=>(
                     <button key={i} onClick={c.fn} style={{display:"flex",alignItems:"center",gap:14,background:c.bg,border:`1.5px solid ${c.bc}`,borderRadius:13,padding:"15px 17px",cursor:"pointer",textAlign:"left",transition:"all .2s",width:"100%"}}>
                       <span style={c.fbStyle?{fontFamily:"Georgia,serif",fontWeight:900,fontSize:28,color:"#1877f2",lineHeight:1}:{fontSize:28,lineHeight:1}}>{c.ico}</span>
@@ -2619,6 +2684,66 @@ function AdminSugerenciasTab({preguntaDestacada,setPreguntaDestacada}){
   );
 }
 
+// ── ADMIN BUZÓN ──
+function AdminBuzonTab(){
+  const[msgs,setMsgs]=useState<any[]>([]);
+  const[loading,setLoading]=useState(true);
+  const[leidos,setLeidos]=useState<Set<number>>(()=>{
+    try{const s=localStorage.getItem("silao360_buzon_leidos");return s?new Set(JSON.parse(s)):new Set();}catch(e){return new Set();}
+  });
+
+  useEffect(()=>{
+    sb.from("sugerencias_preguntas").select("*").then(rows=>{
+      if(Array.isArray(rows)){
+        const sorted=[...rows].sort((a,b)=>new Date(b.ts).getTime()-new Date(a.ts).getTime());
+        setMsgs(sorted);
+        // Marcar todos como leídos al abrir
+        const ids=new Set(sorted.map((r:any)=>r.id));
+        setLeidos(ids);
+        try{localStorage.setItem("silao360_buzon_leidos",JSON.stringify([...ids]));}catch(e){}
+      }
+    }).catch(()=>{}).finally(()=>setLoading(false));
+  },[]);
+
+  const deleteMsg=async(id:number)=>{
+    await sb.from("sugerencias_preguntas").delete().eq("id",String(id)).catch(()=>{});
+    setMsgs(prev=>prev.filter(m=>m.id!==id));
+  };
+
+  const TIPO_COLOR:{[k:string]:string}={SUGERENCIA:"#3b82f6",ERROR:"#dc2626",CANDIDATO:"#f59e0b",OTRO:"#7c3aed"};
+
+  return(
+    <div>
+      <div style={{fontSize:16,color:"rgba(167,139,250,0.6)",letterSpacing:3,marginBottom:14,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>📩 BUZÓN DE MENSAJES — {msgs.length} mensaje{msgs.length!==1?"s":""}</div>
+      {loading&&<div style={{color:"rgba(255,255,255,0.4)",textAlign:"center",padding:20,fontFamily:"Barlow Condensed,sans-serif"}}>Cargando...</div>}
+      {!loading&&msgs.length===0&&(
+        <div style={{textAlign:"center",padding:"50px 20px",color:"rgba(255,255,255,0.2)"}}>
+          <div style={{fontSize:54,marginBottom:12}}>📭</div>
+          <div style={{fontSize:16,fontFamily:"Barlow Condensed,sans-serif"}}>Sin mensajes aún.</div>
+        </div>
+      )}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {msgs.map((m:any)=>{
+          const color=TIPO_COLOR[m.tipo]||"#7c3aed";
+          return(
+            <div key={m.id} style={{background:"rgba(255,255,255,0.04)",border:`1.5px solid ${color}44`,borderRadius:13,padding:"14px 16px",position:"relative"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8,marginBottom:8}}>
+                <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                  <span style={{background:`${color}22`,border:`1px solid ${color}55`,borderRadius:6,padding:"2px 8px",fontSize:16,fontWeight:900,color,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>{m.tipo||"OTRO"}</span>
+                  <span style={{fontSize:16,color:"rgba(255,255,255,0.5)",fontFamily:"Barlow Condensed,sans-serif"}}>{m.autor||"Anónimo"}</span>
+                </div>
+                <button onClick={()=>deleteMsg(m.id)} style={{background:"rgba(220,38,38,0.2)",border:"1px solid #dc2626",borderRadius:7,padding:"4px 9px",color:"#f87171",fontSize:16,cursor:"pointer",flexShrink:0}}>🗑</button>
+              </div>
+              <div style={{fontSize:17,color:"#f1f5f9",fontFamily:"Barlow Condensed,sans-serif",lineHeight:1.6,marginBottom:6}}>{m.mensaje}</div>
+              <div style={{fontSize:16,color:"rgba(255,255,255,0.22)",fontFamily:"Barlow Condensed,sans-serif"}}>{m.ts?new Date(m.ts).toLocaleString("es-MX"):""}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,heroImages,setHeroImages,onClose,votes,setVotes,proposals,setProposals,comments,encuestaActiva,setEncuestaActiva,alertaMsg,setAlertaMsg,alertaActiva,setAlertaActiva,blockedNicks,preguntaDestacada,setPreguntaDestacada}){
   const[tab,setTab]=useState("stats");
   const[editId,setEditId]=useState(null);const[editData,setEditData]=useState({});
@@ -2649,7 +2774,7 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,heroImages,se
   const deleteProp=async(pid)=>{setProposals(prev=>prev.filter(x=>x.id!==pid));await sb.from("propuestas").delete().eq("id",String(pid)).catch(()=>{});};
   const resetVotes=()=>{setVotes(Object.fromEntries(PARTIES.map(p=>[p.id,0])));setResetConfirm(false);playSound("success");};
   const total=Object.values(votes).reduce((a,b)=>a+b,0);
-  const TABS=[{id:"stats",label:"📊 STATS"},{id:"alertas",label:"🔔 ALERTAS"},{id:"encuesta",label:"🗳️ ENCUESTA"},{id:"candidatos",label:"👤 CANDIDATOS"},{id:"propuestas",label:"💡 PROPUESTAS"},{id:"sugerencias",label:"❓ PREGUNTAS"},{id:"partidos",label:"🏛️ PARTIDOS"},{id:"exportar",label:"📥 EXPORTAR"},{id:"config",label:"⚙️ CONFIG"}];
+  const TABS=[{id:"stats",label:"📊 STATS"},{id:"buzon",label:"📩 BUZÓN"},{id:"alertas",label:"🔔 ALERTAS"},{id:"encuesta",label:"🗳️ ENCUESTA"},{id:"candidatos",label:"👤 CANDIDATOS"},{id:"propuestas",label:"💡 PROPUESTAS"},{id:"sugerencias",label:"❓ PREGUNTAS"},{id:"partidos",label:"🏛️ PARTIDOS"},{id:"exportar",label:"📥 EXPORTAR"},{id:"config",label:"⚙️ CONFIG"}];
   return(
     <div style={{position:"fixed",inset:0,zIndex:900,background:"#0d0a1e",overflowY:"auto"}}>
       <div style={{maxWidth:580,margin:"0 auto",padding:"0 0 100px"}}>
@@ -2681,6 +2806,9 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,heroImages,se
 
         {/* ── STATS ── */}
         {tab==="stats"&&<AdminStatsTab votes={votes} comments={comments} candidates={candidates} visitCount={visitCount} uploadLogo={uploadLogo}/>}
+
+        {/* ── BUZÓN ── */}
+        {tab==="buzon"&&<AdminBuzonTab/>}
 
         {/* ── ALERTAS ── */}
         {tab==="alertas"&&(<div>
@@ -3159,6 +3287,7 @@ export default function App(){
   const[showLogin,setShowLogin]=useState(false);
   const[showOnboarding,setShowOnboarding]=useState(()=>{try{return !localStorage.getItem("silao360_user");}catch(e){return true;}});
   const[isAdmin,setIsAdmin]=useState(false);
+  const[unreadBuzon,setUnreadBuzon]=useState(0);
   const[showAdminLogin,setShowAdminLogin]=useState(false);
   const[showAdminPanel,setShowAdminPanel]=useState(false);
   const adminTaps=useRef(0);const adminTimer=useRef(null);
@@ -3304,7 +3433,20 @@ export default function App(){
         input::placeholder{color:#9ca3af}
         textarea::placeholder{color:#6b7280}
       `}</style>
-      {isAdmin&&<div onClick={()=>setShowAdminPanel(true)} style={{position:"fixed",top:0,left:0,right:0,zIndex:999,background:"linear-gradient(90deg,#5b21b6,#7c3aed)",padding:"4px 16px",textAlign:"center",fontSize:16,color:"#fff",fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>⚙️ ADMIN ACTIVO — TOCA PARA ABRIR PANEL</div>}
+      {isAdmin&&(() => {
+        // Cargar conteo de mensajes no leídos del buzón
+        if(unreadBuzon===0){
+          const leidos=new Set(JSON.parse(localStorage.getItem("silao360_buzon_leidos")||"[]"));
+          sb.from("sugerencias_preguntas").select("id").then((rows:any[])=>{
+            if(Array.isArray(rows)){
+              const nuevos=rows.filter((r:any)=>!leidos.has(r.id)).length;
+              setUnreadBuzon(nuevos);
+            }
+          }).catch(()=>{});
+        }
+        return null;
+      })()}
+      {isAdmin&&<div onClick={()=>setShowAdminPanel(true)} style={{position:"fixed",top:0,left:0,right:0,zIndex:999,background:"linear-gradient(90deg,#5b21b6,#7c3aed)",padding:"4px 16px",textAlign:"center",fontSize:16,color:"#fff",fontWeight:800,letterSpacing:2,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif"}}>⚙️ ADMIN ACTIVO — TOCA PARA ABRIR PANEL{unreadBuzon>0?` · 📩 ${unreadBuzon} NUEVO${unreadBuzon>1?"S":""}`:" "}</div>}
       {alertaActiva&&alertaMsg&&<motion.div initial={{y:80,opacity:0}} animate={{y:0,opacity:1}} style={{position:"fixed",bottom:90,left:12,right:12,zIndex:998,background:"linear-gradient(135deg,#dc2626,#b91c1c)",padding:"10px 14px",borderRadius:14,fontSize:16,color:"#fff",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",boxShadow:"0 4px 20px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",gap:8,maxWidth:500,margin:"0 auto"}}><span style={{fontSize:16}}>📢</span><span style={{flex:1,lineHeight:1.4}}>{alertaMsg}</span></motion.div>}
       <AnimatePresence>{showAdminLogin&&<AdminLogin onSuccess={()=>{setIsAdmin(true);setShowAdminLogin(false);setShowAdminPanel(true);}} onCancel={()=>setShowAdminLogin(false)}/>}</AnimatePresence>
       {showAdminPanel&&isAdmin&&<AdminPanel candidates={candidates} setCandidates={setCandidates} siteLogo={siteLogo} setSiteLogo={setSiteLogo} heroImages={heroImages} setHeroImages={setHeroImages} onClose={()=>setShowAdminPanel(false)} votes={votes} setVotes={setVotes} proposals={proposals} setProposals={setProposals} comments={comments} encuestaActiva={encuestaActiva} setEncuestaActiva={setEncuestaActiva} alertaMsg={alertaMsg} setAlertaMsg={setAlertaMsg} alertaActiva={alertaActiva} setAlertaActiva={setAlertaActiva} blockedNicks={blockedNicks} preguntaDestacada={preguntaDestacada} setPreguntaDestacada={setPreguntaDestacada}/>}
@@ -3322,7 +3464,7 @@ export default function App(){
         <FooterLegal/>
         <InstallBanner/>
         <FloatingBubble myVote={myVote} candidates={candidates}/>
-        <NavBar screen={screen} setScreen={setScreen}/>
+        <NavBar screen={screen} setScreen={setScreen} isAdmin={isAdmin} unreadBuzon={unreadBuzon}/>
       </>)}
     </div>
   );
