@@ -970,19 +970,18 @@ function HeroModals({total,votes}:{total:number,votes:Record<string,number>}){
     setPulsoLoading(true);
     try{
       // Visitas totales — tabla usa "timestamp" y "plataforma"
-      const visRows:any[]=await sb.from("visitas").select("id,timestamp,plataforma,ua");
+      const visRows:any[]=await sb.from("visitas").select("id,timestamp,plataforma,ua,seccion");
       if(Array.isArray(visRows)){
-        // Excluir fila id=1 del HTML (contador, no visita real)
         const reales=visRows.filter((r:any)=>r.plataforma==="react"||r.ua);
         setSbVisitas(reales.length);
         const hoy=new Date().toISOString().slice(0,10);
         setSbHoy(reales.filter((r:any)=>r.timestamp&&r.timestamp.slice(0,10)===hoy).length);
-        // Activos: visitas en últimos 5 min
         const hace5=Date.now()-5*60*1000;
         setSbActivos(reales.filter((r:any)=>r.timestamp&&new Date(r.timestamp).getTime()>hace5).length);
-        // Sin sección — poner todo en encuesta
-        setSbEncuesta(reales.length);
-        setSbTrivia(0);setSbPesoPeso(0);setSbEscribeme(0);
+        setSbEncuesta(reales.filter((r:any)=>r.seccion==="vote"||r.seccion==="results").length);
+        setSbTrivia(reales.filter((r:any)=>r.seccion==="trivia").length);
+        setSbPesoPeso(reales.filter((r:any)=>r.seccion==="pesoapeso").length);
+        setSbEscribeme(reales.filter((r:any)=>r.seccion==="comments"||r.seccion==="preguntale").length);
         // Gráfica por hora
         const porHora:{[k:string]:number}={};
         reales.slice(-200).forEach((r:any)=>{
@@ -3175,20 +3174,33 @@ export default function App(){
   const[alertaActiva,setAlertaActiva]=useState(false);
   const[heroImages,setHeroImages]=useState([null,null,null,null,null,null]);
   const total=Object.values(votes).reduce((a,b)=>a+b,0);
-  const handleVote=(id)=>{
+  const SB_PARTIDO_MAP:{[k:string]:string}={pan:"PAN",morena:"MORENA",mc:"MC",pri:"PRI",pvem:"PVEM",pt:"PT",somosmx:"SOMOSMX",sombrero:"SOMBRERO",independiente:"INDEPENDIENTE",nulo:"NODECIDO"};
+  const recargarVotos=()=>{
+    sb.from("votos").select("partido,votos").then(rows=>{
+      if(!Array.isArray(rows)||rows.length===0)return;
+      const map:{[k:string]:number}={};
+      rows.forEach((r:any)=>{if(r.partido)map[r.partido.toUpperCase()]=(r.votos||0);});
+      setVotes(Object.fromEntries(PARTIES.map(p=>[p.id,map[(SB_PARTIDO_MAP[p.id]||p.id.toUpperCase())]||0])));
+    }).catch(()=>{});
+  };
+  const handleVote=(id:string)=>{
+    const sbNuevo=SB_PARTIDO_MAP[id]||id.toUpperCase();
+    const sbAnterior=myVote?(SB_PARTIDO_MAP[myVote]||myVote.toUpperCase()):null;
+    // Optimistic UI
     setVotes(prev=>{
       const next={...prev};
       if(myVote&&next[myVote]>0)next[myVote]--;
       next[id]=(next[id]||0)+1;
-      const nuevoTotal=next[id];
-      // Mapeo a nombre en Supabase (tabla usa PAN, MORENA, MC, PRI, PVEM, PT en mayúsculas, resto en minúsculas)
-      const SB_PARTIDO_MAP:{[k:string]:string}={pan:"PAN",morena:"MORENA",mc:"MC",pri:"PRI",pvem:"PVEM",pt:"PT",somosmx:"somosmx",sombrero:"sombrero",independiente:"independiente",nulo:"nulo"};
-      const sbPartido=SB_PARTIDO_MAP[id]||id;
-      sb.from("votos").update({total:nuevoTotal}).eq("partido",sbPartido).catch(()=>{});
       return next;
     });
     setMyVote(id);
     try{localStorage.setItem("silao360_mivoto",id);}catch(e){}
+    // RPC atómico en Supabase
+    fetch(`${SUPABASE_URL}/rest/v1/rpc/cambiar_voto`,{
+      method:"POST",
+      headers:H,
+      body:JSON.stringify({p_partido_nuevo:sbNuevo,p_partido_anterior:sbAnterior})
+    }).then(()=>recargarVotos()).catch(()=>{});
   };
   const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
   const doLogout=()=>{setUser(null);setMyVote(null);try{localStorage.removeItem("silao360_user");localStorage.removeItem("silao360_mivoto");}catch(e){}setShowOnboarding(true);};
@@ -3232,28 +3244,12 @@ export default function App(){
     sb.from("visitas").update({seccion:screen}).eq("sid",sidRef.current).catch(()=>{});
   },[screen]);
 
-  // ── Supabase: cargar votos (reemplaza estado completo) ──
-  useEffect(()=>{
-    sb.from("votos").select("id,partido,total").then(rows=>{
-      if(!Array.isArray(rows)||rows.length===0) return;
-      // Mapeo case-insensitive: la tabla usa PAN/MORENA/MC etc, el app usa pan/morena/mc
-      const countsRaw:{[k:string]:number}={};
-      rows.forEach(r=>{if(r.partido) countsRaw[r.partido.toLowerCase()]=(r.total||0);});
-      // Reemplazar votos con los reales de Supabase
-      setVotes(Object.fromEntries(PARTIES.map(p=>[p.id, countsRaw[p.id.toLowerCase()]||0])));
-    }).catch(()=>{});
-  },[]);
+  // ── Supabase: cargar votos al inicio ──
+  useEffect(()=>{recargarVotos();},[]);
 
-  // ── Supabase: polling votos cada 30s (reemplaza Realtime) ──
+  // ── Supabase: polling votos cada 30s ──
   useEffect(()=>{
-    const interval=setInterval(()=>{
-      sb.from("votos").select("id,partido,total").then(rows=>{
-        if(!Array.isArray(rows)||rows.length===0)return;
-        const countsRaw:{[k:string]:number}={};
-        rows.forEach(r=>{if(r.partido)countsRaw[r.partido.toLowerCase()]=(r.total||0);});
-        setVotes(Object.fromEntries(PARTIES.map(p=>[p.id,countsRaw[p.id.toLowerCase()]||0])));
-      }).catch(()=>{});
-    },30000);
+    const interval=setInterval(()=>recargarVotos(),30000);
     return ()=>clearInterval(interval);
   },[]);
 
