@@ -378,23 +378,9 @@ function OnboardingModal({onComplete,onSkip}){
     if(!window.FB){setAuthErr("SDK de Facebook no cargó. Intenta de nuevo.");setLoading(false);return;}
     window.FB.login(res=>{
       if(res.authResponse){
-        window.FB.api("/me",{fields:"name,id"},async(me)=>{
+        window.FB.api("/me",{fields:"name"},me=>{
           const nm=me.name||"Usuario Facebook";
-          const fbId=me.id||null;
-          if(fbId){
-            try{
-              const rows:any[]=await sbQuery("usuarios",{select:"id,nickname,nombre,voto_partido",filters:[{col:"fb_id",op:"eq",val:fbId}],limit:1});
-              if(Array.isArray(rows)&&rows.length>0){
-                const ex=rows[0];
-                const u={name:ex.nombre||nm,nickname:ex.nickname,id:ex.id,proveedor:"facebook",fb_id:fbId};
-                (window as any).__returningUser={u,voto:ex.voto_partido||null};
-                setName(ex.nombre||nm);setNickname(ex.nickname||nm);
-                setLoading(false);setStep(4);return;
-              }
-            }catch(e){}
-          }
-          (window as any).__fbId=fbId;
-          setName(nm);const nick=genNickname(nm+(fbId||""));setNickname(nick);setLoading(false);setStep(3);
+          setName(nm);const nick=genNickname(nm+Date.now());setNickname(nick);setLoading(false);setStep(3);
         });
       }else{setAuthErr("Cancelaste el inicio de sesión con Facebook.");setLoading(false);}
     },{scope:"public_profile"});
@@ -410,7 +396,7 @@ function OnboardingModal({onComplete,onSkip}){
           try{
             const payload=JSON.parse(atob(resp.credential.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
             const nm=payload.name||payload.email?.split("@")[0]||"Usuario Google";
-            setName(nm);const nick=genNickname(nm+"google");setNickname(nick);setLoading(false);setStep(3);
+            setName(nm);const nick=genNickname(nm+Date.now());setNickname(nick);setLoading(false);setStep(3);
           }catch(e){setAuthErr("Error al leer respuesta de Google.");setLoading(false);}
         },
         ux_mode:"popup",
@@ -431,7 +417,7 @@ function OnboardingModal({onComplete,onSkip}){
     else{let t=0;const iv=setInterval(()=>{t++;if(window.google?.accounts?.id){clearInterval(iv);tryLogin();}else if(t>30){clearInterval(iv);setAuthErr("Google tardó en cargar. Refresca la página.");setLoading(false);}},200);}
   };
 
-  const go=()=>{if(!name.trim())return;setLoading(true);setTimeout(()=>{setNickname(genNickname(name.trim()));setLoading(false);setStep(3);},900);};
+  const go=()=>{if(!name.trim())return;setLoading(true);setTimeout(()=>{setNickname(genNickname(name.trim()+Date.now()));setLoading(false);setStep(3);},900);};
   return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{position:"fixed",inset:0,zIndex:500,background:"linear-gradient(160deg,#0f172a,#1e1b4b,#0f172a)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       <button onClick={()=>window.close()} style={{position:"fixed",top:14,right:14,zIndex:600,background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"2px solid #f87171",borderRadius:14,padding:"10px 18px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,boxShadow:"0 4px 16px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",gap:6}}>✕ SALIR</button>
@@ -475,11 +461,11 @@ function OnboardingModal({onComplete,onSkip}){
                 <span style={{fontSize:16,position:"relative",zIndex:1}}>👁️</span>
                 <span style={{fontSize:16,color:"rgba(255,255,255,0.5)",fontWeight:700,letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif",position:"relative",zIndex:1}}>SOLO QUIERO VER — sin votar</span>
               </motion.button>
-              <motion.button whileTap={{scale:0.95}} onClick={()=>window.close()}
+              <motion.button whileTap={{scale:0.95}} onClick={onSkip}
                 style={{width:"100%",background:"linear-gradient(135deg,#14532d,#16a34a)",border:"2px solid #4ade80",borderRadius:14,padding:"16px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,position:"relative",overflow:"hidden",boxShadow:"0 0 20px rgba(74,222,128,0.4),0 4px 20px rgba(22,163,74,0.5)"}}>
                 <div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,transparent,rgba(74,222,128,0.25),transparent)",animation:"ledShimmer 1.8s ease-in-out infinite",pointerEvents:"none"}}/>
-                <span style={{fontSize:22,position:"relative",zIndex:1}}>🚪</span>
-                <span style={{fontSize:18,color:"#fff",fontWeight:900,letterSpacing:3,fontFamily:"Barlow Condensed,sans-serif",position:"relative",zIndex:1,textShadow:"0 0 12px rgba(74,222,128,0.8)"}}>SALIR DE LA APP</span>
+                <span style={{fontSize:22,position:"relative",zIndex:1}}>👁️</span>
+                <span style={{fontSize:18,color:"#fff",fontWeight:900,letterSpacing:3,fontFamily:"Barlow Condensed,sans-serif",position:"relative",zIndex:1,textShadow:"0 0 12px rgba(74,222,128,0.8)"}}>SOLO VER RESULTADOS</span>
               </motion.button>
             </>}
           </motion.div>}
@@ -498,27 +484,19 @@ function OnboardingModal({onComplete,onSkip}){
             </div>
             <motion.button whileTap={{scale:0.96}} onClick={()=>{
                 playSound("success");
-                const fbId=(window as any).__fbId||null;delete (window as any).__fbId;
-                const u={name:name.trim(),nickname,id:"u_"+Math.random().toString(36).slice(2),proveedor:"facebook",fb_id:fbId};
-                // Guardar en Supabase tabla usuarios con fb_id
-                sb.from("usuarios").insert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:u.proveedor,fb_id:fbId,ts:new Date().toISOString()}).catch(()=>{});
-                onComplete(u,null);
+                const u={name:name.trim(),nickname,id:"u_"+Math.random().toString(36).slice(2),proveedor:step===3?"facebook_google":"manual"};
+                // Guardar en Supabase tabla usuarios
+                sb.from("usuarios").insert({
+                  id:u.id,
+                  nickname:u.nickname,
+                  nombre:u.name,
+                  proveedor:u.proveedor,
+                  ts:new Date().toISOString()
+                }).catch(()=>{});
+                onComplete(u);
               }}
               style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:12,padding:"13px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>
               🗳️ ENTRAR Y PARTICIPAR
-            </motion.button>
-          </motion.div>}
-          {step===4&&<motion.div key="s4" initial={{opacity:0,scale:0.9}} animate={{opacity:1,scale:1}} exit={{opacity:0}}>
-            <div style={{textAlign:"center",marginBottom:18}}>
-              <div style={{fontSize:52,marginBottom:10}}>👋</div>
-              <div style={{fontSize:13,color:"rgba(255,255,255,0.35)",letterSpacing:3,marginBottom:6,fontFamily:"Barlow Condensed,sans-serif"}}>BIENVENIDO DE VUELTA</div>
-              <div style={{fontSize:21,fontWeight:900,color:"#fff",background:"rgba(255,255,255,0.07)",borderRadius:12,padding:"10px 14px",marginBottom:10,fontFamily:"Barlow Condensed,sans-serif"}}>{nickname}</div>
-              {(()=>{const rv=(window as any).__returningUser;if(!rv?.voto)return null;const vp=PARTIES.find((x:any)=>x.id===rv.voto);if(!vp)return null;return(<div style={{background:vp.color+"20",border:"2px solid "+vp.color+"60",borderRadius:12,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><span style={{fontSize:22}}>{vp.emoji}</span><div style={{textAlign:"left"}}><div style={{fontSize:11,color:"rgba(255,255,255,0.4)",letterSpacing:2,fontFamily:"Barlow Condensed,sans-serif"}}>TU VOTO GUARDADO</div><div style={{fontSize:17,fontWeight:900,color:vp.color,fontFamily:"Barlow Condensed,sans-serif"}}>{vp.short} ✓</div></div></div>);})()}
-              <div style={{fontSize:13,color:"rgba(255,255,255,0.38)",lineHeight:1.6,padding:"8px 10px",background:"rgba(255,255,255,0.04)",borderRadius:10,border:"1px solid rgba(255,255,255,0.07)"}}>Tu cuenta y voto ya estaban guardados en el servidor. Puedes cambiar tu voto cuando quieras.</div>
-            </div>
-            <motion.button whileTap={{scale:0.96}} onClick={()=>{playSound("success");const rv=(window as any).__returningUser||{};delete (window as any).__returningUser;if(rv.u)onComplete(rv.u,rv.voto||null);}}
-              style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:12,padding:"13px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>
-              🗳️ ENTRAR
             </motion.button>
           </motion.div>}
         </AnimatePresence>
@@ -529,31 +507,72 @@ function OnboardingModal({onComplete,onSkip}){
 
 // ── LOGIN MODAL ──
 function LoginModal({onLogin,onClose}){
-  const[name,setName]=useState("");const[loading,setLoading]=useState(false);const[step,setStep]=useState(1);const[nickname,setNickname]=useState("");
-  const go=()=>{if(!name.trim())return;setLoading(true);setTimeout(()=>{setNickname(genNickname(name.trim()));setLoading(false);setStep(2);},900);};
+  const[name,setName]=useState("");
+  const[email,setEmail]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[step,setStep]=useState(1);
+  const[nickname,setNickname]=useState("");
+  const[emailError,setEmailError]=useState("");
+
+  const isValidEmail=(e:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
+
+  const go=()=>{
+    if(!name.trim())return;
+    if(!isValidEmail(email)){setEmailError("Escribe un correo válido");return;}
+    setEmailError("");
+    setLoading(true);
+    // Verificar si ya votó con este correo
+    const userId="email_"+email.trim().toLowerCase().replace(/[^a-z0-9]/g,"_");
+    sb.from("user_votos").select("partido").eq("user_id",userId).then((rows:any[])=>{
+      setLoading(false);
+      const nick=genNickname(name.trim()+email.trim());
+      setNickname(nick);
+      setStep(2);
+    }).catch(()=>{
+      setLoading(false);
+      const nick=genNickname(name.trim()+email.trim());
+      setNickname(nick);
+      setStep(2);
+    });
+  };
+
   return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      {/* SALIR grande arriba */}
       <button onClick={onClose} style={{position:"absolute",top:16,right:16,background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"2px solid #f87171",borderRadius:14,padding:"10px 18px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,boxShadow:"0 4px 16px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",gap:6,zIndex:10}}>✕ SALIR</button>
       <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}} style={{background:"#fff",borderRadius:18,padding:"24px 20px",maxWidth:340,width:"100%",position:"relative",overflow:"hidden"}}>
-        {/* Bar light top */}
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,#e01010,#7c3aed,#3b82f6,#10b981,#e01010)",backgroundSize:"200% 100%",animation:"barLights 2s linear infinite"}}/>
         {step===1?(<>
-          <div style={{textAlign:"center",marginBottom:12}}><div style={{width:44,height:44,borderRadius:"50%",background:"#1877f2",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:22,fontFamily:"Georgia,serif",fontWeight:900,color:"#fff",marginBottom:7}}>f</div><div style={{fontSize:16,fontWeight:800}}>Entra con Facebook</div></div>
-          {loading?<div style={{textAlign:"center",padding:"14px 0"}}><div style={{width:28,height:28,border:"3px solid #e8e8e8",borderTopColor:"#1877f2",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 8px"}}/></div>:<>
-            <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&name.trim()&&go()} placeholder="Tu nombre completo" style={{width:"100%",background:"#f5f5f5",border:"1.5px solid #e0e0e0",borderRadius:9,padding:"10px 12px",fontSize:16,outline:"none",marginBottom:8}}/>
-            <motion.button whileTap={{scale:0.96}} onClick={go} disabled={!name.trim()} style={{width:"100%",background:name.trim()?"#1877f2":"#e0e0e0",border:"none",borderRadius:9,padding:"11px",color:name.trim()?"#fff":"#aaa",fontSize:16,fontWeight:700,cursor:name.trim()?"pointer":"default"}}>GENERAR MI APODO →</motion.button>
-          </>}
-          <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",marginTop:10,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
+          <div style={{textAlign:"center",marginBottom:14}}>
+            <div style={{fontSize:32,marginBottom:4}}>🗳️</div>
+            <div style={{fontSize:18,fontWeight:900,color:"#111",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>REGISTRA TU VOTO</div>
+            <div style={{fontSize:14,color:"#6b7280",marginTop:4}}>Una persona, un voto. Tu correo es tu identidad.</div>
+          </div>
+          {loading
+            ?<div style={{textAlign:"center",padding:"14px 0"}}><div style={{width:28,height:28,border:"3px solid #e8e8e8",borderTopColor:"#e01010",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto 8px"}}/><div style={{fontSize:14,color:"#9ca3af"}}>Verificando...</div></div>
+            :<>
+              <input value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre completo" style={{width:"100%",background:"#f5f5f5",border:"1.5px solid #e0e0e0",borderRadius:9,padding:"10px 12px",fontSize:16,outline:"none",marginBottom:8,boxSizing:"border-box"}}/>
+              <input value={email} onChange={e=>{setEmail(e.target.value);setEmailError("");}} onKeyDown={e=>e.key==="Enter"&&name.trim()&&isValidEmail(email)&&go()} placeholder="Tu correo electrónico" type="email" style={{width:"100%",background:"#f5f5f5",border:`1.5px solid ${emailError?"#e01010":"#e0e0e0"}`,borderRadius:9,padding:"10px 12px",fontSize:16,outline:"none",marginBottom:emailError?4:8,boxSizing:"border-box"}}/>
+              {emailError&&<div style={{fontSize:13,color:"#e01010",marginBottom:8}}>{emailError}</div>}
+              <div style={{fontSize:12,color:"#9ca3af",marginBottom:10,lineHeight:1.4}}>🔒 Tu correo solo se usa para verificar que votes una vez. No se comparte.</div>
+              <motion.button whileTap={{scale:0.96}} onClick={go} disabled={!name.trim()||!email.trim()} style={{width:"100%",background:(name.trim()&&email.trim())?"linear-gradient(135deg,#e01010,#8a0000)":"#e0e0e0",border:"none",borderRadius:9,padding:"11px",color:(name.trim()&&email.trim())?"#fff":"#aaa",fontSize:16,fontWeight:900,cursor:(name.trim()&&email.trim())?"pointer":"default",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>CONTINUAR →</motion.button>
+            </>
+          }
+          <button onClick={onClose} style={{width:"100%",background:"transparent",border:"1px solid #e0e0e0",borderRadius:10,padding:"10px",color:"#9ca3af",fontSize:14,fontWeight:600,cursor:"pointer",marginTop:8}}>Solo quiero ver — sin votar</button>
         </>):(<>
-          <div style={{textAlign:"center",marginBottom:12}}><div style={{fontSize:34,marginBottom:6}}>🎭</div><div style={{fontSize:16,color:"#111",fontWeight:800,letterSpacing:2,marginBottom:5}}>TU APODO SERÁ</div><div style={{fontSize:17,fontWeight:900,background:"#f3f4f6",borderRadius:10,padding:"10px 12px",marginBottom:6,fontFamily:"Barlow Condensed,sans-serif"}}>{nickname}</div></div>
+          <div style={{textAlign:"center",marginBottom:12}}>
+            <div style={{fontSize:34,marginBottom:6}}>🎭</div>
+            <div style={{fontSize:16,color:"#111",fontWeight:800,letterSpacing:2,marginBottom:5}}>TU APODO SERÁ</div>
+            <div style={{fontSize:17,fontWeight:900,background:"#f3f4f6",borderRadius:10,padding:"10px 12px",marginBottom:6,fontFamily:"Barlow Condensed,sans-serif"}}>{nickname}</div>
+            <div style={{fontSize:13,color:"#6b7280"}}>Tu nombre real no se muestra públicamente.</div>
+          </div>
           <motion.button whileTap={{scale:0.96}} onClick={()=>{
               playSound("success");
-              const u={name:name.trim(),nickname,id:"u_"+Math.random().toString(36).slice(2),proveedor:"manual"};
-              sb.from("usuarios").insert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:"manual",ts:new Date().toISOString()}).catch(()=>{});
+              const userId="email_"+email.trim().toLowerCase().replace(/[^a-z0-9]/g,"_");
+              const u={name:name.trim(),nickname,id:userId,email:email.trim().toLowerCase(),proveedor:"email"};
+              sb.from("usuarios").insert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:"email",ts:new Date().toISOString()}).catch(()=>{});
               onLogin(u);
-            }} style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:9,padding:"11px",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",marginBottom:8}}>🗳️ ENTRAR Y PARTICIPAR</motion.button>
-          <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
+            }} style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:9,padding:"11px",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",marginBottom:8,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>🗳️ ENTRAR Y PARTICIPAR</motion.button>
+          <button onClick={()=>setStep(1)} style={{width:"100%",background:"transparent",border:"1px solid #e0e0e0",borderRadius:10,padding:"10px",color:"#9ca3af",fontSize:14,fontWeight:600,cursor:"pointer"}}>← Cambiar correo</button>
         </>)}
       </motion.div>
     </motion.div>
@@ -1695,16 +1714,14 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,onL
 
   const doVote=(id)=>{
     if(!user){playSound("click");onLoginClick();return;}
-    if(voteLocked&&myVote&&myVote!==id){
-      setPendingVote(id);setShowChangeWarning(true);return;
-    }
+    // Voto bloqueado permanente — una persona un voto
+    if(myVote){playSound("click");return;}
     playSound("vote");
     onVote(id);
     setJustVoted(id);
     setLedParty(id);
     setVoteLocked(true);
     setShowBallots(true);
-    // Guardar en localStorage
     try{localStorage.setItem("silao360_mivoto",id);}catch(e){}
     setTimeout(()=>setShowBallots(false),5000);
   };
@@ -1743,7 +1760,7 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,onL
             style={{background:"#fff",borderRadius:20,padding:"24px 20px",maxWidth:320,width:"100%",textAlign:"center",border:"3px solid #f59e0b"}}>
             <div style={{fontSize:40,marginBottom:10}}>⚠️</div>
             <div style={{fontSize:17,fontWeight:900,color:"#92400e",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8,letterSpacing:1}}>¿CAMBIAR TU VOTO?</div>
-            <div style={{fontSize:16,color:"#6b7280",marginBottom:16,lineHeight:1.6}}>Si confirmas, <strong style={{color:"#e01010"}}>tu voto anterior se cancela</strong> y se registra el nuevo. Las estadísticas se actualizan. Puedes cambiar cuantas veces quieras.</div>
+            <div style={{fontSize:16,color:"#6b7280",marginBottom:16,lineHeight:1.6}}>Si cambias tu voto, <strong style={{color:"#e01010"}}>cambiarás las estadísticas</strong> de la encuesta. Esta acción es reversible.</div>
             <div style={{display:"flex",gap:8}}>
               <button onClick={()=>{setShowChangeWarning(false);setPendingVote(null);}} style={{flex:1,background:"#f3f4f6",border:"none",borderRadius:10,padding:"12px",color:"#374151",fontSize:16,fontWeight:700,cursor:"pointer"}}>MANTENER MI VOTO</button>
               <motion.button whileTap={{scale:0.96}} onClick={()=>{
@@ -1804,7 +1821,7 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,onL
               <div style={{fontSize:16,color:p.color,letterSpacing:2,fontWeight:800,fontFamily:"Barlow Condensed,sans-serif"}}>TU VOTO ACTUAL 🔒 BLOQUEADO</div>
               <div style={{fontSize:16,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif"}}>{p.short} ✓</div>
             </div>
-            <motion.button whileTap={{scale:0.95}} onClick={()=>{setVoteLocked(false);}} style={{background:"rgba(255,255,255,0.9)",border:`2px solid ${p.color}`,borderRadius:8,padding:"7px 10px",cursor:"pointer",fontSize:16,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,position:"relative",zIndex:1}}>🔓 CAMBIAR</motion.button>
+            <div style={{background:"rgba(255,255,255,0.9)",border:`2px solid ${p.color}`,borderRadius:8,padding:"7px 10px",fontSize:16,fontWeight:900,color:p.color,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5,position:"relative",zIndex:1}}>🔒 FIJO</div>
           </motion.div>
         )}
 
@@ -1824,7 +1841,7 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,onL
             <span style={{fontSize:28}}>✅</span>
             <div>
               <div style={{fontSize:16,fontWeight:900,color:"#15803d",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>¡VOTASTE POR {PARTIES.find(p=>p.id===myVote)?.short||myVote.toUpperCase()}!</div>
-              <div style={{fontSize:16,color:"#16a34a",marginTop:2}}>Tu voto queda guardado. Puedes cambiarlo cuando quieras.</div>
+              <div style={{fontSize:16,color:"#16a34a",marginTop:2}}>Tu voto queda guardado y bloqueado. Una persona, un voto.</div>
             </div>
           </motion.div>
         )}</AnimatePresence>
@@ -1832,37 +1849,33 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,onL
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {PARTIES.map((p,i)=>{
             const count=votes[p.id]||0,isMe=myVote===p.id;
-            const isLocked=voteLocked&&myVote&&!isMe;
             const cand=candidates?.[p.id];
             return(
               <motion.button key={p.id} initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:i*0.04}}
-                whileTap={{scale:isLocked?0.99:0.97}}
+                whileTap={{scale:0.97}}
                 onClick={()=>doVote(p.id)}
-                style={{display:"flex",gap:10,alignItems:"center",
-                  background:isMe?`${p.color}0d`:isLocked?"#f9fafb":"#fff",
-                  border:`2px solid ${isMe?p.color:"#e5e7eb"}`,
-                  borderRadius:14,padding:"12px",cursor:"pointer",width:"100%",textAlign:"left",
+                style={{display:"flex",gap:10,alignItems:"center",background:isMe?`${p.color}0d`:"#fff",border:`2px solid ${isMe?p.color:"#e5e7eb"}`,borderRadius:14,padding:"12px",cursor:"pointer",width:"100%",textAlign:"left",
                   boxShadow:isMe?`0 0 0 1px ${p.color}, 0 4px 20px ${p.color}40`:"0 1px 4px rgba(0,0,0,0.04)",
-                  position:"relative",overflow:"hidden",
-                  opacity:isLocked?0.52:1,filter:isLocked?"grayscale(0.3)":"none"}}>
+                  position:"relative",overflow:"hidden"}}>
+                {/* LED shimmer cuando es mi voto */}
                 {isMe&&<div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent,${p.color}15,transparent)`,animation:"ledShimmer 1.5s ease-in-out infinite",pointerEvents:"none"}}/>}
-                {isLocked&&(<div style={{position:"absolute",top:6,right:8,display:"flex",alignItems:"center",gap:3,background:"rgba(0,0,0,0.07)",borderRadius:8,padding:"3px 7px",pointerEvents:"none",zIndex:2}}><span style={{fontSize:13}}>🔒</span><span style={{fontSize:11,fontWeight:800,color:"#6b7280",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:0.5}}>CAMBIAR VOTO</span></div>)}
+                {/* Logo partido */}
                 <div style={{width:54,height:54,borderRadius:10,overflow:"hidden",flexShrink:0,border:`2.5px solid ${isMe?p.color:`${p.color}40`}`,boxShadow:isMe?`0 0 14px ${p.color}60`:"none",background:`${p.color}10`}}>
                   {PARTY_LOGOS[p.id]?<img src={PARTY_LOGOS[p.id]} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:26,display:"flex",alignItems:"center",justifyContent:"center",height:"100%"}}>{p.emoji}</span>}
                 </div>
+                {/* Info */}
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:16,fontWeight:900,color:isMe?p.color:isLocked?"#9ca3af":"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif",display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
+                  <div style={{fontSize:16,fontWeight:900,color:isMe?p.color:"#1a1a1a",fontFamily:"Barlow Condensed,sans-serif",display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
                     {p.short}
-                    {isMe&&<span style={{fontSize:16,color:"#fff",background:p.color,padding:"2px 7px",borderRadius:10,fontWeight:800,letterSpacing:.5}}>🔒 TU VOTO</span>}
+                    {isMe&&<span style={{fontSize:16,color:"#fff",background:p.color,padding:"2px 7px",borderRadius:10,fontWeight:800,letterSpacing:.5}}>✓ TU VOTO</span>}
                   </div>
-                  <div style={{fontSize:16,color:isLocked?"#d1d5db":p.color,fontWeight:700,marginTop:2,fontFamily:"Barlow Condensed,sans-serif"}}>{p.spectrumLabel}</div>
-                  {isLocked?(<div style={{fontSize:13,color:"#9ca3af",fontFamily:"Barlow Condensed,sans-serif",marginTop:3,fontStyle:"italic"}}>Toca para cambiar tu voto</div>):(
-                    <div style={{fontSize:18,fontWeight:900,color:isMe?p.color:count>0?"#1a1a1a":"#d1d5db",fontFamily:"Barlow Condensed,sans-serif",marginTop:3,lineHeight:1}}>
-                      <LiveCount value={count}/> <span style={{fontSize:16,fontWeight:500,color:"#9ca3af"}}>votos</span>
-                    </div>
-                  )}
+                  <div style={{fontSize:16,color:p.color,fontWeight:700,marginTop:2,fontFamily:"Barlow Condensed,sans-serif"}}>{p.spectrumLabel}</div>
+                  <div style={{fontSize:18,fontWeight:900,color:isMe?p.color:count>0?"#1a1a1a":"#d1d5db",fontFamily:"Barlow Condensed,sans-serif",marginTop:3,lineHeight:1}}>
+                    <LiveCount value={count}/> <span style={{fontSize:16,fontWeight:500,color:"#9ca3af"}}>votos</span>
+                  </div>
                 </div>
-                {!isLocked&&<CandidateBox candidate={cand} color={p.color} size={54} radius={10}/>}
+                {/* Foto candidato con LED */}
+                <CandidateBox candidate={cand} color={p.color} size={54} radius={10}/>
               </motion.button>
             );
           })}
@@ -3375,8 +3388,10 @@ export default function App(){
       headers:H,
       body:JSON.stringify({p_partido_nuevo:sbNuevo,p_partido_anterior:sbAnterior})
     }).then(()=>recargarVotos()).catch(()=>{});
-    // Persistir voto en tabla usuarios para recuperarlo al regresar
-    if(user?.id){sb.from("usuarios").update({voto_partido:id}).eq("id",user.id).catch(()=>{});}
+    // Guardar voto del usuario en tabla user_votos (anti-trampa)
+    if(user?.id){
+      sb.from("user_votos").insert({user_id:user.id,partido:sbNuevo,ts:new Date().toISOString()}).catch(()=>{});
+    }
   };
   const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
   const doLogout=()=>{setUser(null);setMyVote(null);try{localStorage.removeItem("silao360_user");localStorage.removeItem("silao360_mivoto");}catch(e){}setShowOnboarding(true);};
@@ -3422,6 +3437,21 @@ export default function App(){
 
   // ── Supabase: cargar votos al inicio ──
   useEffect(()=>{recargarVotos();},[]);
+
+  // ── Supabase: recuperar voto del usuario si ya votó (anti-trampa) ──
+  useEffect(()=>{
+    if(!user?.id) return;
+    sb.from("user_votos").select("partido").eq("user_id",user.id).then((rows:any[])=>{
+      if(Array.isArray(rows)&&rows.length>0&&rows[0].partido){
+        const partido=rows[0].partido.toLowerCase();
+        const match=PARTIES.find(p=>SB_PARTIDO_MAP[p.id]===rows[0].partido||p.id===partido);
+        if(match&&!myVote){
+          setMyVote(match.id);
+          try{localStorage.setItem("silao360_mivoto",match.id);}catch(e){}
+        }
+      }
+    }).catch(()=>{});
+  },[user?.id]);
 
   // ── Supabase: polling votos cada 30s ──
   useEffect(()=>{
@@ -3497,7 +3527,7 @@ export default function App(){
       {alertaActiva&&alertaMsg&&<motion.div initial={{y:80,opacity:0}} animate={{y:0,opacity:1}} style={{position:"fixed",bottom:90,left:12,right:12,zIndex:998,background:"linear-gradient(135deg,#dc2626,#b91c1c)",padding:"10px 14px",borderRadius:14,fontSize:16,color:"#fff",fontWeight:800,letterSpacing:1,fontFamily:"Barlow Condensed,sans-serif",boxShadow:"0 4px 20px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",gap:8,maxWidth:500,margin:"0 auto"}}><span style={{fontSize:16}}>📢</span><span style={{flex:1,lineHeight:1.4}}>{alertaMsg}</span></motion.div>}
       <AnimatePresence>{showAdminLogin&&<AdminLogin onSuccess={()=>{setIsAdmin(true);setShowAdminLogin(false);setShowAdminPanel(true);}} onCancel={()=>setShowAdminLogin(false)}/>}</AnimatePresence>
       {showAdminPanel&&isAdmin&&<AdminPanel candidates={candidates} setCandidates={setCandidates} siteLogo={siteLogo} setSiteLogo={setSiteLogo} heroImages={heroImages} setHeroImages={setHeroImages} onClose={()=>setShowAdminPanel(false)} votes={votes} setVotes={setVotes} proposals={proposals} setProposals={setProposals} comments={comments} encuestaActiva={encuestaActiva} setEncuestaActiva={setEncuestaActiva} alertaMsg={alertaMsg} setAlertaMsg={setAlertaMsg} alertaActiva={alertaActiva} setAlertaActiva={setAlertaActiva} blockedNicks={blockedNicks} preguntaDestacada={preguntaDestacada} setPreguntaDestacada={setPreguntaDestacada}/>}
-      <AnimatePresence>{showOnboarding&&<OnboardingModal onComplete={(u,votoRestaurado)=>{saveUser(u);if(votoRestaurado){setMyVote(votoRestaurado);try{localStorage.setItem("silao360_mivoto",votoRestaurado);}catch(e){}}setShowOnboarding(false);}} onSkip={()=>setShowOnboarding(false)}/>}</AnimatePresence>
+      <AnimatePresence>{showOnboarding&&<OnboardingModal onComplete={u=>{saveUser(u);setShowOnboarding(false);}} onSkip={()=>setShowOnboarding(false)}/>}</AnimatePresence>
       {!showOnboarding&&(<>
         <AnimatePresence>{showLogin&&<LoginModal onLogin={u=>{saveUser(u);setShowLogin(false);}} onClose={()=>setShowLogin(false)}/>}</AnimatePresence>
         <div style={{paddingTop:isAdmin&&alertaActiva?46:isAdmin||alertaActiva?22:0}}>
