@@ -3233,7 +3233,7 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,heroImages,se
           </div>
           <div style={{background:"rgba(255,255,255,0.04)",border:"1.5px solid rgba(255,255,255,0.08)",borderRadius:14,padding:"16px",marginBottom:14}}>
             <div style={{fontSize:16,fontWeight:900,color:"#a78bfa",letterSpacing:2,marginBottom:12,fontFamily:"Barlow Condensed,sans-serif"}}>ℹ️ INFORMACIÓN DEL SISTEMA</div>
-            {[{label:"Contraseña admin",val:"Silao360# (cámbiala en el código)"},{label:"Activar admin",val:"Tocar logo 5 veces → contraseña"},{label:"Versión",val:"Encuesta Silao v4.1"}].map(({label,val})=>(
+            {[{label:"Contraseña admin",val:"Silao360# (cámbiala en el código)"},{label:"Activar admin",val:"Tocar logo 5 veces → contraseña"},{label:"Versión",val:"Encuesta Silao v4.6"}].map(({label,val})=>(
               <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
                 <span style={{fontSize:16,fontWeight:700,color:"#fff",fontFamily:"Barlow Condensed,sans-serif"}}>{label}</span>
                 <span style={{fontSize:16,color:"rgba(255,255,255,0.4)",fontFamily:"Barlow Condensed,sans-serif",textAlign:"right",maxWidth:"55%"}}>{val}</span>
@@ -3379,6 +3379,7 @@ export default function App(){
     }).catch(()=>{});
   };
   const handleVote=(id:string)=>{
+    if(!user?.id)return; // sin login no se puede votar
     const sbNuevo=SB_PARTIDO_MAP[id]||id.toUpperCase();
     const sbAnterior=myVote?(SB_PARTIDO_MAP[myVote]||myVote.toUpperCase()):null;
     // Optimistic UI
@@ -3390,14 +3391,12 @@ export default function App(){
     });
     setMyVote(id);
     try{localStorage.setItem("silao360_mivoto",id);}catch(e){}
-    // RPC atómico en Supabase
+    // RPC atómico — ahora verifica por user_id en el servidor
     fetch(`${SUPABASE_URL}/rest/v1/rpc/cambiar_voto`,{
       method:"POST",
       headers:H,
-      body:JSON.stringify({p_partido_nuevo:sbNuevo,p_partido_anterior:sbAnterior})
+      body:JSON.stringify({p_partido_nuevo:sbNuevo,p_partido_anterior:sbAnterior,p_user_id:user.id})
     }).then(()=>recargarVotos()).catch(()=>{});
-    // Persistir voto en tabla usuarios (candado por user.id)
-    if(user?.id){sb.from("usuarios").update({voto_partido:id}).eq("id",user.id).catch(()=>{});}
   };
   const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
   const doLogout=()=>{setUser(null);setMyVote(null);try{localStorage.removeItem("silao360_user");localStorage.removeItem("silao360_mivoto");}catch(e){}setShowOnboarding(true);};
