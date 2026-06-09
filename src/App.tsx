@@ -1904,7 +1904,7 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals
               ))}
             </div>
             </div>
-            <input value={newProp} onChange={e=>setNewProp(e.target.value.slice(0,120))} placeholder={`${newPropEmoji} ¿Qué necesita Silao? Ej: Más iluminación en...`} style={{width:"100%",background:"rgba(255,255,255,0.08)",border:"1.5px solid rgba(124,58,237,0.5)",borderRadius:8,padding:"10px 12px",color:"#fff",fontSize:16,outline:"none",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8}}/>
+            <input value={newProp} onChange={e=>setNewProp(e.target.value.slice(0,120))} placeholder={`${newPropEmoji} ¿Qué necesita Silao? Ej: Más iluminación en...`} style={{width:"100%",background:"#fff",border:"1.5px solid rgba(124,58,237,0.5)",borderRadius:8,padding:"10px 12px",color:"#111",fontSize:25,fontWeight:700,outline:"none",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8,textShadow:"0 0 8px rgba(124,58,237,0.4)"}}/>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <span style={{fontSize:16,color:"rgba(196,181,253,0.5)",fontFamily:"Barlow Condensed,sans-serif"}}>{newProp.length}/120</span>
               <div style={{display:"flex",gap:7}}>
@@ -3483,8 +3483,4 @@ export default function App(){
         <FooterLegal/>
         <InstallBanner/>
         <FloatingBubble myVote={myVote} candidates={candidates}/>
-        <NavBar screen={screen} setScreen={setScreen} isAdmin={isAdmin} unreadBuzon={unreadBuzon}/>
-      </>)}
-    </div>
-  );
-}
+        <NavBar screen={screen} setScreen={setScreen} isAdmin={isAdmin} unreadBuzon={unread
