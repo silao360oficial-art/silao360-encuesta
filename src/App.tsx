@@ -786,6 +786,104 @@ function BouncingBall({siteLogo,onLogoClick,votes,total}){
 }
 
 // ── NAVBAR ──
+// ── NAVBAR INNER — LED cónico cíclico cada 20s + explosión por botón ──
+function NavBarInner({tabs,screen,handleTab,isAdmin,unreadBuzon}:{tabs:any[],screen:string,handleTab:(id:string)=>void,isAdmin:boolean,unreadBuzon:number}){
+  const CYCLE_COLORS=["#16a34a","#ca8a04","#1d4ed8","#e01010","#7c3aed"];
+  const[cycleIdx,setCycleIdx]=useState(0);
+  const[exploding,setExploding]=useState<string|null>(null);
+  useEffect(()=>{
+    const iv=setInterval(()=>setCycleIdx(i=>(i+1)%CYCLE_COLORS.length),20000);
+    return()=>clearInterval(iv);
+  },[]);
+  const cc=CYCLE_COLORS[cycleIdx];
+
+  const handlePress=(id:string)=>{
+    setExploding(id);
+    setTimeout(()=>setExploding(null),2000);
+    handleTab(id);
+  };
+
+  return(
+    <div style={{position:"relative",background:"rgba(255,255,255,0.97)",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,0px)",overflow:"hidden",borderTop:"2px solid rgba(0,0,0,0.08)"}}>
+      {/* LED cónico global — color cíclico */}
+      <div style={{
+        position:"absolute",
+        width:"200%",height:"400%",
+        top:"-150%",left:"-50%",
+        background:`conic-gradient(from 0deg,${cc} 0deg,transparent 35deg,transparent 325deg,${cc} 360deg)`,
+        animation:"spinSlow 4s linear infinite",
+        opacity:0.45,
+        filter:`brightness(2) drop-shadow(0 0 14px ${cc})`,
+        zIndex:0,pointerEvents:"none",
+        transition:"background 1.5s ease,filter 1.5s ease",
+      }}/>
+      {/* Separadores */}
+      {tabs.map((_:any,i:number)=>i>0&&(
+        <div key={i} style={{position:"absolute",left:`${i*(100/tabs.length)}%`,top:"10%",bottom:"10%",width:1,background:"rgba(0,0,0,0.08)",zIndex:5}}/>
+      ))}
+      {tabs.map((t:any)=>{
+        const active=screen===t.id;
+        const isExploding=exploding===t.id;
+        return(
+          <motion.button key={t.id}
+            whileTap={{scale:0.88}}
+            onClick={()=>handlePress(t.id)}
+            style={{flex:1,border:"none",padding:0,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",height:64,background:active?`${t.color}15`:"transparent",zIndex:1,transition:"background .3s",overflow:"hidden"}}>
+
+            {/* EXPLOSIÓN — LED cónico individual al presionar */}
+            {isExploding&&(
+              <div style={{
+                position:"absolute",
+                width:"300%",height:"600%",
+                top:"-250%",left:"-100%",
+                background:`conic-gradient(from 0deg,${t.color} 0deg,transparent 60deg,transparent 300deg,${t.color} 360deg)`,
+                animation:"spinFast 0.4s linear infinite",
+                opacity:0,
+                filter:`brightness(3) drop-shadow(0 0 20px ${t.color})`,
+                zIndex:2,pointerEvents:"none",
+                animationName:"explodeAndFade",
+                animationDuration:"2s",
+                animationTimingFunction:"ease-out",
+                animationFillMode:"forwards",
+              }}/>
+            )}
+
+            {/* Borde inferior activo */}
+            {active&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:4,background:t.color,boxShadow:`0 0 10px ${t.color},0 0 22px ${t.color}`,zIndex:4}}/>}
+
+            {/* Letras */}
+            <span style={{
+              fontSize:active?23:20,
+              fontWeight:900,
+              color:active?t.color:"#000000",
+              fontFamily:"Barlow Condensed,sans-serif",
+              letterSpacing:0.5,
+              lineHeight:1,
+              textAlign:"center",
+              padding:"0 2px",
+              WebkitTextStroke:active?"0px":"0.6px #000000",
+              textShadow:active?`0 0 12px ${t.color}88`:"none",
+              transition:"all .25s",
+              animation:"navTextReveal 10s linear infinite",
+              WebkitMaskImage:"linear-gradient(90deg,transparent 0%,#000 100%)",
+              WebkitMaskSize:"200% 100%",
+              WebkitMaskPosition:"0% 0%",
+              position:"relative",zIndex:3,
+            }}>{t.label}</span>
+
+            {/* Badge */}
+            {isAdmin&&unreadBuzon>0&&t.id==="comments"&&(
+              <div style={{position:"absolute",top:4,right:4,background:"#dc2626",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",zIndex:10,boxShadow:"0 0 8px #dc262688"}}>
+                <span style={{fontSize:10,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif"}}>{unreadBuzon>9?"9+":unreadBuzon}</span>
+              </div>
+            )}
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+}
+
 function NavBar({screen,setScreen,isAdmin=false,unreadBuzon=0}){
   const[burst,setBurst]=useState(false);
   const tabs=[
@@ -810,86 +908,9 @@ function NavBar({screen,setScreen,isAdmin=false,unreadBuzon=0}){
         @keyframes navDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
         @keyframes navBgWalk{0%{background-position:0% 50%}100%{background-position:200% 50%}}
         @keyframes navTextReveal{0%{-webkit-mask-position:200% 0%;opacity:0.2}60%{-webkit-mask-position:0% 0%;opacity:1}90%{-webkit-mask-position:0% 0%;opacity:1}100%{-webkit-mask-position:200% 0%;opacity:0.2}}
+        @keyframes explodeAndFade{0%{opacity:0;transform:scale(0.5)}10%{opacity:1;transform:scale(1)}40%{opacity:0.8;transform:scale(1.3)}100%{opacity:0;transform:scale(2)}}
       `}</style>
-      <div style={{background:"transparent",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,0px)",paddingTop:0,gap:2,padding:"2px"}}>
-        {tabs.map(t=>{
-          const active=screen===t.id;
-          const dur=burst?"0.35s":active?"0.7s":"2.2s";
-          const bright=burst||active;
-          return(
-            <motion.button key={t.id}
-              whileTap={{scale:0.95}}
-              onClick={()=>handleTab(t.id)}
-              style={{flex:1,border:"none",padding:0,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",borderRadius:0,overflow:"hidden",height:62,background:"transparent"}}>
-
-              {/* Gradiente caminando de fondo — color propio del botón */}
-              <div style={{
-                position:"absolute",inset:0,
-                background:active
-                  ?`linear-gradient(90deg,${t.color}cc,${t.color}ff,#ffffffaa,${t.color}ff,${t.color}cc)`
-                  :`linear-gradient(90deg,${t.color}55,${t.color}99,#ffffff66,${t.color}99,${t.color}55)`,
-                backgroundSize:"300% 100%",
-                animation:"navBgWalk 3s linear infinite",
-                zIndex:0,
-              }}/>
-
-              {/* LED conic giratorio encima del gradiente */}
-              <div style={{
-                position:"absolute",width:"200%",height:"200%",top:"-50%",left:"-50%",
-                background:`conic-gradient(from 0deg,${t.color} 0deg,transparent ${burst?60:active?45:20}deg,transparent ${burst?160:active?170:340}deg,${t.color} ${burst?220:active?215:355}deg,transparent 360deg)`,
-                animation:`${burst?"spinFast":"spinSlow"} ${dur} linear infinite`,
-                opacity:burst?0.6:active?0.5:0.3,
-                filter:`brightness(${burst?2:active?1.8:1.2}) drop-shadow(0 0 ${bright?10:5}px ${t.color})`,
-                zIndex:1,pointerEvents:"none",
-                transition:"opacity .3s,filter .3s",
-              }}/>
-
-              {/* Franja blanca semitransparente donde viven las letras */}
-              <div style={{
-                position:"absolute",inset:0,zIndex:2,
-                background:"rgba(255,255,255,0.55)",
-                display:"flex",alignItems:"center",justifyContent:"center",
-                overflow:"hidden",
-              }}>
-                <span style={{
-                  fontSize:active?22:19,
-                  fontWeight:900,
-                  color:"#000000",
-                  fontFamily:"Barlow Condensed,sans-serif",
-                  letterSpacing:0.5,
-                  lineHeight:1,
-                  textAlign:"center",
-                  padding:"0 2px",
-                  textShadow:"0 2px 4px rgba(255,255,255,0.8),0 -1px 0 rgba(255,255,255,0.9)",
-                  WebkitTextStroke:"1px #000000",
-                  transition:"font-size .2s",
-                  animation:"navTextReveal 10s linear infinite",
-                  WebkitMaskImage:"linear-gradient(90deg,transparent 0%,#000 100%)",
-                  WebkitMaskSize:"200% 100%",
-                  WebkitMaskPosition:"0% 0%",
-                }}>{t.label}</span>
-              </div>
-
-              {/* Badge mensajes nuevos */}
-              {isAdmin&&unreadBuzon>0&&t.id==="comments"&&(
-                <div style={{position:"absolute",top:2,right:2,background:"#dc2626",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",zIndex:10,boxShadow:"0 0 8px #dc262688"}}>
-                  <span style={{fontSize:10,fontWeight:900,color:"#fff",fontFamily:"Barlow Condensed,sans-serif"}}>{unreadBuzon>9?"9+":unreadBuzon}</span>
-                </div>
-              )}
-
-              {/* Active dot abajo */}
-              <div style={{
-                position:"absolute",bottom:3,
-                width:active?28:0,height:3,borderRadius:2,
-                background:"#000",
-                opacity:active?0.5:0,
-                transition:"width .3s,opacity .3s",
-                zIndex:3,
-              }}/>
-            </motion.button>
-          );
-        })}
-      </div>
+      <NavBarInner tabs={tabs} screen={screen} handleTab={handleTab} isAdmin={isAdmin} unreadBuzon={unreadBuzon} burst={burst}/>
     </div>
   );
 }
