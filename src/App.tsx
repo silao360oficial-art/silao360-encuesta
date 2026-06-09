@@ -805,18 +805,7 @@ function NavBarInner({tabs,screen,handleTab,isAdmin,unreadBuzon}:{tabs:any[],scr
 
   return(
     <div style={{position:"relative",background:"rgba(255,255,255,0.97)",display:"flex",maxWidth:640,margin:"0 auto",paddingBottom:"env(safe-area-inset-bottom,0px)",overflow:"hidden",borderTop:"2px solid rgba(0,0,0,0.08)"}}>
-      {/* LED cónico global — color cíclico */}
-      <div style={{
-        position:"absolute",
-        width:"200%",height:"400%",
-        top:"-150%",left:"-50%",
-        background:`conic-gradient(from 0deg,${cc} 0deg,transparent 35deg,transparent 325deg,${cc} 360deg)`,
-        animation:"spinSlow 4s linear infinite",
-        opacity:0.45,
-        filter:`brightness(2) drop-shadow(0 0 14px ${cc})`,
-        zIndex:0,pointerEvents:"none",
-        transition:"background 1.5s ease,filter 1.5s ease",
-      }}/>
+      {/* Sin LED cónico global — eliminado */}
       {/* Separadores */}
       {tabs.map((_:any,i:number)=>i>0&&(
         <div key={i} style={{position:"absolute",left:`${i*(100/tabs.length)}%`,top:"10%",bottom:"10%",width:1,background:"rgba(0,0,0,0.08)",zIndex:5}}/>
@@ -855,17 +844,17 @@ function NavBarInner({tabs,screen,handleTab,isAdmin,unreadBuzon}:{tabs:any[],scr
             <span style={{
               fontSize:active?23:20,
               fontWeight:900,
-              color:active?t.color:"#000000",
+              color:active?t.color:"#111111",
               fontFamily:"Barlow Condensed,sans-serif",
               letterSpacing:0.5,
               lineHeight:1,
               textAlign:"center",
               padding:"0 2px",
-              WebkitTextStroke:active?"0px":"0.6px #000000",
+              WebkitTextStroke:"0px",
               textShadow:active?`0 0 12px ${t.color}88`:"none",
               transition:"all .25s",
-              animation:"navTextReveal 10s linear infinite",
-              WebkitMaskImage:"linear-gradient(90deg,transparent 0%,#000 100%)",
+              animation:active?"none":"navTextReveal 35s linear infinite",
+              WebkitMaskImage:active?"none":"linear-gradient(90deg,transparent 0%,#000 100%)",
               WebkitMaskSize:"200% 100%",
               WebkitMaskPosition:"0% 0%",
               position:"relative",zIndex:3,
@@ -887,12 +876,12 @@ function NavBarInner({tabs,screen,handleTab,isAdmin,unreadBuzon}:{tabs:any[],scr
 function NavBar({screen,setScreen,isAdmin=false,unreadBuzon=0}){
   const[burst,setBurst]=useState(false);
   const tabs=[
-    {id:"results",  label:"INICIO",  color:"#e01010"},
-    {id:"vote",     label:"VOTAR",   color:"#16a34a"},
-    {id:"proposals",label:"IDEAS",   color:"#ca8a04"},
-    {id:"articles", label:"PARTIDOS",color:"#1d4ed8"},
-    {id:"preguntale",label:"RETAR",  color:"#e01010"},
-    {id:"comments", label:"FORO",    color:"#7c3aed"},
+    {id:"results",  label:"INICIO",  color:"#e01010"},   // rojo
+    {id:"vote",     label:"VOTAR",   color:"#16a34a"},   // verde
+    {id:"proposals",label:"IDEAS",   color:"#f59e0b"},   // amarillo/ámbar
+    {id:"articles", label:"PARTIDOS",color:"#1d4ed8"},   // azul
+    {id:"preguntale",label:"RETAR",  color:"#a21caf"},   // morado
+    {id:"comments", label:"FORO",    color:"#0891b2"},   // cian/azul claro
   ];
   const handleTab=(id)=>{
     playSound("click");
@@ -907,8 +896,8 @@ function NavBar({screen,setScreen,isAdmin=false,unreadBuzon=0}){
         @keyframes spinFast{to{transform:rotate(360deg)}}
         @keyframes navDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
         @keyframes navBgWalk{0%{background-position:0% 50%}100%{background-position:200% 50%}}
-        @keyframes navTextReveal{0%{-webkit-mask-position:200% 0%;opacity:0.2}60%{-webkit-mask-position:0% 0%;opacity:1}90%{-webkit-mask-position:0% 0%;opacity:1}100%{-webkit-mask-position:200% 0%;opacity:0.2}}
         @keyframes explodeAndFade{0%{opacity:0;transform:scale(0.5)}10%{opacity:1;transform:scale(1)}40%{opacity:0.8;transform:scale(1.3)}100%{opacity:0;transform:scale(2)}}
+        @keyframes navTextReveal{0%{-webkit-mask-position:200% 0%;opacity:0.15}8%{-webkit-mask-position:0% 0%;opacity:1}85%{-webkit-mask-position:0% 0%;opacity:1}95%{-webkit-mask-position:200% 0%;opacity:0.15}100%{-webkit-mask-position:200% 0%;opacity:0.15}}
       `}</style>
       <NavBarInner tabs={tabs} screen={screen} handleTab={handleTab} isAdmin={isAdmin} unreadBuzon={unreadBuzon} burst={burst}/>
     </div>
