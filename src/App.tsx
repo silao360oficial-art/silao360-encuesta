@@ -817,7 +817,15 @@ function NavBarInner({tabs,screen,handleTab,isAdmin,unreadBuzon}:{tabs:any[],scr
           <motion.button key={t.id}
             whileTap={{scale:0.88}}
             onClick={()=>handlePress(t.id)}
-            style={{flex:1,border:"none",padding:0,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",height:64,background:active?`${t.color}15`:"transparent",zIndex:1,transition:"background .3s",overflow:"hidden"}}>
+            style={{
+              flex:1,padding:0,cursor:"pointer",
+              display:"flex",alignItems:"center",justifyContent:"center",
+              position:"relative",height:64,
+              background:`linear-gradient(${active?t.color+"15":"#fff"},${active?t.color+"15":"#fff"}) padding-box, conic-gradient(from var(--nav-a),${t.color},#ffffff,${t.color}88,#ffffff,${t.color}) border-box`,
+              border:"2.5px solid transparent",
+              animation:"spinNavBorder 3s linear infinite",
+              zIndex:1,transition:"background .3s",overflow:"hidden",
+            }}>
 
             {/* EXPLOSIÓN — LED cónico individual al presionar */}
             {isExploding&&(
@@ -840,7 +848,7 @@ function NavBarInner({tabs,screen,handleTab,isAdmin,unreadBuzon}:{tabs:any[],scr
             {/* Borde inferior activo */}
             {active&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:4,background:t.color,boxShadow:`0 0 10px ${t.color},0 0 22px ${t.color}`,zIndex:4}}/>}
 
-            {/* Letras */}
+            {/* Letras — siempre visibles */}
             <span style={{
               fontSize:active?23:20,
               fontWeight:900,
@@ -850,13 +858,8 @@ function NavBarInner({tabs,screen,handleTab,isAdmin,unreadBuzon}:{tabs:any[],scr
               lineHeight:1,
               textAlign:"center",
               padding:"0 2px",
-              WebkitTextStroke:"0px",
               textShadow:active?`0 0 12px ${t.color}88`:"none",
               transition:"all .25s",
-              animation:active?"none":"navTextReveal 35s linear infinite",
-              WebkitMaskImage:active?"none":"linear-gradient(90deg,transparent 0%,#000 100%)",
-              WebkitMaskSize:"200% 100%",
-              WebkitMaskPosition:"0% 0%",
               position:"relative",zIndex:3,
             }}>{t.label}</span>
 
@@ -892,12 +895,13 @@ function NavBar({screen,setScreen,isAdmin=false,unreadBuzon=0}){
   return(
     <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:50,borderTop:"3px solid rgba(0,0,0,0.15)"}}>
       <style>{`
+        @property --nav-a { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+        @keyframes spinNavBorder { to { --nav-a: 360deg; } }
         @keyframes spinSlow{to{transform:rotate(360deg)}}
         @keyframes spinFast{to{transform:rotate(360deg)}}
         @keyframes navDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
         @keyframes navBgWalk{0%{background-position:0% 50%}100%{background-position:200% 50%}}
         @keyframes explodeAndFade{0%{opacity:0;transform:scale(0.5)}10%{opacity:1;transform:scale(1)}40%{opacity:0.8;transform:scale(1.3)}100%{opacity:0;transform:scale(2)}}
-        @keyframes navTextReveal{0%{-webkit-mask-position:200% 0%;opacity:0.15}8%{-webkit-mask-position:0% 0%;opacity:1}85%{-webkit-mask-position:0% 0%;opacity:1}95%{-webkit-mask-position:200% 0%;opacity:0.15}100%{-webkit-mask-position:200% 0%;opacity:0.15}}
       `}</style>
       <NavBarInner tabs={tabs} screen={screen} handleTab={handleTab} isAdmin={isAdmin} unreadBuzon={unreadBuzon} burst={burst}/>
     </div>
