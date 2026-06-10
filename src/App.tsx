@@ -3359,6 +3359,7 @@ export default function App(){
   const[myVote,setMyVote]=useState(()=>{try{return localStorage.getItem("silao360_mivoto")||null;}catch(e){return null;}});
   const[user,setUser]=useState(()=>{try{const u=localStorage.getItem("silao360_user");return u?JSON.parse(u):null;}catch(e){return null;}});
   const[confirmVoteParty,setConfirmVoteParty]=useState(null);
+  const[showYaVotaste,setShowYaVotaste]=useState(false);
   const[showLogin,setShowLogin]=useState(false);
   const[showOnboarding,setShowOnboarding]=useState(()=>{try{return !localStorage.getItem("silao360_user");}catch(e){return true;}});
   const[isAdmin,setIsAdmin]=useState(false);
@@ -3393,13 +3394,13 @@ export default function App(){
     try{const s=localStorage.getItem("silao360_user");if(s){const p=JSON.parse(s);if(p?.id)uid=p.id;}}catch(e){}
     if(!uid)return;
     // Candado 1: estado en memoria
-    if(myVote)return;
+    if(myVote){setShowYaVotaste(true);return;}
     // Candado 2: localStorage
-    try{const votoLocal=localStorage.getItem("silao360_mivoto");if(votoLocal)return;}catch(e){}
+    try{const votoLocal=localStorage.getItem("silao360_mivoto");if(votoLocal){setShowYaVotaste(true);return;}}catch(e){}
     // Candado 3: Supabase
     try{
       const rows:any[]=await sbQuery("usuarios",{select:"voto_partido",filters:[{col:"id",op:"eq",val:uid}],limit:1});
-      if(Array.isArray(rows)&&rows.length>0&&rows[0].voto_partido)return;
+      if(Array.isArray(rows)&&rows.length>0&&rows[0].voto_partido){setShowYaVotaste(true);return;}
     }catch(e){}
     // Si pasó los 3 candados — registrar voto
     const sbNuevo=SB_PARTIDO_MAP[id]||id.toUpperCase();
@@ -3566,7 +3567,17 @@ export default function App(){
           {screen==="preguntale"&&<PreguntaleScreen {...sp} candidates={candidates} preguntaDestacada={preguntaDestacada}/>}
           {screen==="comments"&&<CommentsScreen {...sp} isAdmin={isAdmin} comments={comments} setComments={setComments} blockedNicks={blockedNicks} pinnedMsg={pinnedMsg}/>}
         </div>
-        <FooterLegal/>
+        {showYaVotaste&&(
+        <div onClick={()=>setShowYaVotaste(false)} style={{position:"fixed",inset:0,zIndex:999,background:"rgba(0,0,0,0.8)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#0f172a",border:"2px solid #e01010",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",fontFamily:"Barlow Condensed,sans-serif"}}>
+            <div style={{fontSize:52,marginBottom:12}}>🔒</div>
+            <div style={{fontSize:26,fontWeight:900,color:"#fff",letterSpacing:2,marginBottom:8}}>YA VOTASTE</div>
+            <div style={{fontSize:16,color:"rgba(255,255,255,0.6)",lineHeight:1.6,marginBottom:20}}>Solo se permite un voto por persona.<br/>Gracias por participar en la Encuesta Silao.</div>
+            <button onClick={()=>setShowYaVotaste(false)} style={{background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:12,padding:"12px 32px",color:"#fff",fontSize:18,fontWeight:900,cursor:"pointer",letterSpacing:2}}>ENTENDIDO</button>
+          </div>
+        </div>
+      )}
+      <FooterLegal/>
         <InstallBanner/>
         <FloatingBubble myVote={myVote} candidates={candidates}/>
         <NavBar screen={screen} setScreen={setScreen} isAdmin={isAdmin} unreadBuzon={unreadBuzon}/>
