@@ -3389,31 +3389,28 @@ export default function App(){
   };
   const handleVote=async(id:string)=>{
     if(!user?.id)return;
-    // Verificar en Supabase si ya votó (candado real)
+    // Candado 1: estado en memoria
+    if(myVote)return;
+    // Candado 2: localStorage
+    try{const votoLocal=localStorage.getItem("silao360_mivoto");if(votoLocal)return;}catch(e){}
+    // Candado 3: Supabase
     try{
       const rows:any[]=await sbQuery("usuarios",{select:"voto_partido",filters:[{col:"id",op:"eq",val:user.id}],limit:1});
-      if(Array.isArray(rows)&&rows.length>0&&rows[0].voto_partido){
-        if(rows[0].voto_partido===id)return;
-      }
+      if(Array.isArray(rows)&&rows.length>0&&rows[0].voto_partido)return;
     }catch(e){}
+    // Si pasó los 3 candados — registrar voto
     const sbNuevo=SB_PARTIDO_MAP[id]||id.toUpperCase();
-    const sbAnterior=myVote?(SB_PARTIDO_MAP[myVote]||myVote.toUpperCase()):null;
-    setVotes(prev=>{
-      const next={...prev};
-      if(myVote&&next[myVote]>0)next[myVote]--;
-      next[id]=(next[id]||0)+1;
-      return next;
-    });
+    setVotes(prev=>{const next={...prev};next[id]=(next[id]||0)+1;return next;});
     setMyVote(id);
     try{localStorage.setItem("silao360_mivoto",id);}catch(e){}
-    // cambiar_voto ahora recibe p_user_id y actualiza usuarios.voto_partido también
     fetch(`${SUPABASE_URL}/rest/v1/rpc/cambiar_voto`,{
       method:"POST",
       headers:H,
-      body:JSON.stringify({p_partido_nuevo:sbNuevo,p_partido_anterior:sbAnterior,p_user_id:user.id})
+      body:JSON.stringify({p_partido_nuevo:sbNuevo,p_partido_anterior:null,p_user_id:user.id})
     }).then(()=>recargarVotos()).catch(()=>{});
   };
   const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
+  // doLogout NO borra silao360_mivoto — es el candado local permanente
   const doLogout=()=>{setUser(null);setMyVote(null);try{localStorage.removeItem("silao360_user");}catch(e){}setShowOnboarding(true);};
 
   // ── Supabase Storage: cargar imágenes al arrancar ──
