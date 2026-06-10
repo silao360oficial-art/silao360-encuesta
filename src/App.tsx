@@ -517,8 +517,12 @@ function OnboardingModal({onComplete,onSkip}){
                 delete (window as any).__googleSub;
                 const proveedor=googleSub?"google":"facebook";
                 const u={name:name.trim(),nickname,id:"u_"+Math.random().toString(36).slice(2),proveedor,fb_id:fbId,google_sub:googleSub};
-                // Guardar en Supabase tabla usuarios
-                sb.from("usuarios").insert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor,fb_id:fbId,google_sub:googleSub,ts:new Date().toISOString()}).catch(()=>{});
+                // Guardar en Supabase y ESPERAR antes de llamar onComplete
+                try{
+                  await sb.from("usuarios").insert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor,fb_id:fbId,google_sub:googleSub,ts:new Date().toISOString()});
+                }catch(e){
+                  try{await sb.from("usuarios").upsert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor,fb_id:fbId,google_sub:googleSub,ts:new Date().toISOString()});}catch(e2){}
+                }
                 onComplete(u,null);
               }}
               style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:12,padding:"13px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>
@@ -568,10 +572,12 @@ function LoginModal({onLogin,onClose}){
           <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",marginTop:10,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
         </>):(<>
           <div style={{textAlign:"center",marginBottom:12}}><div style={{fontSize:34,marginBottom:6}}>🎭</div><div style={{fontSize:16,color:"#111",fontWeight:800,letterSpacing:2,marginBottom:5}}>TU APODO SERÁ</div><div style={{fontSize:17,fontWeight:900,background:"#f3f4f6",borderRadius:10,padding:"10px 12px",marginBottom:6,fontFamily:"Barlow Condensed,sans-serif"}}>{nickname}</div></div>
-          <motion.button whileTap={{scale:0.96}} onClick={()=>{
+          <motion.button whileTap={{scale:0.96}} onClick={async()=>{
               playSound("success");
               const u={name:name.trim(),nickname,id:"u_"+Math.random().toString(36).slice(2),proveedor:"manual"};
-              sb.from("usuarios").insert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:"manual",ts:new Date().toISOString()}).catch(()=>{});
+              try{await sb.from("usuarios").insert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:"manual",ts:new Date().toISOString()});}catch(e){
+                try{await sb.from("usuarios").upsert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:"manual",ts:new Date().toISOString()});}catch(e2){}
+              }
               onLogin(u);
             }} style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:9,padding:"11px",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",marginBottom:8}}>🗳️ ENTRAR Y PARTICIPAR</motion.button>
           <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
@@ -3378,8 +3384,13 @@ export default function App(){
       setVotes(Object.fromEntries(PARTIES.map(p=>[p.id,map[(SB_PARTIDO_MAP[p.id]||p.id.toUpperCase())]||0])));
     }).catch(()=>{});
   };
-  const handleVote=(id:string)=>{
-    if(!user?.id)return; // sin login no se puede votar
+  const handleVote=async(id:string)=>{
+    if(!user?.id)return;
+    // Verificar en Supabase si ya votó (candado real)
+    try{
+      const rows:any[]=await sbQuery("usuarios",{select:"voto_partido",filters:[{col:"id",op:"eq",val:user.id}],limit:1});
+      if(Array.isArray(rows)&&rows.length>0&&rows[0].voto_partido&&rows[0].voto_partido===id)return; // ya votó por el mismo
+    }catch(e){}
     const sbNuevo=SB_PARTIDO_MAP[id]||id.toUpperCase();
     const sbAnterior=myVote?(SB_PARTIDO_MAP[myVote]||myVote.toUpperCase()):null;
     // Optimistic UI
@@ -3391,11 +3402,13 @@ export default function App(){
     });
     setMyVote(id);
     try{localStorage.setItem("silao360_mivoto",id);}catch(e){}
-    // RPC atómico — ahora verifica por user_id en el servidor
+    // Guardar voto en usuarios PRIMERO
+    try{await sb.from("usuarios").update({voto_partido:id}).eq("id",user.id);}catch(e){}
+    // Luego mover contador en votos via RPC
     fetch(`${SUPABASE_URL}/rest/v1/rpc/cambiar_voto`,{
       method:"POST",
       headers:H,
-      body:JSON.stringify({p_partido_nuevo:sbNuevo,p_partido_anterior:sbAnterior,p_user_id:user.id})
+      body:JSON.stringify({p_partido_nuevo:sbNuevo,p_partido_anterior:sbAnterior})
     }).then(()=>recargarVotos()).catch(()=>{});
   };
   const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
