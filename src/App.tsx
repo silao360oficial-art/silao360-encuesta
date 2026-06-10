@@ -509,7 +509,7 @@ function OnboardingModal({onComplete,onSkip}){
                 <span style={{color:"rgba(255,255,255,0.35)"}}>Trata de no dar tu nombre real en comentarios.</span>
               </div>
             </div>
-            <motion.button whileTap={{scale:0.96}} onClick={()=>{
+            <motion.button whileTap={{scale:0.96}} onClick={async()=>{
                 playSound("success");
                 const fbId=(window as any).__fbId||null;
                 const googleSub=(window as any).__googleSub||null;
