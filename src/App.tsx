@@ -411,19 +411,40 @@ function OnboardingModal({onComplete,onSkip}){
             const payload=JSON.parse(atob(resp.credential.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
             const nm=payload.name||payload.email?.split("@")[0]||"Usuario Google";
             const googleSub=payload.sub||null;
-            // Buscar usuario existente por google_sub
             if(googleSub){
+              // 1. Buscar en localStorage primero (más rápido y confiable)
+              try{
+                const stored=localStorage.getItem("silao360_user");
+                if(stored){
+                  const parsed=JSON.parse(stored);
+                  if(parsed.google_sub&&parsed.google_sub===googleSub){
+                    // Usuario conocido — recuperar su voto desde Supabase
+                    let votoGuardado=null;
+                    try{
+                      const rows:any[]=await sbQuery("usuarios",{select:"voto_partido",filters:[{col:"id",op:"eq",val:parsed.id}],limit:1});
+                      if(Array.isArray(rows)&&rows.length>0)votoGuardado=rows[0].voto_partido||null;
+                    }catch(e){}
+                    (window as any).__returningUser={u:parsed,voto:votoGuardado};
+                    setName(parsed.name||nm);setNickname(parsed.nickname||nm);
+                    setLoading(false);setStep(4);return;
+                  }
+                }
+              }catch(e){}
+              // 2. Buscar en Supabase por google_sub
               try{
                 const rows:any[]=await sbQuery("usuarios",{select:"id,nickname,nombre,voto_partido",filters:[{col:"google_sub",op:"eq",val:googleSub}],limit:1});
                 if(Array.isArray(rows)&&rows.length>0){
                   const ex=rows[0];
                   const u={name:ex.nombre||nm,nickname:ex.nickname,id:ex.id,proveedor:"google",google_sub:googleSub};
+                  // Actualizar localStorage con google_sub correcto
+                  try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}
                   (window as any).__returningUser={u,voto:ex.voto_partido||null};
                   setName(ex.nombre||nm);setNickname(ex.nickname||nm);
                   setLoading(false);setStep(4);return;
                 }
               }catch(e){}
             }
+            // Usuario nuevo
             (window as any).__googleSub=googleSub;
             setName(nm);const nick=genNickname(nm+"google"+(googleSub||""));setNickname(nick);setLoading(false);setStep(3);
           }catch(e){setAuthErr("Error al leer respuesta de Google.");setLoading(false);}
@@ -516,26 +537,18 @@ function OnboardingModal({onComplete,onSkip}){
                 delete (window as any).__fbId;
                 delete (window as any).__googleSub;
                 const proveedor=googleSub?"google":"facebook";
-                // Buscar si ya existe un usuario con ese fb_id o google_sub (anti-duplicado real)
-                let existingId:string|null=null;
-                try{
-                  const filterCol=googleSub?"google_sub":"fb_id";
-                  const filterVal=googleSub||fbId;
-                  if(filterVal){
-                    const rows:any[]=await sbQuery("usuarios",{select:"id,voto_partido",filters:[{col:filterCol,op:"eq",val:filterVal}],limit:1});
-                    if(Array.isArray(rows)&&rows.length>0)existingId=rows[0].id;
-                  }
-                }catch(e){}
-                const uid=existingId||("u_"+Math.random().toString(36).slice(2));
+                const uid="u_"+Math.random().toString(36).slice(2);
                 const u={name:name.trim(),nickname,id:uid,proveedor,fb_id:fbId,google_sub:googleSub};
-                // Upsert: si ya existe actualiza, si no inserta
+                // Guardar en Supabase
                 try{
                   await fetch(`${SUPABASE_URL}/rest/v1/usuarios`,{
                     method:"POST",
-                    headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal","on_conflict":"id"},
+                    headers:{...H,"Prefer":"return=minimal"},
                     body:JSON.stringify({id:uid,nickname:u.nickname,nombre:u.name,proveedor,fb_id:fbId,google_sub:googleSub,ts:new Date().toISOString()})
                   });
                 }catch(e){}
+                // Guardar en localStorage con google_sub incluido (candado local)
+                try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}
                 onComplete(u,null);
               }}
               style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:12,padding:"13px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:2}}>
@@ -587,16 +600,10 @@ function LoginModal({onLogin,onClose}){
           <div style={{textAlign:"center",marginBottom:12}}><div style={{fontSize:34,marginBottom:6}}>🎭</div><div style={{fontSize:16,color:"#111",fontWeight:800,letterSpacing:2,marginBottom:5}}>TU APODO SERÁ</div><div style={{fontSize:17,fontWeight:900,background:"#f3f4f6",borderRadius:10,padding:"10px 12px",marginBottom:6,fontFamily:"Barlow Condensed,sans-serif"}}>{nickname}</div></div>
           <motion.button whileTap={{scale:0.96}} onClick={async()=>{
               playSound("success");
-              // Buscar si ya existe por nombre (proveedor manual) — no ideal pero evita duplicados obvios
-              // El candado real está en handleVote via Supabase
               const u={name:name.trim(),nickname,id:"u_"+Math.random().toString(36).slice(2),proveedor:"manual"};
-              try{
-                await fetch(`${SUPABASE_URL}/rest/v1/usuarios`,{
-                  method:"POST",
-                  headers:{...H,"Prefer":"resolution=merge-duplicates,return=minimal","on_conflict":"id"},
-                  body:JSON.stringify({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:"manual",ts:new Date().toISOString()})
-                });
-              }catch(e){}
+              try{await sb.from("usuarios").insert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:"manual",ts:new Date().toISOString()});}catch(e){
+                try{await sb.from("usuarios").upsert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:"manual",ts:new Date().toISOString()});}catch(e2){}
+              }
               onLogin(u);
             }} style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:9,padding:"11px",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",marginBottom:8}}>🗳️ ENTRAR Y PARTICIPAR</motion.button>
           <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
@@ -3408,10 +3415,7 @@ export default function App(){
     // Verificar en Supabase si ya votó (candado real)
     try{
       const rows:any[]=await sbQuery("usuarios",{select:"voto_partido",filters:[{col:"id",op:"eq",val:user.id}],limit:1});
-      if(Array.isArray(rows)&&rows.length>0&&rows[0].voto_partido){
-        if(rows[0].voto_partido===id)return; // ya votó por este mismo — no hacer nada
-        // Si votó por otro partido, permitir el cambio (cae al flujo normal abajo)
-      }
+      if(Array.isArray(rows)&&rows.length>0&&rows[0].voto_partido&&rows[0].voto_partido===id)return; // ya votó por el mismo
     }catch(e){}
     const sbNuevo=SB_PARTIDO_MAP[id]||id.toUpperCase();
     const sbAnterior=myVote?(SB_PARTIDO_MAP[myVote]||myVote.toUpperCase()):null;
@@ -3434,7 +3438,16 @@ export default function App(){
     }).then(()=>recargarVotos()).catch(()=>{});
   };
   const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
-  const doLogout=()=>{setUser(null);setMyVote(null);try{localStorage.removeItem("silao360_user");localStorage.removeItem("silao360_mivoto");}catch(e){}setShowOnboarding(true);};
+  const doLogout=()=>{
+    // Preservar google_sub y fb_id para reconocer al usuario cuando regrese
+    let preserved={google_sub:null,fb_id:null,id:null,nickname:null,proveedor:null};
+    try{const stored=localStorage.getItem("silao360_user");if(stored){const p=JSON.parse(stored);preserved={google_sub:p.google_sub||null,fb_id:p.fb_id||null,id:p.id||null,nickname:p.nickname||null,proveedor:p.proveedor||null};}}catch(e){}
+    setUser(null);setMyVote(null);
+    try{localStorage.removeItem("silao360_mivoto");}catch(e){}
+    // Guardar solo los campos de identidad (sin nombre ni voto)
+    try{localStorage.setItem("silao360_user",JSON.stringify(preserved));}catch(e){}
+    setShowOnboarding(true);
+  };
 
   // ── Supabase Storage: cargar imágenes al arrancar ──
   useEffect(()=>{
