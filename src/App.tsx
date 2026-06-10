@@ -3414,7 +3414,7 @@ export default function App(){
     }).then(()=>recargarVotos()).catch(()=>{});
   };
   const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
-  const doLogout=()=>{setUser(null);setMyVote(null);try{localStorage.removeItem("silao360_user");localStorage.removeItem("silao360_mivoto");}catch(e){}setShowOnboarding(true);};
+  const doLogout=()=>{setUser(null);setMyVote(null);try{localStorage.removeItem("silao360_user");}catch(e){}setShowOnboarding(true);};
 
   // ── Supabase Storage: cargar imágenes al arrancar ──
   useEffect(()=>{
