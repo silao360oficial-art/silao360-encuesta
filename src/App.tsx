@@ -516,15 +516,27 @@ function OnboardingModal({onComplete,onSkip}){
                 delete (window as any).__fbId;
                 delete (window as any).__googleSub;
                 const proveedor=googleSub?"google":"facebook";
-                const uid="u_"+Math.random().toString(36).slice(2);
-                const u={name:name.trim(),nickname,id:uid,proveedor,fb_id:fbId,google_sub:googleSub};
+                // Verificar una vez más si ya existe (race condition guard)
+                let existingId:string|null=null;
                 try{
-                  await fetch(`${SUPABASE_URL}/rest/v1/usuarios`,{
-                    method:"POST",
-                    headers:{...H,"Prefer":"return=minimal"},
-                    body:JSON.stringify({id:uid,nickname:u.nickname,nombre:u.name,proveedor,fb_id:fbId,google_sub:googleSub,ts:new Date().toISOString()})
-                  });
+                  const col=googleSub?"google_sub":"fb_id";
+                  const val=googleSub||fbId;
+                  if(val){
+                    const rows:any[]=await sbQuery("usuarios",{select:"id",filters:[{col,op:"eq",val}],limit:1});
+                    if(Array.isArray(rows)&&rows.length>0)existingId=rows[0].id;
+                  }
                 }catch(e){}
+                const uid=existingId||("u_"+Math.random().toString(36).slice(2));
+                const u={name:name.trim(),nickname,id:uid,proveedor,fb_id:fbId,google_sub:googleSub};
+                if(!existingId){
+                  try{
+                    await fetch(`${SUPABASE_URL}/rest/v1/usuarios`,{
+                      method:"POST",
+                      headers:{...H,"Prefer":"return=minimal"},
+                      body:JSON.stringify({id:uid,nickname:u.nickname,nombre:u.name,proveedor,fb_id:fbId,google_sub:googleSub,ts:new Date().toISOString()})
+                    });
+                  }catch(e){}
+                }
                 try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}
                 onComplete(u,null);
               }}
@@ -577,10 +589,18 @@ function LoginModal({onLogin,onClose}){
           <div style={{textAlign:"center",marginBottom:12}}><div style={{fontSize:34,marginBottom:6}}>🎭</div><div style={{fontSize:16,color:"#111",fontWeight:800,letterSpacing:2,marginBottom:5}}>TU APODO SERÁ</div><div style={{fontSize:17,fontWeight:900,background:"#f3f4f6",borderRadius:10,padding:"10px 12px",marginBottom:6,fontFamily:"Barlow Condensed,sans-serif"}}>{nickname}</div></div>
           <motion.button whileTap={{scale:0.96}} onClick={async()=>{
               playSound("success");
-              const u={name:name.trim(),nickname,id:"u_"+Math.random().toString(36).slice(2),proveedor:"manual"};
-              try{await sb.from("usuarios").insert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:"manual",ts:new Date().toISOString()});}catch(e){
-                try{await sb.from("usuarios").upsert({id:u.id,nickname:u.nickname,nombre:u.name,proveedor:"manual",ts:new Date().toISOString()});}catch(e2){}
+              // Buscar usuario manual existente por nickname
+              let existingId:string|null=null;
+              try{
+                const rows:any[]=await sbQuery("usuarios",{select:"id,nombre",filters:[{col:"nickname",op:"eq",val:nickname},{col:"proveedor",op:"eq",val:"manual"}],limit:1});
+                if(Array.isArray(rows)&&rows.length>0)existingId=rows[0].id;
+              }catch(e){}
+              const uid=existingId||("u_"+Math.random().toString(36).slice(2));
+              const u={name:name.trim(),nickname,id:uid,proveedor:"manual"};
+              if(!existingId){
+                try{await sb.from("usuarios").insert({id:uid,nickname:u.nickname,nombre:u.name,proveedor:"manual",ts:new Date().toISOString()});}catch(e){}
               }
+              try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}
               onLogin(u);
             }} style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:9,padding:"11px",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",marginBottom:8}}>🗳️ ENTRAR Y PARTICIPAR</motion.button>
           <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
