@@ -3388,14 +3388,17 @@ export default function App(){
     }).catch(()=>{});
   };
   const handleVote=async(id:string)=>{
-    if(!user?.id)return;
+    // Leer user.id directo de localStorage — no depender del estado de React
+    let uid:string|null=user?.id||null;
+    try{const s=localStorage.getItem("silao360_user");if(s){const p=JSON.parse(s);if(p?.id)uid=p.id;}}catch(e){}
+    if(!uid)return;
     // Candado 1: estado en memoria
     if(myVote)return;
     // Candado 2: localStorage
     try{const votoLocal=localStorage.getItem("silao360_mivoto");if(votoLocal)return;}catch(e){}
     // Candado 3: Supabase
     try{
-      const rows:any[]=await sbQuery("usuarios",{select:"voto_partido",filters:[{col:"id",op:"eq",val:user.id}],limit:1});
+      const rows:any[]=await sbQuery("usuarios",{select:"voto_partido",filters:[{col:"id",op:"eq",val:uid}],limit:1});
       if(Array.isArray(rows)&&rows.length>0&&rows[0].voto_partido)return;
     }catch(e){}
     // Si pasó los 3 candados — registrar voto
@@ -3406,7 +3409,7 @@ export default function App(){
     fetch(`${SUPABASE_URL}/rest/v1/rpc/cambiar_voto`,{
       method:"POST",
       headers:H,
-      body:JSON.stringify({p_partido_nuevo:sbNuevo,p_partido_anterior:null,p_user_id:user.id})
+      body:JSON.stringify({p_partido_nuevo:sbNuevo,p_partido_anterior:null,p_user_id:uid})
     }).then(()=>recargarVotos()).catch(()=>{});
   };
   const saveUser=(u)=>{setUser(u);try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}};
