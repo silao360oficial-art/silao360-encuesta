@@ -725,11 +725,7 @@ function Header({total,user,onLoginClick,onLogoClick,onLogout,siteLogo}){
           {user?(
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
               <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:16,fontWeight:900,color:"#111",letterSpacing:1,lineHeight:1}}>🎭 {user.nickname}</span>
-              <div style={{position:"relative",display:"inline-block"}}>
-                {/* LED exterior giratorio */}
-                <div style={{position:"absolute",inset:-3,borderRadius:10,background:"conic-gradient(from 0deg,#22c55e,#4ade80,transparent,#16a34a,transparent,#22c55e)",animation:"ledSpin 1.8s linear infinite",zIndex:0,opacity:0.9}}/>
-                <button onClick={onLogout} style={{position:"relative",zIndex:1,background:"linear-gradient(135deg,#16a34a,#15803d)",border:"2px solid #4ade80",borderRadius:8,fontSize:16,color:"#fff",fontWeight:900,cursor:"pointer",letterSpacing:1.5,fontFamily:"Barlow Condensed,sans-serif",padding:"4px 12px",boxShadow:"0 0 14px rgba(34,197,94,0.6),0 0 28px rgba(34,197,94,0.3)"}}>✕ SALIR</button>
-              </div>
+              <button onClick={onLogout} style={{background:"#16a34a",border:"none",borderRadius:8,fontSize:16,color:"#fff",fontWeight:900,cursor:"pointer",letterSpacing:1.5,fontFamily:"Barlow Condensed,sans-serif",padding:"4px 12px"}}>✕ SALIR</button>
             </div>
           ):(
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end"}}>
