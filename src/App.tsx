@@ -447,7 +447,7 @@ function OnboardingModal({onComplete,onSkip}){
   const go=()=>{if(!name.trim())return;setLoading(true);setTimeout(()=>{setNickname(genNickname(name.trim()));setLoading(false);setStep(3);},900);};
   return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{position:"fixed",inset:0,zIndex:500,background:"linear-gradient(160deg,#0f172a,#1e1b4b,#0f172a)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <button onClick={onSkip} style={{position:"fixed",top:14,right:14,zIndex:600,background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"2px solid #f87171",borderRadius:14,padding:"10px 18px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,boxShadow:"0 4px 16px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",gap:6}}>✕ SALIR</button>
+      <button onClick={onSkip} style={{position:"fixed",top:14,right:14,zIndex:600,background:"#16a34a",border:"none",borderRadius:14,padding:"10px 18px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>✕ SALIR</button>
       <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}} transition={{type:"spring",stiffness:260,damping:20}}
         style={{background:"rgba(255,255,255,0.05)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:24,padding:"28px 22px",maxWidth:360,width:"100%"}}>
         <div style={{textAlign:"center",marginBottom:20}}>
@@ -574,7 +574,7 @@ function LoginModal({onLogin,onClose}){
   return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.85)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
       {/* SALIR grande arriba */}
-      <button onClick={onClose} style={{position:"absolute",top:16,right:16,background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"2px solid #f87171",borderRadius:14,padding:"10px 18px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,boxShadow:"0 4px 16px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",gap:6,zIndex:10}}>✕ SALIR</button>
+      <button onClick={onClose} style={{position:"absolute",top:16,right:16,background:"#16a34a",border:"none",borderRadius:14,padding:"10px 18px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,display:"flex",alignItems:"center",gap:6,zIndex:10}}>✕ SALIR</button>
       <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}} style={{background:"#fff",borderRadius:18,padding:"24px 20px",maxWidth:340,width:"100%",position:"relative",overflow:"hidden"}}>
         {/* Bar light top */}
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,#e01010,#7c3aed,#3b82f6,#10b981,#e01010)",backgroundSize:"200% 100%",animation:"barLights 2s linear infinite"}}/>
@@ -584,7 +584,7 @@ function LoginModal({onLogin,onClose}){
             <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&name.trim()&&go()} placeholder="Tu nombre completo" style={{width:"100%",background:"#f5f5f5",border:"1.5px solid #e0e0e0",borderRadius:9,padding:"10px 12px",fontSize:16,outline:"none",marginBottom:8}}/>
             <motion.button whileTap={{scale:0.96}} onClick={go} disabled={!name.trim()} style={{width:"100%",background:name.trim()?"#1877f2":"#e0e0e0",border:"none",borderRadius:9,padding:"11px",color:name.trim()?"#fff":"#aaa",fontSize:16,fontWeight:700,cursor:name.trim()?"pointer":"default"}}>GENERAR MI APODO →</motion.button>
           </>}
-          <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",marginTop:10,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
+          <button onClick={onClose} style={{width:"100%",background:"#16a34a",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",marginTop:10,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ SALIR</button>
         </>):(<>
           <div style={{textAlign:"center",marginBottom:12}}><div style={{fontSize:34,marginBottom:6}}>🎭</div><div style={{fontSize:16,color:"#111",fontWeight:800,letterSpacing:2,marginBottom:5}}>TU APODO SERÁ</div><div style={{fontSize:17,fontWeight:900,background:"#f3f4f6",borderRadius:10,padding:"10px 12px",marginBottom:6,fontFamily:"Barlow Condensed,sans-serif"}}>{nickname}</div></div>
           <motion.button whileTap={{scale:0.96}} onClick={async()=>{
@@ -603,7 +603,7 @@ function LoginModal({onLogin,onClose}){
               try{localStorage.setItem("silao360_user",JSON.stringify(u));}catch(e){}
               onLogin(u);
             }} style={{width:"100%",background:"linear-gradient(135deg,#e01010,#8a0000)",border:"none",borderRadius:9,padding:"11px",color:"#fff",fontSize:16,fontWeight:800,cursor:"pointer",marginBottom:8}}>🗳️ ENTRAR Y PARTICIPAR</motion.button>
-          <button onClick={onClose} style={{width:"100%",background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ CANCELAR / SALIR</button>
+          <button onClick={onClose} style={{width:"100%",background:"#16a34a",border:"none",borderRadius:10,padding:"11px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>✕ SALIR</button>
         </>)}
       </motion.div>
     </motion.div>
@@ -721,18 +721,11 @@ function Header({total,user,onLoginClick,onLogoClick,onLogout,siteLogo}){
             </div>
           </motion.button>
 
-          {/* RIGHT: nickname o slogan */}
-          {user?(
-            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
-              <span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:16,fontWeight:900,color:"#111",letterSpacing:1,lineHeight:1}}>🎭 {user.nickname}</span>
-              <button onClick={onLogout} style={{background:"#16a34a",border:"none",borderRadius:8,fontSize:16,color:"#fff",fontWeight:900,cursor:"pointer",letterSpacing:1.5,fontFamily:"Barlow Condensed,sans-serif",padding:"4px 12px"}}>✕ SALIR</button>
-            </div>
-          ):(
-            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end"}}>
-              <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:18,fontWeight:900,color:"#e01010",letterSpacing:3,lineHeight:1}}>LA VOZ</div>
-              <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:18,fontWeight:900,color:"#1d4ed8",letterSpacing:3,lineHeight:1}}>CIUDADANA</div>
-            </div>
-          )}
+          {/* RIGHT: nickname + SALIR siempre visible */}
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
+            {user&&<span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:16,fontWeight:900,color:"#111",letterSpacing:1,lineHeight:1}}>🎭 {user.nickname}</span>}
+            <button onClick={onLogout} style={{background:"#16a34a",border:"none",borderRadius:8,fontSize:16,color:"#fff",fontWeight:900,cursor:"pointer",letterSpacing:1.5,fontFamily:"Barlow Condensed,sans-serif",padding:"4px 12px"}}>✕ SALIR</button>
+          </div>
         </div>
 
         {/* FILA 2: reloj grande | fb | votos en vivo */}
@@ -2883,7 +2876,7 @@ function AdminPanel({candidates,setCandidates,siteLogo,setSiteLogo,heroImages,se
               </div>
               <div style={{fontSize:16,color:"rgba(196,181,253,0.5)",marginTop:2,fontFamily:"Barlow Condensed,sans-serif"}}>{new Date().toLocaleDateString("es-MX",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
             </div>
-            <motion.button whileTap={{scale:0.95}} onClick={onClose} style={{background:"linear-gradient(135deg,#dc2626,#7f1d1d)",border:"2px solid #f87171",borderRadius:10,padding:"12px 24px",color:"#fff",fontSize:16,cursor:"pointer",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,boxShadow:"0 4px 14px rgba(220,38,38,0.5)"}}>🚪 SALIR</motion.button>
+            <motion.button whileTap={{scale:0.95}} onClick={onClose} style={{background:"#16a34a",border:"none",borderRadius:10,padding:"12px 24px",color:"#fff",fontSize:16,cursor:"pointer",fontWeight:900,fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1}}>🚪 SALIR</motion.button>
           </div>
           {/* Sin bloque de apodo — más espacio y salida libre */}
           {/* Tabs */}
