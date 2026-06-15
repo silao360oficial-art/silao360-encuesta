@@ -724,7 +724,7 @@ function Header({total,user,onLoginClick,onLogoClick,onLogout,siteLogo}){
           {/* RIGHT: nickname + SALIR siempre visible */}
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
             {user&&<span style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:16,fontWeight:900,color:"#111",letterSpacing:1,lineHeight:1}}>🎭 {user.nickname}</span>}
-            <button onClick={onLogout} style={{background:"#16a34a",border:"none",borderRadius:8,fontSize:16,color:"#fff",fontWeight:900,cursor:"pointer",letterSpacing:1.5,fontFamily:"Barlow Condensed,sans-serif",padding:"4px 12px"}}>✕ SALIR</button>
+            <button onClick={()=>window.location.href="https://www.google.com"} style={{background:"#16a34a",border:"none",borderRadius:8,fontSize:16,color:"#fff",fontWeight:900,cursor:"pointer",letterSpacing:1.5,fontFamily:"Barlow Condensed,sans-serif",padding:"4px 12px"}}>✕ SALIR</button>
           </div>
         </div>
 
