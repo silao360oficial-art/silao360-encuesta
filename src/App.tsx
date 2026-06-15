@@ -447,7 +447,7 @@ function OnboardingModal({onComplete,onSkip}){
   const go=()=>{if(!name.trim())return;setLoading(true);setTimeout(()=>{setNickname(genNickname(name.trim()));setLoading(false);setStep(3);},900);};
   return(
     <motion.div initial={{opacity:0}} animate={{opacity:1}} style={{position:"fixed",inset:0,zIndex:500,background:"linear-gradient(160deg,#0f172a,#1e1b4b,#0f172a)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <button onClick={onSkip} style={{position:"fixed",top:14,right:14,zIndex:600,background:"#16a34a",border:"none",borderRadius:14,padding:"10px 18px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>✕ SALIR</button>
+      <button onClick={()=>window.location.href="https://www.google.com"} style={{position:"fixed",top:14,right:14,zIndex:600,background:"#16a34a",border:"none",borderRadius:14,padding:"10px 18px",color:"#fff",fontSize:16,fontWeight:900,cursor:"pointer",fontFamily:"Barlow Condensed,sans-serif",letterSpacing:1,display:"flex",alignItems:"center",gap:6}}>✕ SALIR</button>
       <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}} transition={{type:"spring",stiffness:260,damping:20}}
         style={{background:"rgba(255,255,255,0.05)",backdropFilter:"blur(20px)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:24,padding:"28px 22px",maxWidth:360,width:"100%"}}>
         <div style={{textAlign:"center",marginBottom:20}}>
@@ -1782,7 +1782,7 @@ function VoteScreen({votes,total,myVote,onVote,user,onLoginClick,onLogoClick,onL
             style={{background:"#fff",borderRadius:20,padding:"24px 20px",maxWidth:320,width:"100%",textAlign:"center",border:"3px solid #f59e0b"}}>
             <div style={{fontSize:40,marginBottom:10}}>⚠️</div>
             <div style={{fontSize:17,fontWeight:900,color:"#92400e",fontFamily:"Barlow Condensed,sans-serif",marginBottom:8,letterSpacing:1}}>¿CAMBIAR TU VOTO?</div>
-            <div style={{fontSize:16,color:"#6b7280",marginBottom:16,lineHeight:1.6}}>Si confirmas, <strong style={{color:"#e01010"}}>tu voto anterior se cancela</strong> y se registra el nuevo. Las estadísticas se actualizan. Puedes cambiar cuantas veces quieras.</div>
+            <div style={{fontSize:16,color:"#6b7280",marginBottom:16,lineHeight:1.6}}>Si confirmas, <strong style={{color:"#e01010"}}>tu voto anterior se cancela</strong> y se registra el nuevo. <strong style={{color:"#d97706"}}>⚠️ Cambiarás las estadísticas.</strong> Puedes cambiar cuantas veces quieras.</div>
             <div style={{display:"flex",gap:8}}>
               <button onClick={()=>{setShowChangeWarning(false);setPendingVote(null);}} style={{flex:1,background:"#f3f4f6",border:"none",borderRadius:10,padding:"12px",color:"#374151",fontSize:16,fontWeight:700,cursor:"pointer"}}>MANTENER MI VOTO</button>
               <motion.button whileTap={{scale:0.96}} onClick={()=>{
@@ -1919,8 +1919,7 @@ function ProposalsScreen({user,onLoginClick,onLogoClick,onLogout,total,proposals
     {e:"💡",label:"Alumbrado"},{e:"🚌",label:"Transporte"},{e:"🏥",label:"Salud"},{e:"📚",label:"Educación"},
     {e:"💼",label:"Empleo"},{e:"🧾",label:"Corrupción"},{e:"🙏",label:"Otro"},
   ];
-  const doVote=(pid,tipo)=>{if(!user){playSound("click");onLoginClick();return;}const p=proposals.find(x=>x.id===pid);if(p?.miVoto===tipo)return;if(p?.miVoto){setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,[x.miVoto]:x[x.miVoto]-1,miVoto:tipo};}));}else{playSound("vote");setConfirmVote({pid,tipo});}};
-  const confirmAndVote=()=>{if(!confirmVote)return;const{pid,tipo}=confirmVote;setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,miVoto:tipo};}));playSound("success");setConfirmVote(null);};
+  const doVote=(pid,tipo)=>{if(!user){playSound("click");onLoginClick();return;}const p=proposals.find(x=>x.id===pid);if(p?.miVoto===tipo)return;if(p?.miVoto){setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,[x.miVoto]:x[x.miVoto]-1,miVoto:tipo};}));}else{playSound("vote");setConfirmVote({pid,tipo});}};\n  const confirmAndVote=()=>{if(!confirmVote)return;const{pid,tipo}=confirmVote;setProposals(prev=>prev.map(x=>{if(x.id!==pid)return x;return{...x,[tipo]:x[tipo]+1,miVoto:tipo};}));playSound("success");setConfirmVote(null);};
   const addProp=()=>{if(!newProp.trim())return;const newP={id:"p"+Date.now(),emoji:newPropEmoji,titulo:newProp.trim(),desc:`Propuesta de ${user?.nickname||"ciudadano"}`,si:1,no:0,miVoto:"si",autor:user?.nickname||"Ciudadano"};setProposals(prev=>[newP,...prev]);sb.from("propuestas").insert({emoji:newP.emoji,titulo:newP.titulo,descripcion:newP.desc,si:1,no:0,autor:newP.autor}).catch(()=>{});setNewProp("");setNewPropEmoji("🙏");setShowForm(false);playSound("success");};
   const deleteProp=async(pid)=>{setProposals(prev=>prev.filter(x=>x.id!==pid));await sb.from("propuestas").delete().eq("id",String(pid)).catch(()=>{});};
   const pending=confirmVote?proposals.find(x=>x.id===confirmVote.pid):null;
